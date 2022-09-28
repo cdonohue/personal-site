@@ -2,13 +2,18 @@ import React from 'react'
 
 import styles from './Spacer.module.css'
 import Box from '../Box'
+import { LayoutComponentProps } from '../types'
 
-const Spacer = React.forwardRef(({ children, className, ...props }, ref) => {
-  const forwardedProps = {
-    ...props,
-    className: `${styles.spacer} ${className}`.trim(),
+type Props = LayoutComponentProps
+
+const Spacer = React.forwardRef(
+  ({ children, className, ...props }: Props, ref) => {
+    const forwardedProps = {
+      ...props,
+      className: `${styles.spacer} ${className}`.trim(),
+    }
+    return <Box {...forwardedProps}>{children}</Box>
   }
-  return <Box {...forwardedProps}>{children}</Box>
-})
+)
 
 export default Spacer
