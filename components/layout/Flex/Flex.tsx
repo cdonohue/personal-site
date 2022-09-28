@@ -14,9 +14,9 @@ export type Justification =
   | 'space-between'
 
 type Props = LayoutComponentProps & {
-  align: Alignment
-  direction: Direction
-  justify: Justification
+  align: string
+  direction: string
+  justify: string
   gap: string
   wrap: boolean
   inline: boolean
