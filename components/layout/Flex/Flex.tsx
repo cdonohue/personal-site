@@ -14,12 +14,12 @@ export type Justification =
   | 'space-between'
 
 type Props = LayoutComponentProps & {
-  align: string
-  direction: string
-  justify: string
-  gap: string
-  wrap: boolean
-  inline: boolean
+  align?: string
+  direction?: string
+  justify?: string
+  gap?: string
+  wrap?: boolean
+  inline?: boolean
 }
 
 const Flex = React.forwardRef(
