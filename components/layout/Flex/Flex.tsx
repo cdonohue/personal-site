@@ -2,6 +2,7 @@ import React from 'react'
 
 import styles from './Flex.module.css'
 import Box from '../Box'
+import { LayoutComponentProps } from '../types'
 
 export type Alignment = 'start' | 'end' | 'center' | 'stretch' | 'baseline'
 type Direction = 'column' | 'row'
@@ -11,6 +12,15 @@ export type Justification =
   | 'center'
   | 'space-around'
   | 'space-between'
+
+type Props = LayoutComponentProps & {
+  align: Alignment
+  direction: Direction
+  justify: Justification
+  gap: string
+  wrap: boolean
+  inline: boolean
+}
 
 const Flex = React.forwardRef(
   (
@@ -25,7 +35,7 @@ const Flex = React.forwardRef(
       wrap = false,
       inline = false,
       ...props
-    },
+    }: Props,
     ref
   ) => {
     const forwardedProps = {
