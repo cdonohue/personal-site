@@ -1,0 +1,12 @@
+.container {
+  box-sizing: content-box;
+  margin-inline: auto;
+  max-inline-size: var(--container-max-width);
+  padding-inline: var(--container-gutter);
+}
+
+@supports not (max-inline-size: var(--container-max-width)) {
+  .container {
+    max-width: var(--container-max-width);
+  }
+}

@@ -1,0 +1,30 @@
+.nav {
+  background-image: conic-gradient(
+    from -90deg at 50% -25%,
+    var(--blue-8),
+    var(--indigo-9)
+  );
+  padding: var(--size-fluid-4);
+  color: #fff;
+  font-size: var(--font-size-fluid-1);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  position: relative;
+  box-shadow: var(--shadow-2);
+}
+
+.nav a,
+.nav a:visited {
+  color: #fff;
+  text-decoration: none;
+}
+
+.navLink {
+  color: #fff;
+  text-decoration: none;
+}
+
+.navLink:hover {
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}

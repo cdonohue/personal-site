@@ -1,0 +1,78 @@
+.experienceCard {
+  width: 100%;
+}
+
+.company {
+  font-size: var(--font-size-fluid-2);
+  font-weight: var(--font-weight-4);
+}
+
+.title {
+  color: var(--text-2);
+  font-size: var(--font-size-fluid-1);
+  font-weight: var(--font-weight-2);
+}
+
+.tenure span {
+  max-inline-size: 100%;
+  font-size: var(--font-size-fluid-0);
+  /* padding-block: var(--size-fluid-1);
+  border-top: var(--border-size-1) solid var(--surface-2);
+  border-bottom: var(--border-size-1) solid var(--surface-2); */
+}
+
+.tenureLength {
+  color: var(--text-2);
+  font-size: var(--font-size-fluid-0);
+  font-weight: var(--font-weight-2);
+}
+
+.summary {
+  padding-inline-start: var(--size-fluid-2);
+  position: relative;
+}
+
+.summary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  border-radius: var(--radius-round);
+  background-color: var(--surface-2);
+}
+
+.summary h3 {
+  font-size: var(--font-size-fluid-1);
+  padding-block-end: var(--size-1);
+  margin-block-end: var(--size-2);
+  position: relative;
+}
+
+/* .summary h3::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--font-size-fluid-1) / 2);
+  left: calc(var(--size-fluid-2) * -1);
+  border-radius: var(--radius-round);
+  height: 2px;
+  width: var(--size-fluid-1);
+  background-color: var(--theme);
+} */
+
+.summary h3::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(to right, var(--surface-2), var(--surface-1));
+}
+
+.summary p {
+  font-size: var(--font-size-fluid-0);
+  font-weight: var(--font-weight-3);
+  padding-block-end: var(--size-fluid-2);
+}
