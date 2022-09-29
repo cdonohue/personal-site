@@ -18,7 +18,14 @@ export default function Index() {
           <p>I build user experiences and lead engineering teams.</p>
         </PageHeader>
 
-        <Container>
+        <Container
+          style={{
+            opacity: 0,
+            animation:
+              'var(--animation-fade-in) forwards, slide-in 0.2s var(--ease-squish-1)',
+            animationDelay: '.15s',
+          }}
+        >
           <VStack alignment="leading" gap="var(--size-fluid-2)" className="p-4">
             <p>
               I enjoy focusing on the user and understanding problems at the

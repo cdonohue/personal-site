@@ -10,6 +10,12 @@ const ExperienceCard = ({ experience, index }) => {
       className={styles.experienceCard}
       gap="var(--size-fluid-1)"
       alignment="stretch"
+      style={{
+        opacity: 0,
+        animation:
+          'var(--animation-fade-in) forwards, slide-in 0.2s var(--ease-squish-1)',
+        animationDelay: `${index * 0.15}s`,
+      }}
     >
       <HStack gap="var(--size-2)" className={styles.company}>
         {experience.company}{' '}
