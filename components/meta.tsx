@@ -35,6 +35,7 @@ const Meta = () => {
         name="description"
         content="Software engineer and interface designer."
       />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
     </Head>
   )
 }
