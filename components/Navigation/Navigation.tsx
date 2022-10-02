@@ -1,4 +1,8 @@
+import * as Icons from '@radix-ui/react-icons'
 import Link from 'next/link'
+import Icon from '../Icon'
+import Cluster from '../layout/Cluster'
+import Flex from '../layout/Flex'
 import HStack from '../layout/HStack'
 import Spacer from '../layout/Spacer'
 
@@ -11,35 +15,27 @@ const navigationLinks = [
 
 const Navigation = () => {
   return (
-    <HStack className={styles.nav}>
-      <Link href="/" passHref>
-        <HStack
-          gap="var(--size-2)"
-          alignment="center"
-          className={styles.navLink}
-        >
+    <Cluster as="nav" className={styles.nav} gap="var(--size-fluid-1)">
+      <Link href="/">
+        <HStack as="a" gap="var(--size-2)">
           <img
-            style={{
-              width: '2rem',
-              height: '2rem',
-              borderRadius: '9999px',
-              boxShadow: 'var(--shadow-2)',
-            }}
             src="/assets/avatar-pic.jpg"
+            style={{
+              borderRadius: 'var(--radius-round)',
+              boxShadow: 'var(--shadow-1)',
+              width: '2rem',
+            }}
           />
-          <span>Chad Donohue</span>
+          Home
         </HStack>
       </Link>
       <Spacer />
-      <HStack gap="1rem">
-        {navigationLinks.map((link) => (
-          <Link key={link.href} href={link.href} className={styles.navLink}>
-            {link.label}
-            {/* <Icon variant={link.icon} label={link.label} /> */}
-          </Link>
-        ))}
-      </HStack>
-    </HStack>
+      {navigationLinks.map((link) => (
+        <Link key={link.href} href={link.href} className={styles.navLink}>
+          <a>{link.label}</a>
+        </Link>
+      ))}
+    </Cluster>
   )
 }
 

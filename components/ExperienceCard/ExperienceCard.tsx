@@ -3,6 +3,7 @@ import VStack from '../layout/VStack'
 import styles from './ExperienceCard.module.css'
 import { dateDifference, dateFormat } from '../../lib/dateHelpers'
 import * as Icons from '@radix-ui/react-icons'
+import Icon from '../Icon'
 
 const ExperienceCard = ({ experience, index }) => {
   return (
@@ -17,16 +18,21 @@ const ExperienceCard = ({ experience, index }) => {
         animationDelay: `${index * 0.15}s`,
       }}
     >
-      <HStack gap="var(--size-2)" className={styles.company}>
-        {experience.company}{' '}
-        <a target="_blank" href={experience.website}>
-          <Icons.ExternalLinkIcon />
+      <HStack gap="var(--size-4)" className={styles.company}>
+        <span>{experience.company}</span>
+        <a
+          target="_blank"
+          href={experience.website}
+          className={styles.companyWebsiteLink}
+        >
+          Visit Site
         </a>
       </HStack>
       <p className={styles.title}>{experience.title}</p>
       <HStack gap="var(--size-2)" className={styles.tenure}>
-        <Icons.CalendarIcon />
-
+        <div className={styles.calendarIcon}>
+          <Icons.CalendarIcon />
+        </div>
         <span>
           {dateFormat(experience.startDate)} -{' '}
           {experience.endDate ? dateFormat(experience.endDate) : 'present'}{' '}

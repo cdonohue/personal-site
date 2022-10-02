@@ -7,7 +7,7 @@ website: 'https://www.webflow.com'
 
 ### Memberships
 
-Served as tech lead to scope, build, and ship features that allow designers to create complex [membership flows](https://webflow.com/memberships) (sign in, sign up, etc) from a no-code perspective. This project opened up a whole new use case for Webflow built pages including user personalization, paid content, and content gating.
+Served as tech lead to scope, build, and ship features that allow designers to create complex [membership flows](https://webflow.com/memberships) (sign in, sign up, password reset) from a no-code perspective. This project opened up new use cases for Webflow built pages including user personalization, paid content customization, and content gating.
 
 ### Platform development
 

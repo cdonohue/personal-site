@@ -2,8 +2,15 @@
 @import 'open-props/normalize';
 
 :root {
-  --theme: var(--blue-7);
+  --theme: var(--indigo-5);
   --theme-lighter: var(--blue-6);
+  --link-color: var(--indigo-7);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --link-color: var(--indigo-4);
+  }
 }
 
 a,
@@ -11,18 +18,20 @@ a:visited {
   position: relative;
   overflow: hidden;
   text-decoration: none;
-  color: var(--theme);
+  color: var(--link-color);
+  font-weight: var(--font-weight-7);
 }
 
-a::after {
+:not(nav) a::after,
+:not(footer) a::after {
   content: '';
   position: absolute;
   z-index: -1;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 50%;
-  opacity: 0.2;
+  bottom: 2px;
+  left: 1px;
+  right: 1px;
+  height: 2px;
+  border-radius: var(--radius-round);
   background-color: var(--theme-lighter);
   transform: scale3d(0, 1, 1);
   transform-origin: 0% 50%;
