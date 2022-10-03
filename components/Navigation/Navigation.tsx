@@ -7,6 +7,7 @@ import HStack from '../layout/HStack'
 import Spacer from '../layout/Spacer'
 
 import styles from './Navigation.module.css'
+import NavLink from './NavLink'
 
 const navigationLinks = [
   { href: '/experience', label: 'Experience' },
@@ -16,8 +17,8 @@ const navigationLinks = [
 const Navigation = () => {
   return (
     <Cluster as="nav" className={styles.nav} gap="var(--size-fluid-1)">
-      <Link href="/">
-        <HStack as="a" gap="var(--size-2)">
+      <NavLink href="/">
+        <HStack data-nav-link gap="var(--size-2)">
           <img
             src="/assets/avatar-pic.jpg"
             style={{
@@ -28,12 +29,12 @@ const Navigation = () => {
           />
           Home
         </HStack>
-      </Link>
+      </NavLink>
       <Spacer />
       {navigationLinks.map((link) => (
-        <Link key={link.href} href={link.href} className={styles.navLink}>
-          <a>{link.label}</a>
-        </Link>
+        <NavLink key={link.href} href={link.href} className={styles.navLink}>
+          {link.label}
+        </NavLink>
       ))}
     </Cluster>
   )

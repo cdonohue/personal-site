@@ -2,6 +2,7 @@ import {
   GitHubLogoIcon,
   LinkedInLogoIcon,
   TwitterLogoIcon,
+  EnvelopeClosedIcon,
 } from '@radix-ui/react-icons'
 import Icon from '../Icon'
 import Container from '../layout/Container'
@@ -11,6 +12,7 @@ import VStack from '../layout/VStack'
 import styles from './Footer.module.css'
 
 const socialLinks = [
+  { href: 'mailto:chad.donohue@gmail.com', icon: EnvelopeClosedIcon },
   { href: 'https://github.com/cdonohue', icon: GitHubLogoIcon },
   {
     href: 'https://www.linkedin.com/in/chaddonohue',
@@ -27,7 +29,12 @@ const Footer = () => {
           <span>Copyright © 2022 Chad Donohue</span>
           <HStack gap="var(--size-fluid-1)">
             {socialLinks.map((link) => (
-              <a target="_blank" href={link.href} className={styles.socialLink}>
+              <a
+                data-footer-link
+                target="_blank"
+                href={link.href}
+                className={styles.socialLink}
+              >
                 <link.icon />
               </a>
             ))}

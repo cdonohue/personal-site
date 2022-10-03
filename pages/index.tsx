@@ -28,13 +28,14 @@ export default function Index() {
         >
           <VStack alignment="leading" gap="var(--size-fluid-2)" className="p-4">
             <p>
-              I enjoy focusing on the user and understanding problems at the
-              intersection of design, product, and engineering.
+              I've worked in the software engineering space for over 14 years
+              and enjoy being part of a team that solves problems together.
             </p>
             <p>
-              I've worked in the software engineering space for over 14 years
-              and appreciate being part of a team and writing software together.
+              I love to focus on the user and work to solve problems at the
+              intersection of product, design, and engineering.
             </p>
+
             <p>
               You can read about my previous experience{' '}
               <Link href="/experience">here</Link>.

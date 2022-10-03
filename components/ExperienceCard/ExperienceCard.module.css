@@ -4,7 +4,6 @@
 
 .company {
   color: var(--text-1);
-  border-bottom: var(--border-size-1) solid var(--surface-2);
 }
 
 .company span {
