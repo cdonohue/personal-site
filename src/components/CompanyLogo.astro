@@ -1,0 +1,9 @@
+---
+export interface Props {
+  name: 'home' | 'info' | 'wrench'
+}
+
+const { name } = Astro.props
+---
+
+<Fragment set:html={innerHTML} />

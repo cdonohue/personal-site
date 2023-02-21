@@ -1,0 +1,91 @@
+---
+import Icon from './Icon.astro'
+
+const { pathname } = Astro.url
+---
+
+<div>
+  <nav>
+    <ul>
+      <li class:list={[{ active: pathname === '/' }]}>
+        <a href="/"><Icon name="home" label="Home" /></a>
+      </li>
+      <li class:list={[{ active: pathname === '/about' }]}>
+        <a href="/about"><Icon name="clipboard" label="About" /></a>
+      </li>
+      <!-- <li class:list={[{ active: pathname === '/uses' }]}>
+        <a href="/uses"><Icon name="settings" label="Uses" /></a>
+      </li> -->
+    </ul>
+  </nav>
+</div>
+
+<style>
+  div {
+    display: grid;
+    align-items: center;
+  }
+
+  nav {
+    display: inline-block;
+    /* background-color: var(--surface-3); */
+    /* border: 1px solid var(--surface-3); */
+    /* box-shadow: inset 0 2px 0 rgb(var(--dark-raw) / 0.2), */
+    /* inset 0 2px 8px rgb(var(--dark-raw) / 0.12); */
+    margin-inline: auto;
+    border-radius: 9999px;
+  }
+
+  nav > ul {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    list-style-type: none;
+    gap: var(--space-s);
+    flex-wrap: wrap;
+    padding-inline: var(--space-m);
+  }
+
+  li {
+    position: relative;
+    display: grid;
+    padding-block: var(--space-2xs);
+  }
+
+  li.active::before {
+    content: '';
+    position: absolute;
+    display: block;
+    place-self: center;
+    background-color: var(--color-accent);
+    height: 4px;
+    width: 60%;
+    bottom: 1px;
+    border-radius: 9999px;
+  }
+
+  ul > li > a[href] {
+    display: inline-flex;
+    gap: var(--space-2xs);
+    color: var(--color-fg-muted);
+    text-decoration: none;
+    font-size: var(--size-step-0);
+    transition: all 0.2s ease-in-out;
+    align-items: center;
+  }
+
+  ul > li > a[href]:hover,
+  ul > li.active > a[href] {
+    color: var(--color-fg);
+  }
+
+  ul > li.active > a[href] {
+    --icon-accent: var(--color-fg);
+  }
+
+  .spacer {
+    flex-grow: 1;
+  }
+</style>

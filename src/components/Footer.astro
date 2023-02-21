@@ -1,0 +1,45 @@
+---
+import Waves from './Waves.astro'
+---
+
+<footer class="region">
+  <div class="wrapper prose">
+    <ul>
+      <li><a href="https://www.github.com/cdonohue">Github</a></li>
+      <li><a href="https://www.twitter.com/chaddonohue">Twitter</a></li>
+      <li>
+        <a href="https://www.linkedin.com/in/chaddonohue/">LinkedIn</a>
+      </li>
+    </ul>
+    <div>Copyright © 2023 Chad Donohue</div>
+  </div>
+</footer>
+<style>
+  footer {
+    font-size: var(--size-step--1);
+    color: var(--color-fg-muted);
+  }
+
+  footer > div {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    display: flex;
+    gap: var(--space-xs);
+  }
+
+  ul li a[href] {
+    text-decoration: none;
+    color: var(--color-fg-muted);
+    transition: all 0.2s ease-in-out;
+  }
+
+  a[href]:hover {
+    color: var(--color-fg);
+  }
+</style>

@@ -1,0 +1,115 @@
+---
+interface Frontmatter {
+  companyName: string
+  title: string
+  startDate: string
+  endDate?: string
+  website: string
+  slug: string
+}
+
+import CompanyLogo from '../logos/CompanyLogo.astro'
+const experience = (
+  await Astro.glob<Frontmatter>('../md/experience/*.md')
+).sort(
+  (a, b) =>
+    new Date(b.frontmatter.startDate) - new Date(a.frontmatter.startDate)
+)
+
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  year: 'numeric',
+  month: 'short',
+})
+---
+
+<div class="experience-card">
+  {
+    experience.map((company, i) => (
+      <div class="experience-entry">
+        <div class="company-info">
+          <div class="companyName">
+            <a href={`/about/${company.frontmatter.slug}`}>
+              {company.frontmatter.companyName}
+            </a>
+          </div>
+          <div class="title">{company.frontmatter.title}</div>
+          <div class="tenure">
+            {dateFormatter.format(new Date(company.frontmatter.startDate))} -{' '}
+            {company.frontmatter.endDate
+              ? dateFormatter.format(new Date(company.frontmatter.endDate))
+              : 'present'}
+          </div>
+        </div>
+      </div>
+    ))
+  }
+</div>
+<style>
+  .experience-card {
+    position: relative;
+    /* padding-inline-start: calc(var(--space-m) + 1); */
+  }
+
+  /* .experience-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 2px;
+    top: 50px;
+    bottom: 50px;
+    background-color: var(--surface-2);
+  } */
+
+  .logo {
+    background-color: var(--surface-2);
+    color: var(--surface-4);
+    display: grid;
+    place-items: center;
+    border-radius: 9999px;
+    width: var(--space-m);
+    height: var(--space-m);
+  }
+
+  .experience-entry {
+    display: flex;
+    gap: var(--space-s);
+    padding-block: var(--space-s);
+  }
+
+  /* .wrap {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    flex-grow: 1;
+  } */
+
+  /* .experience-entry::before {
+    content: '';
+    position: absolute;
+    width: 6px;
+    left: calc(var(--space-m) * -1);
+    height: 6px;
+    border-radius: 9999px;
+    background-color: var(--surface-3);
+  } */
+
+  .experience-entry:not(:first-child) {
+    border-top: 1px solid var(--surface-2);
+  }
+
+  .company-info {
+    flex-grow: 1;
+  }
+
+  .companyName {
+    font-size: var(--size-step-2);
+  }
+
+  .title {
+    font-size: var(--size-step-1);
+  }
+
+  .tenure {
+    color: var(--color-fg-muted);
+  }
+</style>

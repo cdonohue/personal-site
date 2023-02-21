@@ -1,0 +1,14 @@
+---
+import Nav from './Nav.astro'
+import Waves from './Waves.astro'
+---
+
+<header class="section spot-color-primary">
+  <div class="section__inner">
+    <div class="wrapper flow region">
+      <slot />
+      <Nav />
+    </div>
+  </div>
+  <Waves bottom />
+</header>

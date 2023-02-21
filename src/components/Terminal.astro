@@ -1,0 +1,138 @@
+---
+interface Frontmatter {
+  companyName: string
+  title: string
+  startDate: string
+  endDate?: string
+  website: string
+  slug: string
+}
+
+function shouldPluralize(count: number) {
+  return count > 1
+}
+
+function pluralizeYears(numYears: number) {
+  return shouldPluralize(numYears) ? 'years' : 'year'
+}
+
+function pluralizeMonths(numMonths: number) {
+  return shouldPluralize(numMonths) ? 'months' : 'month'
+}
+
+const experience = (
+  await Astro.glob<Frontmatter>('../md/experience/*.md')
+).sort(
+  (a, b) =>
+    new Date(b.frontmatter.startDate) - new Date(a.frontmatter.startDate)
+)
+
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  year: 'numeric',
+  month: 'short',
+})
+
+function getDateDifference(startDate: string, endDate: string) {
+  const start = new Date(startDate)
+  const end = endDate ? new Date(endDate) : new Date()
+
+  let years = end.getFullYear() - start.getFullYear()
+  let months = end.getMonth() - start.getMonth()
+
+  if (months < 0) {
+    years--
+    months += 12
+  }
+
+  // if (days < 0) {
+  //   months--;
+  //   const lastMonth = new Date(end.getFullYear(), end.getMonth(), 0);
+  //   days += lastMonth.getDate();
+  // }
+  const displayYears = years >= 1 ? `${years} ${pluralizeYears(years)}` : ''
+  const displayMonths =
+    years >= 1
+      ? months % (12 * years) >= 1
+        ? `${months % (12 * years)} ${pluralizeMonths(months % (12 * years))}`
+        : ''
+      : `${months} ${pluralizeMonths(months)}`
+
+  const readableString = `${displayYears}${
+    displayMonths ? `, ${displayMonths}` : ''
+  }`
+  return readableString
+}
+---
+
+<>
+  <div class="terminal flow">
+    <section>
+      <div class="line">%> man chad</div>
+    </section>
+    <section>
+      <div class="line">NAME Chad Donohue - designer/developer/leader</div>
+    </section>
+    <section>
+      <div class="line">
+        DESCRIPTION Chad works with teams to design and develop digital products
+        by working backwards from the user.
+      </div>
+    </section>
+
+    <section>
+      <div class="line">EXPERIENCE</div>
+    </section>
+    {
+      experience.map((company, i) => (
+        <div class="experience-entry">
+          <div class="company-info">
+            <div class="companyName">
+              <a href={`/about/${company.frontmatter.slug}`}>
+                {company.frontmatter.companyName}
+              </a>
+            </div>
+            <div class="title">{company.frontmatter.title}</div>
+            <div class="tenure">
+              {dateFormatter.format(new Date(company.frontmatter.startDate))} -{' '}
+              {company.frontmatter.endDate
+                ? dateFormatter.format(new Date(company.frontmatter.endDate))
+                : 'present'}{' '}
+            </div>
+            <div>{`${getDateDifference(
+              company.frontmatter.startDate,
+              company.frontmatter.endDate
+            )}`}</div>
+          </div>
+        </div>
+      ))
+    }
+  </div>
+  <div class="terminal flow">
+    <section>
+      <div class="line">
+        Download CV -> <a
+          href="https://docs.google.com/document/d/1hyacCoiTXgaPNOLk2wqO8tsGa_PQEpsV_P2vjrevMb4/edit?usp=sharing"
+        >
+          Click here</a
+        >
+      </div>
+    </section>
+  </div>
+</>
+
+<style>
+  .terminal {
+    --flow-space: var(--space-m);
+    font-size: var(--size-step-0);
+    background-color: var(--surface-2);
+    color: var(--color-fg);
+    padding: var(--space-m);
+    border-radius: var(--border-radius);
+    font-family: var(--font-mono);
+    box-shadow: 0 10px 15px -3px rgb(var(--dark-raw) / 0.1),
+      0 4px 6px -4px rgb(var(--dark-raw) / 0.1);
+  }
+  section .line {
+    /* line-height: 0.5; */
+  }
+</style>

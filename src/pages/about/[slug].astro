@@ -1,0 +1,36 @@
+---
+import Icon from '../../components/Icon.astro'
+import PageHeader from '../../components/PageHeader.astro'
+import Layout from '../../layouts/Layout.astro'
+
+export async function getStaticPaths() {
+  const experience = await Astro.glob('../../md/experience/**/*.md')
+
+  return experience.map((company) => ({
+    params: {
+      slug: company.frontmatter.slug,
+    },
+    props: {
+      company,
+    },
+  }))
+}
+
+const { Content, frontmatter } = Astro.props.company
+---
+
+<Layout>
+  <main class="flow">
+    <PageHeader>
+      <h1 class="text-center headline">{frontmatter.companyName}</h1>
+      <h2 class="subtitle text-center">Job history</h2>
+    </PageHeader>
+    <article class="region">
+      <div class="wrapper flow prose">
+        <a href="/about"><Icon name="arrow-backward" label="Back to About" /></a
+        >
+        <Content />
+      </div>
+    </article>
+  </main>
+</Layout>
