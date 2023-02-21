@@ -29,10 +29,10 @@ const { bg, stroke, top, bottom } = Astro.props
       </filter>
     </defs>
     <g class="parallax">
-      <use xlink:href="#wave" x="48" y="0" filter="url(#shadow)"></use>
-      <use xlink:href="#wave" x="48" y="3" filter="url(#shadow)"></use>
+      <use xlink:href="#wave" x="88" y="0" filter="url(#shadow)"></use>
+      <use xlink:href="#wave" x="64" y="3" filter="url(#shadow)"></use>
       <use xlink:href="#wave" x="48" y="5" filter="url(#shadow)"></use>
-      <use xlink:href="#wave" x="48" y="7" filter="url(#shadow)"></use>
+      <use xlink:href="#wave" x="24" y="7" filter="url(#shadow)"></use>
     </g>
   </svg>
 </div>
@@ -87,6 +87,11 @@ const { bg, stroke, top, bottom } = Astro.props
     }
     100% {
       transform: translate3d(85px, 0, 0);
+    }
+  }
+  @media (max-width: 640px) {
+    .parallax > use {
+      animation: none;
     }
   }
 </style>
