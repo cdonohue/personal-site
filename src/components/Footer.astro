@@ -22,6 +22,8 @@ import Waves from './Waves.astro'
 
   footer > div {
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: space-between;
   }
 
@@ -41,5 +43,11 @@ import Waves from './Waves.astro'
 
   a[href]:hover {
     color: var(--color-fg);
+  }
+
+  @media (min-width: 640px) {
+    footer > div {  
+      flex-direction: row;
+    }
   }
 </style>
