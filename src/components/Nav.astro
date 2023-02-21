@@ -10,7 +10,7 @@ const { pathname } = Astro.url
       <li class:list={[{ active: pathname === '/' }]}>
         <a href="/"><Icon name="home" label="Home" /></a>
       </li>
-      <li class:list={[{ active: pathname === '/about' }]}>
+      <li class:list={[{ active: pathname.includes('about') }]}>
         <a href="/about"><Icon name="clipboard" label="About" /></a>
       </li>
       <!-- <li class:list={[{ active: pathname === '/uses' }]}>
