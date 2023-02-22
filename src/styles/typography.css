@@ -82,11 +82,6 @@ blockquote :last-child {
   background: var(--color-primary-glare);
 }
 
-.section__inner {
-  background: var(--spot-color, var(--color-dark));
-  color: var(--color-light);
-}
-
 .section blockquote {
   font-size: var(--size-step-4);
   font-weight: 700;
