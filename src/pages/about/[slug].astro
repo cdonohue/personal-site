@@ -19,7 +19,7 @@ export async function getStaticPaths() {
 const { Content, frontmatter } = Astro.props.company
 ---
 
-<Layout>
+<Layout title={`Job experience - ${frontmatter.companyName}`}>
   <main class="flow">
     <PageHeader>
       <h1 class="text-center headline">{frontmatter.companyName}</h1>
