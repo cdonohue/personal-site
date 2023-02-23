@@ -30,28 +30,27 @@ const { pathname } = Astro.url
     display: inline-block;
     background-color: var(--color-accent-surface-3);
     /* border: 1px solid var(--color-accent-surface-2); */
-    box-shadow: inset 0 2px 0 rgb(var(--dark-raw) / 0.2);
+    box-shadow: inset 0 0 4px rgb(var(--dark-raw) / 0.2);
     margin-inline: auto;
     border-radius: 9999px;
   }
 
   nav > ul {
     margin: 0;
-    padding: 2px;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     list-style-type: none;
-    gap: 0;
+    gap: var(--space-s);
     flex-wrap: wrap;
+    padding-inline: var(--space-m);
   }
 
   li {
     position: relative;
     display: grid;
     padding-block: var(--space-2xs);
-    padding-inline: var(--space-m);
-    border-radius: 9999px;
   }
 
   li.active::before {
@@ -59,8 +58,7 @@ const { pathname } = Astro.url
     position: absolute;
     display: block;
     place-self: center;
-    background-color: rgb(var(--light-raw) / 0.4);
-    mix-blend-mode: multiply;
+    background-color: rgb(var(--light-raw) / 0.5);
     /* opacity: 0.3; */
     height: 4px;
     width: 80%;
@@ -79,17 +77,14 @@ const { pathname } = Astro.url
     align-items: center;
   }
 
-  ul > li > a[href]:hover {
-    color: var(--text-1);
-  }
-
-  ul > li.active {
-    background-color: rgb(var(--fg-raw) / 0.1);
-    box-shadow: inset 0 0 2px rgb(var(--dark-raw) / 0.2);
-  }
-
+  ul > li > a[href]:hover,
   ul > li.active > a[href] {
     color: var(--text-1);
+  }
+
+  ul > li {
+    --icon-fill: var(--color-fg);
+    --icon-accent: var(--color-accent-surface-1);
   }
 
   .spacer {

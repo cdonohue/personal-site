@@ -102,10 +102,10 @@
     --color-primary-border: var(--color-orange-300);
     --color-nav: var(--surface-2);
     --color-accent: var(--color-orange-600);
-    --color-accent-surface-4: var(--color-orange-500);
-    --color-accent-surface-3: var(--color-orange-400);
-    --color-accent-surface-2: var(--color-orange-300);
-    --color-accent-surface-1: var(--color-orange-200);
+    --color-accent-surface-4: var(--color-orange-400);
+    --color-accent-surface-3: var(--color-orange-300);
+    --color-accent-surface-2: var(--color-orange-200);
+    --color-accent-surface-1: var(--color-orange-100);
     --icon-fill: var(--color-neutral-400);
     --icon-accent: var(--color-neutral-900);
     --surface-1: var(--color-neutral-100);
