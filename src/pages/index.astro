@@ -1,6 +1,29 @@
 ---
+import Button from '../components/Button.astro'
+import Grid from '../components/Grid.astro'
+import Icon from '../components/Icon.astro'
 import PageHeader from '../components/PageHeader.astro'
+import SocialCard from '../components/SocialCard.astro'
+import Terminal from '../components/Terminal.astro'
 import Layout from '../layouts/Layout.astro'
+
+const socialLinks = [
+  {
+    label: 'Github',
+    icon: 'github-logo',
+    url: 'https://www.github.com/cdonohue',
+  },
+  {
+    label: 'Twitter',
+    icon: 'twitter-logo',
+    url: 'https://www.twitter.com/chaddonohue',
+  },
+  {
+    label: 'LinkedIn',
+    icon: 'linkedin-logo',
+    url: 'https://www.linkedin.com/in/chaddonohue',
+  },
+]
 ---
 
 <Layout title="Home">
@@ -9,26 +32,55 @@ import Layout from '../layouts/Layout.astro'
       <h1 class="text-center headline hidden">Hi, I'm Chad</h1>
       <h2 class="subtitle text-center hidden">I'm a software engineer</h2>
     </PageHeader>
-    <article class="region">
-      <div class="wrapper flow prose">
-        <h3>
-          I build <span class="text-accent">user experiences</span> and lead <span
-            class="text-accent">engineering</span
-          > teams
-        </h3>
-        <p>
-          I bring a unique combination of technical expertise, creative
-          problem-solving, and user-centered design principles to my work. I
-          have honed my skills in developing user-friendly and intuitive
-          interfaces that not only meet, but exceed user needs and expectations.
-        </p>
-        <p>
-          I focus on the user and enjoy solving problems at the intersection of
-          product, design, and engineering.
-        </p>
-        <p>Let's work together.</p>
-      </div>
-    </article>
+    <section class="page-content">
+      <article class="region">
+        <div class="wrapper flow prose">
+          <h3>
+            I build <span class="text-accent">user experiences</span> and lead <span
+              class="text-accent">engineering</span
+            > teams
+          </h3>
+          <p>
+            I bring a unique combination of technical expertise, creative
+            problem-solving, and user-centered design principles to my work. I
+            have honed my skills in developing user-friendly and intuitive
+            interfaces that not only meet, but exceed user needs and
+            expectations.
+          </p>
+          <p>
+            I enjoy solving problems at the intersection of product, design, and
+            engineering.
+          </p>
+          <hr />
+          <p>
+            <Button variant="accent" href="#contact">Let's get in touch</Button>
+          </p>
+        </div>
+      </article>
+
+      <article class="region experience">
+        <div class="wrapper flow prose">
+          <h3>I focus on the <span class="text-accent">user</span></h3>
+          <p>
+            I've worked in the software engineering space for over 14 years and
+            enjoy being part of a team that solves problems together.
+          </p>
+          <Terminal />
+        </div>
+      </article>
+      <article id="contact" class="region contact">
+        <div class="wrapper flow prose">
+          <h3>Want to work together?</h3>
+          <p>
+            Send me an email <a href="mailto:chad.donohue+dev@gmail.com">here</a
+            >. Or, you can find me at a few other places around the web.
+          </p>
+          <Grid>
+            {socialLinks.map((link) => <SocialCard link={link} />)}
+          </Grid>
+        </div>
+      </article>
+    </section>
   </main>
 </Layout>
 
@@ -39,8 +91,28 @@ import Layout from '../layouts/Layout.astro'
     margin-inline: auto;
     font-weight: 400;
   }
-  /* .greeting {
-    text-shadow: 3px 3px 0 var(--text3),
-      2px 10px 12px hsl(var(--surface-shadow) / var(--shadow-strength));
+  hr {
+    border-top: 1px solid var(--surface-2);
+    border-right: none;
+    border-bottom: none;
+    border-left: none;
+  }
+  .experience {
+    background-color: var(--surface-2);
+  }
+  .social-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+  }
+  /* .page-content {
+    display: grid;
+    grid-template-rows: auto auto;
+  }
+
+  @media (min-width: 1240px) {
+    .page-content {
+      grid-template-columns: auto auto;
+    }
   } */
 </style>

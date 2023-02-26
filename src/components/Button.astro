@@ -1,15 +1,22 @@
 ---
-const { href } = Astro.props
+const { href, variant, external } = Astro.props
 ---
 
 <Fragment>
   {
     href ? (
-      <a class="button" href={href}>
+      <a
+        class:list={['button', { accent: variant === 'accent' }]}
+        target={external ? '_blank' : '_self'}
+        href={href}
+      >
         <slot />
       </a>
     ) : (
-      <button class="button" type="button">
+      <button
+        class:list={['button', { accent: variant === 'accent' }]}
+        type="button"
+      >
         <slot />
       </button>
     )
@@ -17,12 +24,23 @@ const { href } = Astro.props
 </Fragment>
 
 <style>
-  .button {
+  .button,
+  a.button[href] {
     border: none;
+    text-decoration: none;
     background-color: var(--surface-2);
     color: var(--color-fg);
-    padding: var(--space-2xs) var(--space-m);
-    font-size: var(--size-step--1);
+    /* border: 2px solid var(--surface-4); */
+    padding: var(--space-xs) var(--space-m);
+    font-size: var(--size-step-1);
+    font-weight: 500;
+    font-family: var(--font-display);
     border-radius: 0.5rem;
+    text-align: center;
+  }
+
+  .button.accent,
+  a.button[href].accent {
+    background-color: var(--color-accent);
   }
 </style>

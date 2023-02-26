@@ -1,0 +1,20 @@
+---
+import Button from './Button.astro'
+import Icon from './Icon.astro'
+
+const { link } = Astro.props
+const { label, icon, url } = link
+---
+
+<Button href={url} external>
+  <div class="social-card">
+    <Icon name={icon} label={label} />
+    <Icon name="external-link" />
+  </div>
+</Button>
+<style>
+  .social-card {
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
