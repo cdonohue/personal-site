@@ -57,9 +57,7 @@ function getDateDifference(startDate: string, endDate: string) {
         : ''
       : `${months} ${pluralizeMonths(months)}`
 
-  const readableString = `${displayYears}${
-    displayMonths ? `, ${displayMonths}` : ''
-  }`
+  const readableString = `${displayYears} ${displayMonths}`.trim()
   return readableString
 }
 ---
@@ -118,6 +116,7 @@ function getDateDifference(startDate: string, endDate: string) {
     font-family: var(--font-mono);
     box-shadow: 0 10px 15px -3px rgb(var(--dark-raw) / 0.1),
       0 4px 6px -4px rgb(var(--dark-raw) / 0.1);
+    margin-top: var(--space-l);
   }
   section .line {
     /* line-height: 0.5; */

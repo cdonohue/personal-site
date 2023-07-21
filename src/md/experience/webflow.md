@@ -2,6 +2,7 @@
 companyName: 'Webflow'
 title: 'Senior Software Engineer / Tech Lead'
 startDate: '11/1/2019'
+endDate: '4/1/2023'
 website: 'https://www.webflow.com'
 slug: 'webflow'
 ---
