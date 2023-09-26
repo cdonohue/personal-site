@@ -32,33 +32,36 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
 })
 
-function getDateDifference(startDate: string, endDate: string) {
+function getDateDifference(startDate: string, endDate: string | null = null) {
   const start = new Date(startDate)
   const end = endDate ? new Date(endDate) : new Date()
 
-  let years = end.getFullYear() - start.getFullYear()
-  let months = end.getMonth() + 1 - (start.getMonth() + 1)
+  const startYear = start.getFullYear()
+  const startMonth = start.getMonth()
+  const endYear = end.getFullYear()
+  const endMonth = end.getMonth()
 
-  let timeString = ''
+  let yearDiff = endYear - startYear
+  let monthDiff = endMonth - startMonth
 
-  if (years > 0) {
-    timeString += years + ' year'
-    if (years > 1) {
-      timeString += 's'
-    }
+  if (monthDiff < 0) {
+    yearDiff--
+    monthDiff += 12
   }
 
-  if (months > 0) {
-    if (timeString !== '') {
-      timeString += ' '
-    }
-    timeString += months + ' month'
-    if (months > 1) {
-      timeString += 's'
-    }
+  let result = ''
+
+  if (yearDiff !== 0) {
+    result += `${yearDiff} year${yearDiff !== 1 ? 's' : ''}`
   }
 
-  return timeString
+  if (monthDiff !== 0) {
+    result += `${yearDiff !== 0 ? ' ' : ''}${monthDiff} month${
+      monthDiff !== 1 ? 's' : ''
+    }`
+  }
+
+  return result
 }
 ---
 
