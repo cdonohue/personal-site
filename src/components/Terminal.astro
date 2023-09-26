@@ -37,28 +37,28 @@ function getDateDifference(startDate: string, endDate: string) {
   const end = endDate ? new Date(endDate) : new Date()
 
   let years = end.getFullYear() - start.getFullYear()
-  let months = end.getMonth() - start.getMonth()
+  let months = end.getMonth() + 1 - (start.getMonth() + 1)
 
-  if (months < 0) {
-    years--
-    months += 12
+  let timeString = ''
+
+  if (years > 0) {
+    timeString += years + ' year'
+    if (years > 1) {
+      timeString += 's'
+    }
   }
 
-  // if (days < 0) {
-  //   months--;
-  //   const lastMonth = new Date(end.getFullYear(), end.getMonth(), 0);
-  //   days += lastMonth.getDate();
-  // }
-  const displayYears = years >= 1 ? `${years} ${pluralizeYears(years)}` : ''
-  const displayMonths =
-    years >= 1
-      ? months % (12 * years) >= 1
-        ? `${months % (12 * years)} ${pluralizeMonths(months % (12 * years))}`
-        : ''
-      : `${months} ${pluralizeMonths(months)}`
+  if (months > 0) {
+    if (timeString !== '') {
+      timeString += ' '
+    }
+    timeString += months + ' month'
+    if (months > 1) {
+      timeString += 's'
+    }
+  }
 
-  const readableString = `${displayYears} ${displayMonths}`.trim()
-  return readableString
+  return timeString
 }
 ---
 
