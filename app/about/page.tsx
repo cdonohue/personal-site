@@ -22,9 +22,9 @@ export default function About() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          I live in the Houston area with my wife and three kids. When I'm not
-          at a computer, you can find me playing the piano, reading, or spending
-          time with my family.
+          I live in the Houston area with my wife and three kids. When I&apos;m
+          not at a computer, you can find me playing the piano, reading, or
+          spending time with my family.
         </motion.p>
       </Hero>
       <Wrapper>

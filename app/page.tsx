@@ -19,7 +19,7 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          Hi, I’m Chad.
+          Hi, I&apos;m Chad.
         </motion.h1>
         <motion.h2
           initial={{ opacity: 0, y: 10 }}
@@ -52,21 +52,21 @@ export default function Home() {
           <Stack gap="xs">
             <h3>I Empower Tech Teams</h3>
             <p>
-              Leading engineering teams is another key aspect of my role. I've
-              developed a leadership style that fosters collaboration and
-              innovation within technical projects. By creating an environment
-              where diverse perspectives are valued and open communication is
-              encouraged, I help our teams not only deliver outstanding software
-              but also grow professionally.
+              Leading engineering teams is another key aspect of my role.
+              I&apos;ve developed a leadership style that fosters collaboration
+              and innovation within technical projects. By creating an
+              environment where diverse perspectives are valued and open
+              communication is encouraged, I help our teams not only deliver
+              outstanding software but also grow professionally.
             </p>
             <p>
               At the core of my work is the belief that great software should
-              make a positive impact on people's lives. Whether I'm developing a
-              new application or improving an existing system, my goal is to
-              create digital solutions that are not just functional, but truly
-              beneficial to users. It's about leveraging my software engineering
-              skills to serve human needs, making every digital interaction as
-              intuitive and satisfying as possible.
+              make a positive impact on people&apos;s lives. Whether I&apos;m
+              developing a new application or improving an existing system, my
+              goal is to create digital solutions that are not just functional,
+              but truly beneficial to users. It&apos;s about leveraging my
+              software engineering skills to serve human needs, making every
+              digital interaction as intuitive and satisfying as possible.
             </p>
           </Stack>
         </Stack>
