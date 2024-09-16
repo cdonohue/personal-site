@@ -12,7 +12,7 @@ const socials = [
 function Footer() {
   return (
     <footer className={`${styles.footer} wrapper`}>
-      <Row>
+      <Row align="center">
         <span className="text-step-00">
           © {new Date().getFullYear()} Chad Donohue
         </span>
