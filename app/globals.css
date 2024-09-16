@@ -1,0 +1,60 @@
+@tailwind base;
+
+@import 'css/reset.css';
+
+@tailwind components;
+
+@import 'css/variables.css';
+@import 'css/base.css';
+
+/* Blocks */
+@import 'css/blocks/prose.css';
+
+/* Compositions */
+@import 'css/compositions/cluster.css';
+@import 'css/compositions/flow.css';
+@import 'css/compositions/grid.css';
+@import 'css/compositions/repel.css';
+@import 'css/compositions/wrapper.css';
+
+/* Utilities */
+@import 'css/utilities/region.css';
+@import 'css/utilities/visually-hidden.css';
+
+@tailwind utilities;
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    @apply border-neutral-6;
+  }
+  h1 {
+    @apply text-step-5;
+  }
+  h2 {
+    @apply text-step-3;
+  }
+  h3 {
+    @apply text-step-2;
+  }
+  h4 {
+    @apply text-step-1;
+  }
+  p {
+    @apply text-step-0;
+    @apply text-neutral-11;
+  }
+  /* a[href] {
+    @apply text-primary-9;
+    &:hover {
+      text-decoration: underline;
+    }
+  } */
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
