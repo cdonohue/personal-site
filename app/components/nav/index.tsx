@@ -3,7 +3,7 @@ import styles from './nav.module.css'
 import { Stack, Wrapper } from '../layout'
 
 const navItems = [
-  { href: '/about', label: 'About' },
+  // { href: '/about', label: 'About' },
   { href: '/work', label: 'Work' },
   { href: '/uses', label: 'Uses' },
 ]
