@@ -1,0 +1,21 @@
+.jobItem {
+  position: relative;
+  font-size: var(--size-step-00);
+  padding-block: var(--space-2xs);
+  margin-inline-start: var(--space-xs);
+
+  &:not(:first-child) {
+    border-block-start: 1px solid var(--color-neutral-6);
+  }
+
+  &::before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 0;
+    margin-inline-start: calc(var(--space-xs) * -1 - 4px);
+    width: 4px;
+    height: 100%;
+    background-color: var(--color-neutral-6);
+  }
+}

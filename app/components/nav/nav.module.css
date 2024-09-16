@@ -1,0 +1,45 @@
+.container {
+  /* background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Cpath fill='%2363635e' fill-opacity='0.3' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E"); */
+  background-color: var(--color-neutral-3);
+  padding-top: var(--space-m);
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.nav a {
+  font-size: var(--size-step-00);
+  color: var(--color-neutral-11);
+  &:hover {
+    color: var(--color-neutral-12);
+    text-decoration: none;
+  }
+}
+
+.nav .homeLink {
+  display: flex;
+  font-family: var(--font-mono);
+  font-weight: var(--font-bold);
+  align-items: center;
+  justify-content: center;
+  color: var(--color-neutral-11);
+  /* background-color: var(--color-neutral-5); */
+  width: var(--space-m);
+  height: var(--space-m);
+  /* padding: var(--space-s); */
+  border-radius: var(--radius-full);
+  &:hover {
+    color: var(--color-neutral-12);
+  }
+  /* outline-width: 2px;
+  outline-color: var(--color-neutral-6);
+  outline-style: solid; */
+
+  /* &:before {
+
+  } */
+}

@@ -1,0 +1,17 @@
+.hero {
+  /* background-blend-mode: overlay; */
+  background-color: var(--color-neutral-3);
+  background-image: linear-gradient(
+      to bottom,
+      var(--color-neutral-3) 20%,
+      #f1f0efe0 100%
+    ),
+    var(--bg-image-small);
+
+  filter: grayscale(100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  color: var(--color-neutral-12);
+}

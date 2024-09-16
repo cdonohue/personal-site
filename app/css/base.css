@@ -1,0 +1,39 @@
+/* 
+  Global styles 
+
+  Low-specificity, global styles that apply to the whole 
+  project: https://cube.fyi/css.html
+*/
+
+*,
+::before,
+::after {
+  --shadow-color: var(--color-neutral-5);
+  border-style: solid;
+  border-width: 0;
+  border-color: var(--color-neutral-6);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  scrollbar-gutter: stable;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+body {
+  background: var(--color-neutral-1);
+  color: var(--color-neutral-12);
+  font-size: var(--size-step-0);
+  font-family: var(--font-sans);
+  line-height: var(--leading-standard);
+}
+
+main {
+  flex: 1;
+}
