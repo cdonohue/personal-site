@@ -5,11 +5,23 @@ import { Calendar, CalendarClock, Clock } from 'lucide-react'
 
 function formatDate(
   dateStr: string | null,
-  defaultDate: Date = new Date()
+  defaultDate: Date = new Date(),
+  options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short' },
+  locale: string = 'en-US'
 ): string {
-  const date = dateStr ? new Date(dateStr) : defaultDate
-  const options = { year: 'numeric', month: 'short' }
-  return date.toLocaleDateString('en-US', options)
+  let date: Date
+
+  if (dateStr) {
+    date = new Date(dateStr)
+    if (isNaN(date.getTime())) {
+      console.warn(`Invalid date string: ${dateStr}. Using default date.`)
+      date = defaultDate
+    }
+  } else {
+    date = defaultDate
+  }
+
+  return date.toLocaleDateString(locale, options)
 }
 
 function calculateTenure(
