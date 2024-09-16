@@ -6,7 +6,7 @@ enum Category {
   Miscellaneous = 'Miscellaneous',
 }
 
-type Item = {
+export type Item = {
   category: Category
   graphic: string
   title: string

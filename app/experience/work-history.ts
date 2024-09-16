@@ -7,7 +7,7 @@ import {
   Workflow,
 } from 'lucide-react'
 
-type WorkHistory = {
+export type WorkHistory = {
   icon: any
   company: string
   title: string

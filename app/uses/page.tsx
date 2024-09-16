@@ -1,7 +1,7 @@
 'use client'
 
 import { Stack, Grid, Wrapper, Row, Spacer } from '../components/layout'
-import { things } from './recommendations'
+import { things, Item } from './recommendations'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -61,7 +61,7 @@ export default function Uses() {
   )
 }
 
-function Card({ thing }) {
+function Card({ thing }: { thing: Item }) {
   return (
     <motion.a
       className="rounded-sm"

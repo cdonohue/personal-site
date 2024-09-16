@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import styles from './job-card.module.css'
 import { Stack, Row, Cluster } from '../layout'
 import { Calendar, CalendarClock, Clock } from 'lucide-react'
+import { WorkHistory } from '../../experience/work-history'
 
 function formatDate(
   dateStr: string | null,
@@ -74,10 +75,10 @@ function formatDatesAndCalculateTenure(
   }
 }
 
-function JobCard({ job }) {
+function JobCard({ job }: { job: WorkHistory }) {
   const { startDate, endDate, tenure } = formatDatesAndCalculateTenure(
     job.startDate,
-    job.endDate
+    job.endDate ?? null
   )
 
   return (

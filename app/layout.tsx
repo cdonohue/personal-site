@@ -6,7 +6,6 @@ import './globals.css'
 
 import Nav from './components/nav'
 import Footer from './components/footer'
-import Wrapper from './components/layout/wrapper'
 
 export const metadata: Metadata = {
   title: 'Create Next App',
