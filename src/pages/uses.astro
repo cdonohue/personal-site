@@ -1,0 +1,59 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { things, Category } from '../data/recommendations';
+
+// Group items by category
+const itemsByCategory = things.reduce((acc, item) => {
+  if (!acc[item.category]) {
+    acc[item.category] = [];
+  }
+  acc[item.category].push(item);
+  return acc;
+}, {} as Record<Category, typeof things>);
+---
+
+<BaseLayout title="Equipment & Tools - Chad Donohue">
+  <section style="margin-bottom: 3rem;">
+    <div class="prompt">LOADING HARDWARE_CONFIG.SYS</div>
+    <h1>EQUIPMENT & TOOLS<span class="cursor"></span></h1>
+    <p style="color: var(--terminal-dim); margin-top: 1rem;">
+      Here's the gear that powers my daily work and creative process.
+    </p>
+  </section>
+
+  {Object.entries(itemsByCategory).map(([category, items]) => (
+    <section style="margin-bottom: 3rem;">
+      <h2 style="font-size: 2rem; margin-bottom: 1.5rem;">
+        ▸ {category.toUpperCase()}
+      </h2>
+
+      {items.map((item) => (
+        <div class="box" style="margin-bottom: 1.5rem;">
+          <h3 style="display: flex; align-items: center; gap: 1rem;">
+            <span style="font-size: 2.5rem;">{item.graphic}</span>
+            {item.title.toUpperCase()}
+          </h3>
+
+          <p style="margin-top: 1rem;">
+            {item.description}
+          </p>
+
+          <p style="margin-top: 1rem; color: var(--terminal-bright);">
+            → LINK: <a href={item.link} target="_blank" rel="noopener noreferrer">
+              {item.link.length > 50 ? item.link.substring(0, 50) + '...' : item.link}
+            </a>
+          </p>
+        </div>
+      ))}
+    </section>
+  ))}
+
+  <section style="margin-top: 3rem;">
+    <p style="color: var(--terminal-dim);">
+      > CONFIGURATION COMPLETE
+    </p>
+    <p style="color: var(--terminal-dim);">
+      > TOTAL DEVICES: {things.length}
+    </p>
+  </section>
+</BaseLayout>

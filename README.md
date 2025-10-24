@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Personal Site - Retro Terminal Edition
+
+A personal portfolio site built with [Astro](https://astro.build/) and styled as a retro 80s terminal.
+
+## Features
+
+- 🖥️ **Authentic 80s Terminal Aesthetic** - Green phosphor CRT display with scanlines and glow effects
+- ⚡ **Built with Astro 5** - Fast, modern static site generation
+- 🎨 **Retro Design System** - VT323 font, ASCII borders, and terminal-style UI
+- 📱 **Responsive** - Works on all devices while maintaining retro aesthetic
+- ⌨️ **Terminal Effects** - CRT flicker, scanlines, and blinking cursor
 
 ## Getting Started
 
-First, run the development server:
+First, install dependencies:
+
+```bash
+npm install
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:4321](http://localhost:4321) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Building for Production
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+To build the site for production:
+
+```bash
+npm run build
+```
+
+To preview the production build:
+
+```bash
+npm run preview
+```
+
+## Project Structure
+
+```
+/
+├── public/          # Static assets
+├── src/
+│   ├── data/        # Work history and equipment data
+│   ├── layouts/     # Page layouts
+│   ├── pages/       # Site pages (index, work, uses, about)
+│   └── styles/      # Global CSS with terminal styling
+└── package.json
+```
+
+## Pages
+
+- **Home** (`/`) - Introduction and overview
+- **Work** (`/work`) - Professional experience and job history
+- **Uses** (`/uses`) - Equipment and tools I use
+- **About** (`/about`) - Background and bio
+
+## Design
+
+The site features an authentic 80s terminal aesthetic including:
+
+- Classic green phosphor CRT color scheme
+- VT323 retro monospace font
+- CRT scanline effect overlay
+- Terminal glow and flicker animations
+- ASCII art borders and decorations
+- Blinking cursor
+- Command-line interface styling
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+To learn more about Astro:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- [Astro Documentation](https://docs.astro.build)
+- [Astro Discord](https://astro.build/chat)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## License
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+MIT

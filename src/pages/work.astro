@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { history, calculateTenure } from '../data/work-history';
+---
+
+<BaseLayout title="Work Experience - Chad Donohue">
+  <section style="margin-bottom: 3rem;">
+    <div class="prompt">LOADING WORK_HISTORY.DAT</div>
+    <h1>WORK EXPERIENCE<span class="cursor"></span></h1>
+  </section>
+
+  {history.map((job, index) => (
+    <section style="margin-bottom: 2rem;">
+      <div class="box">
+        <h2 style="font-size: 1.8rem;">
+          {String(index + 1).padStart(2, '0')}. {job.company.toUpperCase()}
+        </h2>
+
+        <p style="color: var(--terminal-bright); margin-bottom: 0.5rem;">
+          ┌─ POSITION: {job.title}
+        </p>
+        <p style="color: var(--terminal-bright); margin-bottom: 0.5rem;">
+          ├─ COMPANY: <a href={job.url} target="_blank">{job.company}</a>
+        </p>
+        <p style="color: var(--terminal-bright); margin-bottom: 0.5rem;">
+          ├─ DURATION: {calculateTenure(job.startDate, job.endDate)}
+        </p>
+        <p style="color: var(--terminal-bright); margin-bottom: 1rem;">
+          └─ PERIOD: {new Date(job.startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} - {job.endDate ? new Date(job.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Present'}
+        </p>
+
+        <p style="border-left: 3px solid var(--terminal-dim); padding-left: 1rem; margin-left: 1rem;">
+          {job.description}
+        </p>
+      </div>
+    </section>
+  ))}
+
+  <section style="margin-top: 3rem;">
+    <p style="color: var(--terminal-dim);">
+      > END OF FILE
+    </p>
+    <p style="color: var(--terminal-dim);">
+      > TOTAL RECORDS: {history.length}
+    </p>
+  </section>
+</BaseLayout>

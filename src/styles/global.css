@@ -1,0 +1,294 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+:root {
+  --terminal-green: #00ff00;
+  --terminal-amber: #ffb000;
+  --terminal-bg: #000000;
+  --terminal-dim: #00aa00;
+  --terminal-bright: #00ff00;
+  --terminal-cursor: #00ff00;
+  --scanline-opacity: 0.1;
+  --glow-size: 2px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--terminal-bg);
+  color: var(--terminal-green);
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 20px;
+  line-height: 1.4;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* CRT Screen effect */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* CRT Glow effect */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 255, 0, 0.1) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* Terminal container */
+.terminal {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-shadow: 0 0 var(--glow-size) var(--terminal-green);
+}
+
+/* Text styles */
+h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--terminal-bright);
+  text-shadow: 0 0 10px var(--terminal-green);
+}
+
+h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--terminal-amber);
+  text-shadow: 0 0 8px var(--terminal-amber);
+}
+
+h3 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: var(--terminal-green);
+}
+
+p {
+  margin-bottom: 1rem;
+  color: var(--terminal-dim);
+}
+
+/* Links */
+a {
+  color: var(--terminal-bright);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--terminal-green);
+  transition: all 0.2s;
+}
+
+a:hover {
+  color: var(--terminal-amber);
+  border-bottom-color: var(--terminal-amber);
+  text-shadow: 0 0 8px var(--terminal-amber);
+}
+
+/* ASCII borders */
+.box {
+  border: 2px solid var(--terminal-green);
+  padding: 1.5rem;
+  margin: 1rem 0;
+  position: relative;
+  background: rgba(0, 255, 0, 0.02);
+}
+
+.box::before {
+  content: '┌────────────────────────────────────────────────────────────────────────────────┐';
+  position: absolute;
+  top: -12px;
+  left: 0;
+  right: 0;
+  color: var(--terminal-green);
+  background: var(--terminal-bg);
+  padding: 0 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.box::after {
+  content: '└────────────────────────────────────────────────────────────────────────────────┘';
+  position: absolute;
+  bottom: -12px;
+  left: 0;
+  right: 0;
+  color: var(--terminal-green);
+  background: var(--terminal-bg);
+  padding: 0 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Blinking cursor animation */
+@keyframes blink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
+.cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1em;
+  background: var(--terminal-cursor);
+  animation: blink 1s infinite;
+  margin-left: 0.2em;
+}
+
+/* Prompt style */
+.prompt {
+  color: var(--terminal-amber);
+  margin-bottom: 0.5rem;
+}
+
+.prompt::before {
+  content: '> ';
+  color: var(--terminal-green);
+}
+
+/* Navigation */
+nav {
+  border-bottom: 1px solid var(--terminal-green);
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+nav a {
+  border: none;
+  font-size: 1.5rem;
+}
+
+nav a::before {
+  content: '[';
+  color: var(--terminal-dim);
+}
+
+nav a::after {
+  content: ']';
+  color: var(--terminal-dim);
+}
+
+/* Header */
+header {
+  border-bottom: 2px solid var(--terminal-green);
+  padding-bottom: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* Footer */
+footer {
+  border-top: 2px solid var(--terminal-green);
+  padding-top: 2rem;
+  margin-top: 4rem;
+  text-align: center;
+}
+
+/* Lists */
+ul, ol {
+  margin-left: 2rem;
+  margin-bottom: 1rem;
+}
+
+li {
+  margin-bottom: 0.5rem;
+  color: var(--terminal-dim);
+}
+
+/* Command line input style */
+.input-line {
+  display: flex;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.input-line::before {
+  content: '$ ';
+  color: var(--terminal-amber);
+  margin-right: 0.5rem;
+}
+
+/* CRT flicker animation */
+@keyframes flicker {
+  0% {
+    opacity: 0.97;
+  }
+  5% {
+    opacity: 0.98;
+  }
+  10% {
+    opacity: 0.96;
+  }
+  15% {
+    opacity: 0.99;
+  }
+  20% {
+    opacity: 0.97;
+  }
+  100% {
+    opacity: 0.97;
+  }
+}
+
+body {
+  animation: flicker 0.15s infinite;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .terminal {
+    padding: 1rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.8rem;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+  }
+
+  body {
+    font-size: 18px;
+  }
+}
