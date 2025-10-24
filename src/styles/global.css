@@ -121,29 +121,23 @@ a:hover {
 }
 
 .box::before {
-  content: '┌────────────────────────────────────────────────────────────────────────────────┐';
+  content: '';
   position: absolute;
-  top: -12px;
-  left: 0;
-  right: 0;
-  color: var(--terminal-green);
-  background: var(--terminal-bg);
-  padding: 0 1rem;
-  white-space: nowrap;
-  overflow: hidden;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  height: 2px;
+  background: var(--terminal-green);
 }
 
 .box::after {
-  content: '└────────────────────────────────────────────────────────────────────────────────┘';
+  content: '';
   position: absolute;
-  bottom: -12px;
-  left: 0;
-  right: 0;
-  color: var(--terminal-green);
-  background: var(--terminal-bg);
-  padding: 0 1rem;
-  white-space: nowrap;
-  overflow: hidden;
+  bottom: -2px;
+  left: -2px;
+  right: -2px;
+  height: 2px;
+  background: var(--terminal-green);
 }
 
 /* Blinking cursor animation */
@@ -212,12 +206,48 @@ header {
   margin-bottom: 2rem;
 }
 
+.header-logo {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-bottom: 1rem;
+}
+
+.header-logo pre {
+  margin: 0;
+  display: inline-block;
+  min-width: min-content;
+}
+
+/* Show desktop logo by default, hide mobile */
+.mobile-logo {
+  display: none;
+}
+
+.desktop-logo {
+  display: block;
+}
+
 /* Footer */
 footer {
   border-top: 2px solid var(--terminal-green);
   padding-top: 2rem;
   margin-top: 4rem;
   text-align: center;
+}
+
+.footer-box {
+  display: inline-block;
+  border: 2px solid var(--terminal-green);
+  padding: 1rem 2rem;
+  margin-bottom: 1rem;
+}
+
+.footer-box p {
+  margin-bottom: 0.5rem;
+}
+
+.footer-box p:last-child {
+  margin-bottom: 0;
 }
 
 /* Lists */
@@ -273,7 +303,20 @@ body {
 /* Responsive */
 @media (max-width: 768px) {
   .terminal {
-    padding: 1rem;
+    padding: 0.5rem;
+  }
+
+  /* Switch to mobile logo */
+  .desktop-logo {
+    display: none;
+  }
+
+  .mobile-logo {
+    display: block;
+  }
+
+  .header-logo {
+    font-size: 0.7rem;
   }
 
   h1 {
@@ -290,5 +333,55 @@ body {
 
   body {
     font-size: 18px;
+  }
+
+  nav ul {
+    gap: 1rem;
+  }
+
+  nav a {
+    font-size: 1.2rem;
+  }
+
+  .box {
+    padding: 1rem;
+  }
+
+  .footer-box {
+    padding: 0.75rem 1rem;
+  }
+
+  footer p {
+    word-wrap: break-word;
+  }
+}
+
+@media (max-width: 480px) {
+  .terminal {
+    padding: 0.25rem;
+  }
+
+  .header-logo {
+    font-size: 0.5rem;
+  }
+
+  body {
+    font-size: 16px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.4rem;
+  }
+
+  h3 {
+    font-size: 1.2rem;
+  }
+
+  nav a {
+    font-size: 1rem;
   }
 }
