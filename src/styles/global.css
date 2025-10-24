@@ -219,12 +219,12 @@ header {
 }
 
 /* Show desktop logo by default, hide mobile */
-.mobile-logo {
-  display: none;
+.header-logo .mobile-logo {
+  display: none !important;
 }
 
-.desktop-logo {
-  display: block;
+.header-logo .desktop-logo {
+  display: block !important;
 }
 
 /* Footer */
@@ -307,12 +307,12 @@ body {
   }
 
   /* Switch to mobile logo */
-  .desktop-logo {
-    display: none;
+  .header-logo .desktop-logo {
+    display: none !important;
   }
 
-  .mobile-logo {
-    display: block;
+  .header-logo .mobile-logo {
+    display: block !important;
   }
 
   .header-logo {
