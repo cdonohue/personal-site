@@ -1,0 +1,81 @@
+---
+interface Props {
+  company: string;
+  role: string;
+  period: string;
+  description: string;
+  href?: string;
+  class?: string;
+}
+
+const { company, role, period, description, href, class: className = '' } = Astro.props;
+const Tag = href ? 'a' : 'div';
+---
+
+<Tag href={href} class={`company-card ${className}`}>
+  <div class="company-card__header">
+    <div>
+      <h3 class="company-card__company">{company}</h3>
+      <p class="company-card__role">{role}</p>
+    </div>
+    <span class="company-card__period">{period}</span>
+  </div>
+  <p class="company-card__description">{description}</p>
+</Tag>
+
+<style>
+  .company-card {
+    display: block;
+    padding: var(--space-40);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    text-decoration: none;
+    color: inherit;
+    transition: all var(--transition-base);
+  }
+
+  a.company-card:hover {
+    border-color: var(--color-accent);
+  }
+
+  .company-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-16);
+    gap: var(--space-32);
+  }
+
+  .company-card__company {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    margin: 0 0 var(--space-8) 0;
+  }
+
+  .company-card__role {
+    font-size: var(--text-base);
+    color: var(--color-text-muted);
+    margin: 0;
+    font-weight: var(--font-weight-normal);
+  }
+
+  .company-card__period {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-normal);
+    white-space: nowrap;
+  }
+
+  .company-card__description {
+    margin: 0;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 640px) {
+    .company-card__header {
+      flex-direction: column;
+      gap: var(--space-16);
+    }
+  }
+</style>

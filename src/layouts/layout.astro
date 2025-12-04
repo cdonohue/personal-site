@@ -1,0 +1,55 @@
+---
+import Footer from '../components/Footer.astro';
+import SiteNav from '../components/SiteNav.astro';
+import Center from '../components/Center.astro';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chad Donohue - {title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/styles/global.css" />
+  </head>
+  <body>
+    <Center maxWidth="var(--container-md)" gutter="var(--space-container)" class="content-wrapper">
+      <header>
+        <SiteNav />
+      </header>
+      <slot />
+    </Center>
+    <Footer />
+  </body>
+</html>
+
+<style is:global>
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .content-wrapper {
+    flex: 1;
+  }
+
+  header {
+    padding-block: var(--space-layout);
+  }
+
+  main {
+    width: 100%;
+  }
+</style>

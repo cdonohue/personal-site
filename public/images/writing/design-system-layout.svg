@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" fill="none">
+  <style>
+    .dot { fill: var(--gray-5, #99917f); }
+  </style>
+  <!-- Layout: dots arranged in groups with gaps -->
+  <!-- Group 1 -->
+  <rect class="dot" x="60" y="90" width="16" height="16" rx="3" />
+  <rect class="dot" x="84" y="90" width="16" height="16" rx="3" />
+  <!-- Gap -->
+  <!-- Group 2 -->
+  <rect class="dot" x="140" y="90" width="16" height="16" rx="3" />
+  <rect class="dot" x="164" y="90" width="16" height="16" rx="3" />
+  <rect class="dot" x="188" y="90" width="16" height="16" rx="3" />
+  <!-- Gap -->
+  <!-- Group 3 -->
+  <rect class="dot" x="244" y="90" width="16" height="16" rx="3" />
+  <rect class="dot" x="268" y="90" width="16" height="16" rx="3" />
+  <rect class="dot" x="292" y="90" width="16" height="16" rx="3" />
+  <rect class="dot" x="316" y="90" width="16" height="16" rx="3" />
+</svg>

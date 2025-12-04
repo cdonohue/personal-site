@@ -1,0 +1,31 @@
+---
+interface Props {
+  min?: string;
+  gap?: 'micro' | 'tight' | 'standard' | 'container' | 'layout' | 'section';
+  class?: string;
+}
+
+const {
+  min = '250px',
+  gap = 'layout',
+  class: className = ''
+} = Astro.props;
+---
+
+<div class:list={[`grid grid--${gap}`, className]} style={`--min: ${min};`}>
+  <slot />
+</div>
+
+<style is:global>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--min)), 1fr));
+  }
+
+  .grid--micro { gap: var(--space-micro); }
+  .grid--tight { gap: var(--space-tight); }
+  .grid--standard { gap: var(--space-standard); }
+  .grid--container { gap: var(--space-container); }
+  .grid--layout { gap: var(--space-layout); }
+  .grid--section { gap: var(--space-section); }
+</style>
