@@ -5,7 +5,9 @@
       "WebFetch(domain:emilkowal.ski)",
       "Bash(pnpm add:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nRewrite site from Next.js to Astro\n\n- Replace Next.js with Astro for simpler static site generation\n- New component system: Stack, Center, Text, Heading, Link\n- Custom CSS design tokens and utility styles\n- Simplified nav (Work only, removed Projects/Writing for now)\n- Updated intro copy and work history\n- External links open in new tab\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\nRewrite site from Next.js to Astro\n\n- Replace Next.js with Astro for simpler static site generation\n- New component system: Stack, Center, Text, Heading, Link\n- Custom CSS design tokens and utility styles\n- Simplified nav (Work only, removed Projects/Writing for now)\n- Updated intro copy and work history\n- External links open in new tab\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": [],
     "ask": []
