@@ -1,0 +1,83 @@
+/* X-Ray Container */
+.xray-container {
+  position: relative;
+}
+
+.xray-toggle {
+  position: absolute;
+  top: var(--space-tight);
+  right: var(--space-tight);
+  padding: var(--space-micro) var(--space-tight);
+  font-size: var(--text-sm);
+  background: var(--gray-8);
+  color: var(--gray-1);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  z-index: 100;
+}
+
+.xray-toggle:hover {
+  background: var(--gray-9);
+}
+
+.xray-content {
+  position: relative;
+}
+
+/* X-Ray Labels */
+.xray-label {
+  display: none;
+  position: absolute;
+  top: -1.5em;
+  left: 0;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  background: var(--gray-9);
+  padding: 2px 4px;
+  border-radius: 2px;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* X-Ray Mode Styles */
+[data-xray="true"] {
+  position: relative;
+}
+
+[data-xray="true"] > .xray-label {
+  display: block;
+}
+
+/* Layout components - show gaps */
+.lab-vstack[data-xray="true"],
+.lab-hstack[data-xray="true"] {
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(237, 128, 8, 0.05) 4px,
+    rgba(237, 128, 8, 0.05) 8px
+  );
+}
+
+/* Card - show padding */
+.lab-card[data-xray="true"] {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Text - show bounds */
+.lab-text[data-xray="true"] {
+  outline: 1px dotted var(--accent);
+  background: rgba(237, 128, 8, 0.1);
+}
+
+/* Button - show structure */
+.lab-button[data-xray="true"] {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" fill="none">
+  <style>
+    .dot { fill: var(--gray-5, #99917f); }
+  </style>
+  <!-- Raw tokens: small dots scattered -->
+  <rect class="dot" x="100" y="90" width="16" height="16" rx="3" />
+  <rect class="dot" x="132" y="90" width="16" height="16" rx="3" />
+  <rect class="dot" x="164" y="90" width="16" height="16" rx="3" />
+  <rect class="dot" x="196" y="90" width="16" height="16" rx="3" />
+  <rect class="dot" x="228" y="90" width="16" height="16" rx="3" />
+  <rect class="dot" x="260" y="90" width="16" height="16" rx="3" />
+</svg>

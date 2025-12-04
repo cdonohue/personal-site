@@ -1,0 +1,28 @@
+---
+interface Props {
+  maxWidth?: string;
+  gutter?: string;
+  class?: string;
+}
+
+const {
+  maxWidth = '65ch',
+  gutter = 'var(--space-container)',
+  class: className = ''
+} = Astro.props;
+---
+
+<div class:list={['center', className]} style={`--max-width: ${maxWidth}; --gutter: ${gutter};`}>
+  <slot />
+</div>
+
+<style is:global>
+  .center {
+    width: 100%;
+    max-width: calc(var(--max-width) + var(--gutter) * 2);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--gutter);
+    padding-right: var(--gutter);
+  }
+</style>

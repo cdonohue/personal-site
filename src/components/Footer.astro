@@ -1,0 +1,40 @@
+---
+import Center from './Center.astro';
+import Text from './Text.astro';
+import Link from './Link.astro';
+---
+
+<footer>
+  <Center maxWidth="var(--container-md)" gutter="var(--space-container)">
+    <div class="footer-content">
+      <Text size="sm" muted maxWidth="none">© {new Date().getFullYear()} Chad Donohue</Text>
+      <div class="footer-links">
+        <Link href="https://github.com/cdonohue" variant="nav" size="sm" muted external>GitHub</Link>
+        <Link href="https://linkedin.com/in/chaddonohue" variant="nav" size="sm" muted external>LinkedIn</Link>
+        <Link href="https://twitter.com/chaddonohue" variant="nav" size="sm" muted external>Twitter</Link>
+      </div>
+    </div>
+  </Center>
+</footer>
+
+<style is:global>
+  footer {
+    margin-top: var(--space-section);
+    padding-block: var(--space-layout);
+    background: var(--surface);
+  }
+
+  .footer-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-tight);
+  }
+
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-standard);
+  }
+</style>

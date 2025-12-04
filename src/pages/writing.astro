@@ -1,0 +1,35 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../layouts/layout.astro';
+import Stack from '../components/Stack.astro';
+import Heading from '../components/Heading.astro';
+import Text from '../components/Text.astro';
+import Link from '../components/Link.astro';
+
+const posts = (await getCollection('writing', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+---
+
+<Layout title="Writing - Chad Donohue">
+  <main>
+    <Stack gap="section">
+      <Stack gap="micro">
+        <Heading level={1} size="lg">Writing</Heading>
+        <Text muted>Thoughts on design and engineering</Text>
+      </Stack>
+
+      <Stack gap="layout">
+        {posts.map(post => (
+          <Stack gap="micro">
+            <Stack gap="micro">
+              <Heading level={2}>{post.data.title}</Heading>
+              <Text muted>{post.data.date.getFullYear()}</Text>
+            </Stack>
+            <Text>{post.data.description}</Text>
+            <Link href={`/writing/${post.slug}`}>Read post →</Link>
+          </Stack>
+        ))}
+      </Stack>
+    </Stack>
+  </main>
+</Layout>

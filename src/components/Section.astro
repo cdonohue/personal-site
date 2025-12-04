@@ -1,0 +1,23 @@
+---
+interface Props {
+  bordered?: boolean;
+  class?: string;
+}
+
+const { bordered = false, class: className = '' } = Astro.props;
+---
+
+<section class={`section ${bordered ? 'section--bordered' : ''} ${className}`}>
+  <slot />
+</section>
+
+<style>
+  .section {
+    padding: var(--space-32) 0;
+  }
+
+  .section--bordered {
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+  }
+</style>

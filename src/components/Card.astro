@@ -1,0 +1,27 @@
+---
+interface Props {
+  padding?: 'tight' | 'standard' | 'container';
+  class?: string;
+}
+
+const {
+  padding = 'container',
+  class: className = ''
+} = Astro.props;
+---
+
+<div class:list={[`card card--${padding}`, className]}>
+  <slot />
+</div>
+
+<style is:global>
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .card--tight { padding: var(--space-tight); }
+  .card--standard { padding: var(--space-standard); }
+  .card--container { padding: var(--space-container); }
+</style>
