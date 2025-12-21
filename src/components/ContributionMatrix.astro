@@ -1,0 +1,177 @@
+---
+interface Props {
+  username?: string;
+  class?: string;
+}
+
+const { username = 'cdonohue', class: className = '' } = Astro.props;
+
+// Generate contribution data structure for the last 52 weeks
+// In production, this would fetch from GitHub GraphQL API
+const generateContributionData = () => {
+  const weeks: { date: Date; level: number }[][] = [];
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - 364); // Go back ~52 weeks
+
+  // Align to the start of the week (Sunday)
+  startDate.setDate(startDate.getDate() - startDate.getDay());
+
+  let currentDate = new Date(startDate);
+
+  for (let week = 0; week < 53; week++) {
+    const weekData: { date: Date; level: number }[] = [];
+    for (let day = 0; day < 7; day++) {
+      // Generate realistic-looking contribution patterns
+      // More likely to contribute on weekdays, occasional bursts
+      const isWeekend = day === 0 || day === 6;
+      const random = Math.random();
+
+      let level = 0;
+      if (random > 0.65) {
+        level = isWeekend
+          ? Math.floor(Math.random() * 2) + 1
+          : Math.floor(Math.random() * 4) + 1;
+      }
+
+      // Future dates have no contributions
+      if (currentDate > today) {
+        level = 0;
+      }
+
+      weekData.push({
+        date: new Date(currentDate),
+        level: level
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    weeks.push(weekData);
+  }
+
+  return weeks;
+};
+
+const weeks = generateContributionData();
+
+const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// Calculate which months to show labels for
+const getMonthLabels = () => {
+  const labels: { month: string; weekIndex: number }[] = [];
+  let lastMonth = -1;
+
+  weeks.forEach((week, weekIndex) => {
+    const firstDayOfWeek = week[0].date;
+    const month = firstDayOfWeek.getMonth();
+
+    if (month !== lastMonth) {
+      labels.push({ month: monthLabels[month], weekIndex });
+      lastMonth = month;
+    }
+  });
+
+  return labels;
+};
+
+const months = getMonthLabels();
+---
+
+<div class:list={['contribution-matrix', className]}>
+  <div class="matrix-header">
+    {months.map(({ month, weekIndex }) => (
+      <span class="month-label" style={`--week-offset: ${weekIndex}`}>{month}</span>
+    ))}
+  </div>
+  <div class="matrix-grid">
+    {weeks.map((week, weekIndex) => (
+      <div class="week" data-week={weekIndex}>
+        {week.map((day, dayIndex) => (
+          <div
+            class={`day level-${day.level}`}
+            title={`${day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
+            data-date={day.date.toISOString().split('T')[0]}
+          />
+        ))}
+      </div>
+    ))}
+  </div>
+</div>
+
+<style>
+  .contribution-matrix {
+    --cell-size: 10px;
+    --cell-gap: 3px;
+    width: fit-content;
+  }
+
+  .matrix-header {
+    position: relative;
+    height: 1.5em;
+    margin-bottom: var(--space-micro);
+    margin-left: calc(var(--cell-size) + var(--cell-gap));
+  }
+
+  .month-label {
+    position: absolute;
+    left: calc(var(--week-offset) * (var(--cell-size) + var(--cell-gap)));
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .matrix-grid {
+    display: flex;
+    gap: var(--cell-gap);
+  }
+
+  .week {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cell-gap);
+  }
+
+  .day {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    border-radius: 2px;
+    transition: transform var(--transition-fast);
+  }
+
+  .day:hover {
+    transform: scale(1.2);
+  }
+
+  /* Contribution levels using warm grays and accent */
+  .level-0 {
+    background-color: var(--gray-3);
+  }
+
+  .level-1 {
+    background-color: #d5c4a8;
+    background-color: color-mix(in oklch, var(--accent) 25%, var(--gray-3));
+  }
+
+  .level-2 {
+    background-color: #c9a86d;
+    background-color: color-mix(in oklch, var(--accent) 50%, var(--gray-4));
+  }
+
+  .level-3 {
+    background-color: #db9428;
+    background-color: color-mix(in oklch, var(--accent) 75%, var(--gray-5));
+  }
+
+  .level-4 {
+    background-color: var(--accent);
+  }
+
+  /* Responsive: hide on very small screens */
+  @media (max-width: 480px) {
+    .contribution-matrix {
+      --cell-size: 8px;
+      --cell-gap: 2px;
+      overflow-x: auto;
+      max-width: 100%;
+    }
+  }
+</style>

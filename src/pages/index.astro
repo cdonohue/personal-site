@@ -4,6 +4,7 @@ import Stack from '../components/Stack.astro';
 import Heading from '../components/Heading.astro';
 import Text from '../components/Text.astro';
 import Link from '../components/Link.astro';
+import ContributionMatrix from '../components/ContributionMatrix.astro';
 import employment from '../data/employment.json';
 
 const current = employment.find(job => job.current);
@@ -36,6 +37,11 @@ const current = employment.find(job => job.current);
             <Link href="/work">View full work history →</Link>
           </Stack>
         )}
+
+        <Stack gap="standard">
+          <Heading level={2} muted>Activity</Heading>
+          <ContributionMatrix />
+        </Stack>
       </Stack>
   </main>
 </Layout>
