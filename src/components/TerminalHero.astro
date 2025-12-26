@@ -7,88 +7,28 @@ const { lines } = Astro.props;
 ---
 
 <div class="terminal">
-  <div class="terminal-header">
-    <div class="terminal-buttons">
-      <span class="terminal-button close"></span>
-      <span class="terminal-button minimize"></span>
-      <span class="terminal-button maximize"></span>
-    </div>
-    <span class="terminal-title">chad@portfolio ~ </span>
-  </div>
-  <div class="terminal-body">
-    {lines.map((line, index) => (
-      <div
-        class="terminal-line"
-        style={`--line-index: ${index}; --char-count: ${line.length}`}
-      >
-        <span class="prompt">$</span>
-        <span class="text">{line}</span>
-      </div>
-    ))}
-    <div class="terminal-line cursor-line" style={`--line-index: ${lines.length}`}>
+  {lines.map((line, index) => (
+    <div
+      class="terminal-line"
+      style={`--line-index: ${index}; --char-count: ${line.length}`}
+    >
       <span class="prompt">$</span>
-      <span class="cursor"></span>
+      <span class="text">{line}</span>
     </div>
+  ))}
+  <div class="terminal-line cursor-line" style={`--line-index: ${lines.length}`}>
+    <span class="prompt">$</span>
+    <span class="cursor"></span>
   </div>
 </div>
 
 <style>
   .terminal {
     font-family: var(--font-mono);
-    background: var(--gray-9);
+    background: var(--surface);
     border-radius: var(--radius-lg);
-    overflow: hidden;
-    box-shadow:
-      0 4px 6px -1px rgba(0, 0, 0, 0.1),
-      0 2px 4px -2px rgba(0, 0, 0, 0.1),
-      0 0 0 1px var(--gray-10);
-    max-width: 600px;
-  }
-
-  .terminal-header {
-    background: var(--gray-8);
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 1px solid var(--gray-10);
-  }
-
-  .terminal-buttons {
-    display: flex;
-    gap: 8px;
-  }
-
-  .terminal-button {
-    width: 12px;
-    height: 12px;
-    border-radius: var(--radius-full);
-    background: var(--gray-6);
-  }
-
-  .terminal-button.close {
-    background: #ff5f56;
-  }
-
-  .terminal-button.minimize {
-    background: #ffbd2e;
-  }
-
-  .terminal-button.maximize {
-    background: #27ca40;
-  }
-
-  .terminal-title {
-    font-size: var(--text-sm);
-    color: var(--gray-5);
-    flex: 1;
-    text-align: center;
-    margin-right: 52px; /* offset for buttons */
-  }
-
-  .terminal-body {
     padding: var(--space-container);
-    min-height: 180px;
+    width: 100%;
   }
 
   .terminal-line {
@@ -108,7 +48,7 @@ const { lines } = Astro.props;
   }
 
   .text {
-    color: var(--gray-2);
+    color: var(--text-primary);
     overflow: hidden;
     white-space: nowrap;
     animation: typing 1s steps(var(--char-count), end) forwards;
@@ -153,8 +93,15 @@ const { lines } = Astro.props;
     }
   }
 
-  /* Allow text to wrap on smaller screens */
+  /* Mobile: full bleed, no rounded corners */
   @media (max-width: 480px) {
+    .terminal {
+      border-radius: 0;
+      margin-left: calc(-1 * var(--space-container));
+      margin-right: calc(-1 * var(--space-container));
+      width: calc(100% + var(--space-container) * 2);
+    }
+
     .text {
       white-space: normal;
       animation: none;
