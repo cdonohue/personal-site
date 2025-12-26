@@ -4,29 +4,25 @@ import Stack from '../components/Stack.astro';
 import Heading from '../components/Heading.astro';
 import Text from '../components/Text.astro';
 import Link from '../components/Link.astro';
+import TerminalHero from '../components/TerminalHero.astro';
 import employment from '../data/employment.json';
 
 const current = employment.find(job => job.current);
+
+const terminalLines = [
+  "echo 'Hey, I'm Chad Donohue'",
+  "cat role.txt # Design Engineer",
+  "grep -r 'obsession' ./work # details, UX, craft",
+  "history | tail -n1 # building for humans + LLMs",
+];
 ---
 
 <Layout title="Chad Donohue">
   <main>
     <Stack gap="section" class="content">
-        <Stack gap="micro">
-          <Heading level={1} size="lg">Chad Donohue</Heading>
-          <Text muted>Design Engineer</Text>
-        </Stack>
+        <TerminalHero lines={terminalLines} />
 
-        <Stack gap="standard" class="intro">
-					<Text>
-            I'm a software engineer who obsesses over the details so users don't have to. Clean interfaces, smooth interactions, software that just works.
-          </Text>
-          <Text>
-            I've watched frameworks come and go, hype cycles rise and fade. What stays constant: simple is hard and taste matters. Lately I've been thinking about what that means now that we're building for LLMs as much as human users.
-          </Text>
-        </Stack>
-
-{current && (
+        {current && (
           <Stack gap="standard">
             <Heading level={2} muted>Currently</Heading>
             <Stack gap="tight">
@@ -39,9 +35,3 @@ const current = employment.find(job => job.current);
       </Stack>
   </main>
 </Layout>
-
-<style>
-  .intro {
-    max-width: 50ch;
-  }
-</style>

@@ -1,0 +1,168 @@
+---
+interface Props {
+  lines: string[];
+}
+
+const { lines } = Astro.props;
+---
+
+<div class="terminal">
+  <div class="terminal-header">
+    <div class="terminal-buttons">
+      <span class="terminal-button close"></span>
+      <span class="terminal-button minimize"></span>
+      <span class="terminal-button maximize"></span>
+    </div>
+    <span class="terminal-title">chad@portfolio ~ </span>
+  </div>
+  <div class="terminal-body">
+    {lines.map((line, index) => (
+      <div
+        class="terminal-line"
+        style={`--line-index: ${index}; --char-count: ${line.length}`}
+      >
+        <span class="prompt">$</span>
+        <span class="text">{line}</span>
+      </div>
+    ))}
+    <div class="terminal-line cursor-line" style={`--line-index: ${lines.length}`}>
+      <span class="prompt">$</span>
+      <span class="cursor"></span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .terminal {
+    font-family: var(--font-mono);
+    background: var(--gray-9);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -2px rgba(0, 0, 0, 0.1),
+      0 0 0 1px var(--gray-10);
+    max-width: 600px;
+  }
+
+  .terminal-header {
+    background: var(--gray-8);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--gray-10);
+  }
+
+  .terminal-buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .terminal-button {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full);
+    background: var(--gray-6);
+  }
+
+  .terminal-button.close {
+    background: #ff5f56;
+  }
+
+  .terminal-button.minimize {
+    background: #ffbd2e;
+  }
+
+  .terminal-button.maximize {
+    background: #27ca40;
+  }
+
+  .terminal-title {
+    font-size: var(--text-sm);
+    color: var(--gray-5);
+    flex: 1;
+    text-align: center;
+    margin-right: 52px; /* offset for buttons */
+  }
+
+  .terminal-body {
+    padding: var(--space-container);
+    min-height: 180px;
+  }
+
+  .terminal-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75em;
+    margin-bottom: 0.5em;
+    opacity: 0;
+    animation: fadeIn 0.1s ease forwards;
+    animation-delay: calc(var(--line-index) * 1.5s + 0.5s);
+  }
+
+  .prompt {
+    color: var(--accent);
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .text {
+    color: var(--gray-2);
+    overflow: hidden;
+    white-space: nowrap;
+    animation: typing 1s steps(var(--char-count), end) forwards;
+    animation-delay: calc(var(--line-index) * 1.5s + 0.5s);
+    max-width: 0;
+    line-height: var(--leading-normal);
+  }
+
+  .cursor-line {
+    opacity: 0;
+    animation: fadeIn 0.1s ease forwards;
+    animation-delay: calc(var(--line-index) * 1.5s + 0.5s);
+  }
+
+  .cursor {
+    display: inline-block;
+    width: 0.6em;
+    height: 1.1em;
+    background: var(--accent);
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+  }
+
+  @keyframes fadeIn {
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes typing {
+    to {
+      max-width: 100%;
+    }
+  }
+
+  @keyframes blink {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+
+  /* Allow text to wrap on smaller screens */
+  @media (max-width: 480px) {
+    .text {
+      white-space: normal;
+      animation: none;
+      max-width: 100%;
+    }
+
+    .terminal-line {
+      animation-delay: calc(var(--line-index) * 0.3s);
+    }
+  }
+</style>
