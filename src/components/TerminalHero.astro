@@ -27,8 +27,13 @@ const { lines } = Astro.props;
     font-family: var(--font-mono);
     background: var(--surface);
     border-radius: var(--radius-lg);
-    padding: var(--space-container);
-    width: 100%;
+    padding-top: var(--space-container);
+    padding-bottom: var(--space-container);
+    margin-left: calc(-1 * var(--space-container));
+    margin-right: calc(-1 * var(--space-container));
+    padding-left: var(--space-container);
+    padding-right: var(--space-container);
+    width: calc(100% + var(--space-container) * 2);
   }
 
   .terminal-line {
@@ -93,13 +98,10 @@ const { lines } = Astro.props;
     }
   }
 
-  /* Mobile: full bleed, no rounded corners */
+  /* Mobile: no rounded corners */
   @media (max-width: 480px) {
     .terminal {
       border-radius: 0;
-      margin-left: calc(-1 * var(--space-container));
-      margin-right: calc(-1 * var(--space-container));
-      width: calc(100% + var(--space-container) * 2);
     }
 
     .text {
