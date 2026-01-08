@@ -20,16 +20,25 @@ import Link from './Link.astro';
 <style is:global>
   footer {
     margin-top: var(--space-section);
-    padding-block: var(--space-layout);
-    background: var(--surface);
+    container-type: inline-size;
   }
 
   .footer-content {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
+    text-align: center;
     gap: var(--space-tight);
+    padding-block: var(--space-layout);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  @container (min-width: 400px) {
+    .footer-content {
+      flex-direction: row;
+      justify-content: space-between;
+      text-align: left;
+    }
   }
 
   .footer-links {
