@@ -1,167 +1,555 @@
-/* ========================================================================
+/* ============================================================================
    PROSE STYLES
    Typography for long-form markdown content
-   ======================================================================== */
+   Inspired by Apple's documentation and Human Interface Guidelines
+   ============================================================================ */
 
-.prose {
-  max-width: 65ch;
-}
+@layer components {
+  .prose {
+    --prose-body: var(--text-secondary);
+    --prose-headings: var(--text-primary);
+    --prose-lead: var(--text-tertiary);
+    --prose-links: var(--text-primary);
+    --prose-bold: var(--text-primary);
+    --prose-code: var(--text-primary);
+    --prose-quotes: var(--text-tertiary);
+    --prose-quote-borders: var(--accent);
+    --prose-captions: var(--text-muted);
+    --prose-hr: var(--border-subtle);
+    --prose-th-borders: var(--border);
+    --prose-td-borders: var(--border-subtle);
 
-/* Headings */
-.prose h2,
-.prose h3,
-.prose h4 {
-  margin: 0;
-  margin-top: var(--space-layout);
-  line-height: var(--leading-tight);
-  color: var(--text-emphasis);
-}
+    max-width: var(--content-width);
+    color: var(--prose-body);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+  }
 
-.prose h2 { font-size: var(--text-lg); }
-.prose h3 { font-size: var(--text-base); }
-.prose h4 { font-size: var(--text-base); font-weight: 500; }
+  /* ========================================================================
+     HEADINGS
+     Clear hierarchy with proper spacing rhythm
+     ======================================================================== */
 
-/* Paragraphs */
-.prose p {
-  margin-top: var(--space-standard);
-}
+  .prose :where(h1, h2, h3, h4) {
+    color: var(--prose-headings);
+    font-weight: var(--font-semibold);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    scroll-margin-top: var(--space-layout);
+  }
 
-.prose h2 + p,
-.prose h3 + p,
-.prose h4 + p {
-  margin-top: var(--space-tight);
-}
+  .prose :where(h1) {
+    font-size: var(--text-3xl);
+    margin-block-start: 0;
+    margin-block-end: var(--space-8);
+  }
 
-/* First element has no top margin */
-.prose > :first-child {
-  margin-top: 0;
-}
+  .prose :where(h2) {
+    font-size: var(--text-xl);
+    margin-block-start: var(--space-12);
+    margin-block-end: var(--space-5);
+    padding-block-start: var(--space-6);
+    border-block-start: 1px solid var(--border-subtle);
+  }
 
-/* Links - underline is the primary affordance for accessibility */
-.prose a {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: var(--border);
-  text-underline-offset: 0.15em;
-}
+  .prose :where(h3) {
+    font-size: var(--text-lg);
+    margin-block-start: var(--space-8);
+    margin-block-end: var(--space-4);
+  }
 
-.prose a:hover {
-  text-decoration-color: currentColor;
-}
+  .prose :where(h4) {
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+    margin-block-start: var(--space-6);
+    margin-block-end: var(--space-3);
+  }
 
-/* Bold and italic */
-.prose strong {
-  font-weight: 500;
-  color: var(--text-emphasis);
-}
+  /* Adjacent headings - reduce spacing */
+  .prose :where(h2 + h3) {
+    margin-block-start: var(--space-5);
+  }
 
-/* Inline code */
-.prose code {
-  font-family: var(--font-mono);
-  font-size: 0.9em;
-  background: var(--surface);
-  padding: 0.15em 0.4em;
-  border-radius: var(--radius-sm);
-}
+  .prose :where(h3 + h4) {
+    margin-block-start: var(--space-4);
+  }
 
-/* Code blocks */
-.prose pre {
-  margin-top: var(--space-standard);
-  padding: var(--space-standard);
-  background: var(--gray-2);
-  border-radius: var(--radius-md);
-  overflow-x: auto;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  line-height: 1.6;
-}
+  /* ========================================================================
+     PARAGRAPHS & TEXT
+     ======================================================================== */
 
-.prose pre code {
-  background: none;
-  padding: 0;
-  font-size: inherit;
-  color: inherit;
-}
+  .prose :where(p) {
+    margin-block-start: var(--space-5);
+  }
 
-/* Blockquotes */
-.prose blockquote {
-  margin: var(--space-standard) 0;
-  padding-left: var(--space-standard);
-  border-left: 3px solid var(--border);
-  color: var(--text-secondary);
-}
+  .prose :where(h2, h3, h4) + p {
+    margin-block-start: var(--space-4);
+  }
 
-.prose blockquote p {
-  margin-top: var(--space-tight);
-}
+  /* Lead paragraph */
+  .prose :where(p.lead, [data-lead]) {
+    font-size: var(--text-lg);
+    color: var(--prose-lead);
+    line-height: var(--leading-relaxed);
+  }
 
-.prose blockquote p:first-child {
-  margin-top: 0;
-}
+  /* First element has no top margin */
+  .prose > :first-child {
+    margin-block-start: 0;
+  }
 
-/* Lists */
-.prose ul,
-.prose ol {
-  margin: var(--space-standard) 0;
-  padding-left: 1.5em;
-}
+  /* Last element has no bottom margin */
+  .prose > :last-child {
+    margin-block-end: 0;
+  }
 
-.prose li {
-  margin-top: var(--space-tight);
-}
+  /* ========================================================================
+     LINKS
+     Underline is the primary affordance for accessibility
+     ======================================================================== */
 
-.prose li:first-child {
-  margin-top: 0;
-}
+  .prose :where(a) {
+    color: var(--prose-links);
+    font-weight: var(--font-medium);
+    text-decoration: underline;
+    text-decoration-color: var(--border);
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+    transition: var(--transition-colors);
+  }
 
-.prose li > ul,
-.prose li > ol {
-  margin: var(--space-tight) 0;
-}
+  .prose :where(a:hover) {
+    color: var(--interactive);
+    text-decoration-color: var(--interactive);
+  }
 
-/* Task lists */
-.prose ul:has(input[type="checkbox"]) {
-  list-style: none;
-  padding-left: 0;
-}
+  .prose :where(a:focus-visible) {
+    text-decoration: none;
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
 
-.prose li:has(> input[type="checkbox"]) {
-  display: flex;
-  gap: var(--space-tight);
-  align-items: baseline;
-}
+  /* ========================================================================
+     EMPHASIS
+     ======================================================================== */
 
-/* Horizontal rule */
-.prose hr {
-  margin: var(--space-layout) 0;
-  border: none;
-  border-top: 1px solid var(--border-subtle);
-}
+  .prose :where(strong) {
+    color: var(--prose-bold);
+    font-weight: var(--font-semibold);
+  }
 
-/* Tables */
-.prose table {
-  margin-top: var(--space-standard);
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
+  .prose :where(em) {
+    font-style: italic;
+  }
 
-.prose th,
-.prose td {
-  padding: var(--space-tight) var(--space-standard);
-  text-align: left;
-  border-bottom: 1px solid var(--border-subtle);
-}
+  .prose :where(mark) {
+    background: var(--accent-subtle);
+    color: inherit;
+    padding-inline: 0.2em;
+    border-radius: var(--radius-sm);
+  }
 
-.prose th {
-  font-weight: 500;
-  color: var(--text-emphasis);
-}
+  .prose :where(del) {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
 
-/* Images */
-.prose img {
-  margin-top: var(--space-standard);
-  max-width: 100%;
-  height: auto;
-  border-radius: var(--radius-md);
+  /* ========================================================================
+     CODE
+     Inline and block code styling
+     ======================================================================== */
+
+  .prose :where(code) {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    color: var(--prose-code);
+    background: var(--surface);
+    padding: 0.2em 0.4em;
+    border-radius: var(--radius-sm);
+    font-weight: var(--font-normal);
+  }
+
+  /* Code blocks */
+  .prose :where(pre) {
+    margin-block-start: var(--space-6);
+    margin-block-end: var(--space-6);
+    padding: var(--space-5);
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    tab-size: 2;
+
+    /* Smooth scrolling within code blocks */
+    scroll-behavior: smooth;
+
+    /* Better code block shadow */
+    box-shadow: var(--shadow-sm);
+  }
+
+  .prose :where(pre code) {
+    background: transparent;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+    border-radius: 0;
+  }
+
+  /* Line numbers if supported */
+  .prose :where(pre[data-line-numbers]) {
+    padding-inline-start: var(--space-12);
+    position: relative;
+  }
+
+  /* ========================================================================
+     BLOCKQUOTES
+     ======================================================================== */
+
+  .prose :where(blockquote) {
+    margin-block: var(--space-6);
+    margin-inline: 0;
+    padding-inline-start: var(--space-5);
+    border-inline-start: 3px solid var(--prose-quote-borders);
+    color: var(--prose-quotes);
+    font-style: italic;
+  }
+
+  .prose :where(blockquote p) {
+    margin-block-start: var(--space-4);
+  }
+
+  .prose :where(blockquote p:first-child) {
+    margin-block-start: 0;
+  }
+
+  .prose :where(blockquote cite) {
+    display: block;
+    margin-block-start: var(--space-3);
+    font-size: var(--text-sm);
+    font-style: normal;
+    color: var(--text-muted);
+  }
+
+  .prose :where(blockquote cite::before) {
+    content: '— ';
+  }
+
+  /* ========================================================================
+     LISTS
+     ======================================================================== */
+
+  .prose :where(ul, ol) {
+    margin-block: var(--space-5);
+    padding-inline-start: 1.5em;
+  }
+
+  .prose :where(li) {
+    margin-block-start: var(--space-2);
+    padding-inline-start: var(--space-2);
+  }
+
+  .prose :where(li:first-child) {
+    margin-block-start: 0;
+  }
+
+  .prose :where(li > ul, li > ol) {
+    margin-block: var(--space-2);
+  }
+
+  .prose :where(ul) {
+    list-style-type: disc;
+  }
+
+  .prose :where(ul ul) {
+    list-style-type: circle;
+  }
+
+  .prose :where(ul ul ul) {
+    list-style-type: square;
+  }
+
+  .prose :where(ol) {
+    list-style-type: decimal;
+  }
+
+  /* Description lists */
+  .prose :where(dl) {
+    margin-block: var(--space-5);
+  }
+
+  .prose :where(dt) {
+    font-weight: var(--font-medium);
+    color: var(--prose-headings);
+    margin-block-start: var(--space-4);
+  }
+
+  .prose :where(dt:first-child) {
+    margin-block-start: 0;
+  }
+
+  .prose :where(dd) {
+    margin-inline-start: var(--space-5);
+    margin-block-start: var(--space-2);
+  }
+
+  /* Task lists (GitHub-style) */
+  .prose :where(ul:has(input[type='checkbox'])) {
+    list-style: none;
+    padding-inline-start: 0;
+  }
+
+  .prose :where(li:has(> input[type='checkbox'])) {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    padding-inline-start: 0;
+  }
+
+  .prose :where(input[type='checkbox']) {
+    flex-shrink: 0;
+    width: 1.125em;
+    height: 1.125em;
+    margin-block-start: 0.25em;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  /* ========================================================================
+     HORIZONTAL RULE
+     ======================================================================== */
+
+  .prose :where(hr) {
+    margin-block: var(--space-12);
+    border: none;
+    border-block-start: 1px solid var(--prose-hr);
+  }
+
+  /* Decorative HR variant */
+  .prose :where(hr[data-ornament]) {
+    position: relative;
+    border: none;
+  }
+
+  .prose :where(hr[data-ornament])::after {
+    content: '• • •';
+    position: absolute;
+    inset-inline: 0;
+    text-align: center;
+    color: var(--text-muted);
+    letter-spacing: 0.5em;
+    font-size: var(--text-sm);
+  }
+
+  /* ========================================================================
+     TABLES
+     ======================================================================== */
+
+  .prose :where(table) {
+    width: 100%;
+    margin-block: var(--space-6);
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+    text-align: start;
+  }
+
+  .prose :where(thead) {
+    border-block-end: 2px solid var(--prose-th-borders);
+  }
+
+  .prose :where(th) {
+    padding: var(--space-3) var(--space-4);
+    font-weight: var(--font-medium);
+    color: var(--prose-headings);
+    text-align: inherit;
+    vertical-align: bottom;
+  }
+
+  .prose :where(td) {
+    padding: var(--space-3) var(--space-4);
+    vertical-align: top;
+    border-block-end: 1px solid var(--prose-td-borders);
+  }
+
+  .prose :where(tbody tr:last-child td) {
+    border-block-end: none;
+  }
+
+  /* Responsive table wrapper */
+  .prose :where(.table-wrapper) {
+    overflow-x: auto;
+    margin-block: var(--space-6);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .prose :where(.table-wrapper table) {
+    margin: 0;
+  }
+
+  /* ========================================================================
+     FIGURES & IMAGES
+     ======================================================================== */
+
+  .prose :where(figure) {
+    margin-block: var(--space-8);
+    margin-inline: 0;
+  }
+
+  .prose :where(img) {
+    margin-block: var(--space-6);
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+  }
+
+  .prose :where(figure img) {
+    margin: 0;
+  }
+
+  .prose :where(figcaption) {
+    margin-block-start: var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--prose-captions);
+    text-align: center;
+  }
+
+  /* ========================================================================
+     VIDEOS & EMBEDS
+     ======================================================================== */
+
+  .prose :where(video, iframe) {
+    margin-block: var(--space-6);
+    max-width: 100%;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  /* Responsive video wrapper */
+  .prose :where(.video-wrapper) {
+    position: relative;
+    margin-block: var(--space-6);
+    padding-block-end: 56.25%; /* 16:9 aspect ratio */
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .prose :where(.video-wrapper iframe,
+  .video-wrapper video) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  /* ========================================================================
+     KEYBOARD & UI ELEMENTS
+     ======================================================================== */
+
+  .prose :where(kbd) {
+    display: inline-block;
+    padding: 0.1em 0.4em;
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow:
+      0 1px 0 var(--border),
+      inset 0 0 0 1px var(--surface-elevated);
+  }
+
+  .prose :where(abbr[title]) {
+    text-decoration: underline dotted;
+    cursor: help;
+  }
+
+  .prose :where(small) {
+    font-size: var(--text-sm);
+  }
+
+  .prose :where(sub, sup) {
+    font-size: 0.75em;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+
+  .prose :where(sup) {
+    top: -0.5em;
+  }
+
+  .prose :where(sub) {
+    bottom: -0.25em;
+  }
+
+  /* ========================================================================
+     FOOTNOTES
+     ======================================================================== */
+
+  .prose :where(.footnotes) {
+    margin-block-start: var(--space-12);
+    padding-block-start: var(--space-6);
+    border-block-start: 1px solid var(--border-subtle);
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
+  }
+
+  .prose :where(.footnotes ol) {
+    padding-inline-start: 1.5em;
+  }
+
+  .prose :where(.footnote-ref) {
+    font-size: 0.75em;
+    vertical-align: super;
+  }
+
+  .prose :where(.footnote-backref) {
+    margin-inline-start: var(--space-2);
+    text-decoration: none;
+  }
+
+  /* ========================================================================
+     DETAILS / SUMMARY (Disclosure)
+     ======================================================================== */
+
+  .prose :where(details) {
+    margin-block: var(--space-5);
+    padding: var(--space-4);
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .prose :where(summary) {
+    font-weight: var(--font-medium);
+    color: var(--prose-headings);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .prose :where(summary::-webkit-details-marker) {
+    display: none;
+  }
+
+  .prose :where(summary)::before {
+    content: '▸';
+    display: inline-block;
+    margin-inline-end: var(--space-2);
+    transition: transform var(--transition-fast);
+  }
+
+  .prose :where(details[open] summary)::before {
+    transform: rotate(90deg);
+  }
+
+  .prose :where(details[open] > :not(summary)) {
+    margin-block-start: var(--space-4);
+  }
 }

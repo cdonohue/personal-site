@@ -1,7 +1,7 @@
 ---
 interface Props {
   href: string;
-  variant?: 'inline' | 'nav';
+  variant?: 'inline' | 'nav' | 'button';
   size?: 'sm' | 'base' | 'lg';
   weight?: 'normal' | 'medium';
   muted?: boolean;
@@ -18,61 +18,133 @@ const {
   external = false,
   class: className = ''
 } = Astro.props;
+
+const externalAttrs = external ? { target: '_blank', rel: 'noopener noreferrer' } : {};
 ---
 
-<a href={href} class:list={[`link link--${variant} link--${size} link--${weight}`, { 'link--muted': muted }, className]} {...external && { target: '_blank', rel: 'noopener noreferrer' }}>
+<a
+  href={href}
+  class:list={[
+    'link',
+    `link--${variant}`,
+    `link--${size}`,
+    `link--${weight}`,
+    { 'link--muted': muted },
+    className
+  ]}
+  {...externalAttrs}
+>
   <slot />
+  {external && variant === 'inline' && (
+    <svg
+      class="external-icon"
+      width="0.75em"
+      height="0.75em"
+      viewBox="0 0 12 12"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3.5 3C3.22386 3 3 3.22386 3 3.5C3 3.77614 3.22386 4 3.5 4H7.29289L3.14645 8.14645C2.95118 8.34171 2.95118 8.65829 3.14645 8.85355C3.34171 9.04882 3.65829 9.04882 3.85355 8.85355L8 4.70711V8.5C8 8.77614 8.22386 9 8.5 9C8.77614 9 9 8.77614 9 8.5V3.5C9 3.22386 8.77614 3 8.5 3H3.5Z"
+        fill="currentColor"
+      />
+    </svg>
+  )}
 </a>
 
 <style is:global>
   .link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
     color: var(--text-primary);
     text-decoration: none;
-    transition: color var(--transition-fast);
+    transition: var(--transition-colors);
   }
 
   .link--sm { font-size: var(--text-sm); }
   .link--base { font-size: var(--text-base); }
   .link--lg { font-size: var(--text-lg); }
 
-  .link--normal { font-weight: 400; }
-  .link--medium { font-weight: 500; }
+  .link--normal { font-weight: var(--font-normal); }
+  .link--medium { font-weight: var(--font-medium); }
 
-  /* Inline links - underline is primary affordance */
+  /* External icon */
+  .external-icon {
+    opacity: 0.5;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+  }
+
+  .link:hover .external-icon {
+    opacity: 1;
+    transform: translate(1px, -1px);
+  }
+
+  /* ========================================================================
+     INLINE LINKS
+     Underline is the primary affordance for accessibility
+     ======================================================================== */
+
   .link--inline {
     color: inherit;
     text-decoration: underline;
     text-decoration-color: var(--border);
-    text-underline-offset: 0.15em;
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
   }
 
   .link--inline:hover {
-    text-decoration-color: currentColor;
+    color: var(--interactive);
+    text-decoration-color: var(--interactive);
   }
 
-  /* Nav links - hover background */
+  .link--inline:focus-visible {
+    text-decoration: none;
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ========================================================================
+     NAV LINKS
+     Pill-style hover background
+     ======================================================================== */
+
   .link--nav {
-    --link-padding-x: 0.5em;
-    --link-padding-y: 0.25em;
+    --link-padding-x: 0.75em;
+    --link-padding-y: 0.375em;
     position: relative;
+    color: var(--text-tertiary);
   }
 
   .link--nav::before {
     content: '';
     position: absolute;
     inset: calc(var(--link-padding-y) * -1) calc(var(--link-padding-x) * -1);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     background-color: transparent;
     transition: background-color var(--transition-fast);
     z-index: -1;
   }
 
   .link--nav:hover {
-    color: var(--text-emphasis);
+    color: var(--text-primary);
   }
 
   .link--nav:hover::before {
-    background-color: var(--surface-hover);
+    background-color: var(--surface);
+  }
+
+  .link--nav:active::before {
+    background-color: var(--surface-secondary);
+  }
+
+  .link--nav:focus-visible {
+    outline: none;
+  }
+
+  .link--nav:focus-visible::before {
+    box-shadow: 0 0 0 2px var(--focus-ring);
   }
 
   .link--nav.link--muted {
@@ -80,6 +152,37 @@ const {
   }
 
   .link--nav.link--muted:hover {
-    color: var(--text-primary);
+    color: var(--text-secondary);
+  }
+
+  /* ========================================================================
+     BUTTON LINKS
+     Solid button style
+     ======================================================================== */
+
+  .link--button {
+    --button-padding-x: 1.25em;
+    --button-padding-y: 0.625em;
+    padding: var(--button-padding-y) var(--button-padding-x);
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-medium);
+    transition: var(--transition-colors), transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .link--button:hover {
+    background: var(--surface-secondary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .link--button:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+
+  .link--button:focus-visible {
+    outline: none;
+    box-shadow: var(--ring-shadow);
   }
 </style>

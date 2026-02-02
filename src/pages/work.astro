@@ -25,26 +25,144 @@ function getDuration(startStr: string, endStr: string | null) {
 }
 ---
 
-<Layout title="Work">
+<Layout title="Work" description="My professional experience and career journey">
   <main>
     <Stack gap="section">
-      <Stack gap="micro">
-        <Heading level={1} size="lg">Work</Heading>
-        <Text muted>Companies and roles</Text>
-      </Stack>
+      <!-- Page Header -->
+      <header class="page-header animate-in">
+        <Stack gap="micro">
+          <Heading level={1} size="3xl" class="view-transition-heading">Work</Heading>
+          <Text size="lg" muted>Companies and roles</Text>
+        </Stack>
+      </header>
 
-      <Stack gap="layout">
-        {jobs.map(job => (
-          <Stack gap="tight">
-            <Stack gap="micro">
-              <Heading level={2}>{job.company}</Heading>
-              <Text muted>{job.role}</Text>
-              <Text muted size="sm">{formatDate(job.startDate)} – {formatDate(job.endDate)} ({getDuration(job.startDate, job.endDate)})</Text>
-            </Stack>
-            <Text>{job.description}</Text>
-          </Stack>
+      <!-- Timeline -->
+      <section class="timeline stagger-children" aria-label="Work experience">
+        {jobs.map((job, index) => (
+          <article class="job-entry" data-current={job.current || undefined}>
+            <div class="timeline-indicator">
+              <div class="timeline-dot" />
+              {index < jobs.length - 1 && <div class="timeline-line" />}
+            </div>
+            <div class="job-content">
+              <Stack gap="tight">
+                <Stack gap="micro">
+                  <Heading level={2} size="lg" weight="medium">
+                    {job.company}
+                  </Heading>
+                  <Text size="sm" class="job-role">{job.role}</Text>
+                  <Text size="sm" muted class="job-dates">
+                    <time datetime={job.startDate}>{formatDate(job.startDate)}</time>
+                    <span aria-hidden="true"> – </span>
+                    <time datetime={job.endDate || undefined}>{formatDate(job.endDate)}</time>
+                    <span class="job-duration">({getDuration(job.startDate, job.endDate)})</span>
+                  </Text>
+                </Stack>
+                <Text leading="relaxed" class="job-description">
+                  {job.description}
+                </Text>
+              </Stack>
+            </div>
+          </article>
         ))}
-      </Stack>
+      </section>
     </Stack>
   </main>
 </Layout>
+
+<style>
+  .page-header {
+    padding-block: var(--space-8);
+  }
+
+  .timeline {
+    --timeline-dot-size: 10px;
+    --timeline-line-width: 2px;
+    --timeline-offset: calc(var(--timeline-dot-size) / 2);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .job-entry {
+    display: grid;
+    grid-template-columns: var(--timeline-dot-size) 1fr;
+    gap: var(--space-6);
+    padding-block-end: var(--space-12);
+    position: relative;
+  }
+
+  .job-entry:last-child {
+    padding-block-end: 0;
+  }
+
+  .timeline-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-block-start: var(--space-2);
+  }
+
+  .timeline-dot {
+    width: var(--timeline-dot-size);
+    height: var(--timeline-dot-size);
+    border-radius: var(--radius-full);
+    background: var(--border);
+    flex-shrink: 0;
+    transition: var(--transition-colors);
+  }
+
+  .job-entry[data-current] .timeline-dot {
+    background: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-subtle);
+  }
+
+  .timeline-line {
+    width: var(--timeline-line-width);
+    flex: 1;
+    background: var(--border-subtle);
+    margin-block-start: var(--space-3);
+  }
+
+  .job-content {
+    min-width: 0;
+  }
+
+  .job-role {
+    color: var(--text-secondary);
+  }
+
+  .job-dates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .job-duration {
+    opacity: 0.7;
+  }
+
+  .job-description {
+    max-width: 55ch;
+  }
+
+  /* Hover effects */
+  .job-entry:hover .timeline-dot {
+    background: var(--text-tertiary);
+  }
+
+  .job-entry[data-current]:hover .timeline-dot {
+    background: var(--accent);
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .timeline {
+      --timeline-dot-size: 8px;
+    }
+
+    .job-entry {
+      gap: var(--space-4);
+    }
+  }
+</style>

@@ -4,6 +4,7 @@ import Layout from '../../layouts/layout.astro';
 import Stack from '../../components/Stack.astro';
 import Heading from '../../components/Heading.astro';
 import Text from '../../components/Text.astro';
+import Link from '../../components/Link.astro';
 
 export async function getStaticPaths() {
   const posts = await getCollection('writing');
@@ -23,45 +24,118 @@ const formattedDate = post.data.date.toLocaleDateString('en-US', {
 });
 ---
 
-<Layout title={`${post.data.title} - Chad Donohue`}>
+<Layout title={post.data.title} description={post.data.description}>
   <main>
-    <article>
+    <article class="article">
       <Stack gap="section">
-        <Stack gap="micro">
-          <Heading level={1} size="lg">{post.data.title}</Heading>
-          <Text muted>{formattedDate}</Text>
-        </Stack>
+        <!-- Article Header -->
+        <header class="article-header animate-in">
+          <Link href="/writing" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M9.5 3.5L5 8L9.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Back to writing
+          </Link>
+          <Stack gap="tight" class="article-meta">
+            <Heading level={1} size="3xl" class="view-transition-heading">
+              {post.data.title}
+            </Heading>
+            <Text muted>
+              <time datetime={post.data.date.toISOString()}>{formattedDate}</time>
+            </Text>
+          </Stack>
+        </header>
 
+        <!-- Hero Image -->
         {post.data.image && (
-          <div class="post-image-container">
-            <img src={post.data.image} alt="" class="post-image" />
-          </div>
+          <figure class="article-hero animate-in animate-in-delay-1">
+            <div class="hero-image-container">
+              <img src={post.data.image} alt="" class="hero-image" loading="eager" />
+            </div>
+          </figure>
         )}
 
-        <div class="prose">
+        <!-- Article Content -->
+        <div class="prose animate-in animate-in-delay-2">
           <Content />
         </div>
+
+        <!-- Article Footer -->
+        <footer class="article-footer">
+          <Link href="/writing" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M9.5 3.5L5 8L9.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Back to all posts
+          </Link>
+        </footer>
       </Stack>
     </article>
   </main>
 </Layout>
 
 <style>
-  .post-image-container {
-    background: var(--gray-2);
-    border-radius: var(--radius-lg, 12px);
-    padding: var(--space-layout);
+  .article-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding-block: var(--space-4);
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .back-link:hover {
+    color: var(--text-primary);
+  }
+
+  .back-link svg {
+    transition: transform var(--transition-fast);
+  }
+
+  .back-link:hover svg {
+    transform: translateX(-4px);
+  }
+
+  .article-meta {
+    max-width: var(--content-width);
+  }
+
+  .article-hero {
+    margin: 0;
+  }
+
+  .hero-image-container {
+    background: var(--surface);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-10);
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
   }
 
-  .post-image {
-    max-width: 300px;
+  .hero-image {
+    max-width: 320px;
+    width: 100%;
     height: auto;
+    border-radius: var(--radius-lg);
   }
 
   .prose {
-    max-width: 65ch;
+    max-width: var(--content-width);
+  }
+
+  .article-footer {
+    padding-block-start: var(--space-8);
+    border-block-start: 1px solid var(--border-subtle);
   }
 </style>

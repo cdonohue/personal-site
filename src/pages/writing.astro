@@ -10,26 +10,113 @@ const posts = (await getCollection('writing', ({ data }) => !data.draft))
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---
 
-<Layout title="Writing - Chad Donohue">
+<Layout title="Writing" description="Thoughts on design and engineering">
   <main>
     <Stack gap="section">
-      <Stack gap="micro">
-        <Heading level={1} size="lg">Writing</Heading>
-        <Text muted>Thoughts on design and engineering</Text>
-      </Stack>
+      <!-- Page Header -->
+      <header class="page-header animate-in">
+        <Stack gap="micro">
+          <Heading level={1} size="3xl" class="view-transition-heading">Writing</Heading>
+          <Text size="lg" muted>Thoughts on design and engineering</Text>
+        </Stack>
+      </header>
 
-      <Stack gap="layout">
+      <!-- Posts List -->
+      <section class="posts-list stagger-children" aria-label="Blog posts">
         {posts.map(post => (
-          <Stack gap="micro">
-            <Stack gap="micro">
-              <Heading level={2}>{post.data.title}</Heading>
-              <Text muted>{post.data.date.getFullYear()}</Text>
-            </Stack>
-            <Text>{post.data.description}</Text>
-            <Link href={`/writing/${post.slug}`}>Read post →</Link>
-          </Stack>
+          <article class="post-card">
+            <Link href={`/writing/${post.slug}`} class="post-link">
+              <Stack gap="tight">
+                <Stack gap="micro">
+                  <Heading level={2} size="lg" weight="medium" class="post-title">
+                    {post.data.title}
+                  </Heading>
+                  <Text size="sm" muted class="post-date">
+                    <time datetime={post.data.date.toISOString()}>
+                      {post.data.date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                      })}
+                    </time>
+                  </Text>
+                </Stack>
+                <Text class="post-description" leading="relaxed">
+                  {post.data.description}
+                </Text>
+                <span class="read-more">
+                  Read article
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+              </Stack>
+            </Link>
+          </article>
         ))}
-      </Stack>
+      </section>
     </Stack>
   </main>
 </Layout>
+
+<style>
+  .page-header {
+    padding-block: var(--space-8);
+  }
+
+  .posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .post-card {
+    margin-inline: calc(var(--space-5) * -1);
+    border-radius: var(--radius-xl);
+    transition: background-color var(--transition-fast);
+  }
+
+  .post-card:hover {
+    background: var(--surface);
+  }
+
+  .post-link {
+    display: block;
+    padding: var(--space-5);
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .post-title {
+    transition: color var(--transition-fast);
+  }
+
+  .post-card:hover .post-title {
+    color: var(--interactive);
+  }
+
+  .post-description {
+    max-width: 55ch;
+  }
+
+  .read-more {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    transition: color var(--transition-fast);
+  }
+
+  .post-card:hover .read-more {
+    color: var(--interactive);
+  }
+
+  .read-more svg {
+    transition: transform var(--transition-fast);
+  }
+
+  .post-card:hover .read-more svg {
+    transform: translateX(4px);
+  }
+</style>

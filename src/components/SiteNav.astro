@@ -5,25 +5,70 @@ const pathname = Astro.url.pathname;
 const isActive = (href: string) => pathname === href || pathname === `${href}/`;
 ---
 
-<nav>
-  <Link href="/" variant="nav">CD</Link>
+<nav class="site-nav" aria-label="Main navigation">
+  <Link href="/" variant="nav" class="logo">
+    <span class="logo-text">CD</span>
+  </Link>
   <div class="nav-links">
-    <Link href="/work" variant="nav" muted={!isActive('/work')}>Work</Link>
+    <Link href="/work" variant="nav" class:list={[{ active: isActive('/work') }]}>
+      Work
+    </Link>
+    <Link href="/writing" variant="nav" class:list={[{ active: isActive('/writing') || pathname.startsWith('/writing/') }]}>
+      Writing
+    </Link>
   </div>
 </nav>
 
 <style>
-  nav {
+  .site-nav {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: var(--space-tight);
+    gap: var(--space-4);
+  }
+
+  .logo {
+    position: relative;
+  }
+
+  .logo-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25em;
+    height: 2.25em;
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-primary);
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    transition: var(--transition-colors), transform var(--transition-fast);
+  }
+
+  .logo:hover .logo-text {
+    background: var(--surface-secondary);
+    transform: scale(1.05);
+  }
+
+  .logo:active .logo-text {
+    transform: scale(0.95);
   }
 
   .nav-links {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-standard);
+    gap: var(--space-1);
+  }
+
+  /* Active state for nav links */
+  .nav-links :global(.active) {
+    color: var(--text-primary);
+    font-weight: var(--font-medium);
+  }
+
+  .nav-links :global(.active)::before {
+    background-color: var(--accent-subtle);
   }
 </style>
