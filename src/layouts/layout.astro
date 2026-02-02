@@ -6,26 +6,45 @@ import '../styles/global.css';
 
 interface Props {
   title: string;
+  description?: string;
 }
 
-const { title } = Astro.props;
+const { title, description = 'Design Engineer crafting thoughtful digital experiences' } = Astro.props;
 ---
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Chad Donohue - {title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f9f8f6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#141210" media="(prefers-color-scheme: dark)" />
+    <title>{title} — Chad Donohue</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Cascadia+Code:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- View Transitions -->
+    <meta name="view-transition" content="same-origin" />
   </head>
   <body>
-    <Center maxWidth="var(--container-md)" gutter="var(--space-container)" class="content-wrapper">
-      <header>
+    <!-- Frosted glass header -->
+    <header class="site-header">
+      <Center maxWidth="var(--container-md)" gutter="var(--gutter)">
         <SiteNav />
-      </header>
+      </Center>
+    </header>
+
+    <!-- Main content -->
+    <Center maxWidth="var(--container-md)" gutter="var(--gutter)" class="content-wrapper">
       <slot />
     </Center>
+
+    <!-- Footer -->
     <Footer />
   </body>
 </html>
@@ -39,14 +58,59 @@ const { title } = Astro.props;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    min-height: 100dvh;
   }
 
+  /* Frosted glass header */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    padding-block: var(--space-4);
+
+    /* Frosted glass effect */
+    background: var(--surface-overlay);
+    backdrop-filter: blur(var(--blur-xl)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--blur-xl)) saturate(180%);
+
+    /* Subtle bottom border that appears on scroll */
+    border-block-end: 1px solid transparent;
+    transition: border-color var(--transition-normal), background-color var(--transition-normal);
+  }
+
+  /* Show border when scrolled */
+  .site-header:has(~ .content-wrapper:not(:hover)) {
+    border-block-end-color: var(--border-subtle);
+  }
+
+  @supports (animation-timeline: scroll()) {
+    .site-header {
+      animation: header-scroll linear both;
+      animation-timeline: scroll();
+      animation-range: 0 100px;
+    }
+
+    @keyframes header-scroll {
+      from {
+        border-block-end-color: transparent;
+        background: transparent;
+        backdrop-filter: blur(0) saturate(100%);
+        -webkit-backdrop-filter: blur(0) saturate(100%);
+      }
+      to {
+        border-block-end-color: var(--border-subtle);
+        background: var(--surface-overlay);
+        backdrop-filter: blur(var(--blur-xl)) saturate(180%);
+        -webkit-backdrop-filter: blur(var(--blur-xl)) saturate(180%);
+      }
+    }
+  }
+
+  /* Main content area */
   .content-wrapper {
     flex: 1;
-  }
-
-  header {
-    padding-block: var(--space-layout);
+    padding-block-start: var(--space-12);
+    padding-block-end: var(--space-section);
   }
 
   main {

@@ -1,39 +1,63 @@
 ---
 interface Props {
-  size?: 'sm' | 'base' | 'lg';
-  weight?: 'normal' | 'medium';
+  as?: 'p' | 'span' | 'div';
+  size?: 'xs' | 'sm' | 'base' | 'lg';
+  weight?: 'light' | 'normal' | 'medium';
+  leading?: 'tight' | 'normal' | 'relaxed';
   maxWidth?: string;
   muted?: boolean;
   class?: string;
 }
 
 const {
+  as: Tag = 'p',
   size = 'base',
   weight = 'normal',
-  maxWidth = '65ch',
+  leading = 'normal',
+  maxWidth = 'var(--content-width)',
   muted = false,
   class: className = ''
 } = Astro.props;
 ---
 
-<p class:list={[`text text--${size} text--${weight}`, { 'text--muted': muted }, className]} style={`max-width: ${maxWidth};`}>
+<Tag
+  class:list={[
+    'text',
+    `text--${size}`,
+    `text--${weight}`,
+    `text--leading-${leading}`,
+    { 'text--muted': muted },
+    className
+  ]}
+  style={maxWidth !== 'none' ? `max-width: ${maxWidth};` : undefined}
+>
   <slot />
-</p>
+</Tag>
 
 <style is:global>
   .text {
     margin: 0;
-    line-height: var(--leading-normal);
     color: var(--text-secondary);
+    text-wrap: pretty;
   }
 
+  /* Size variants */
+  .text--xs { font-size: var(--text-xs); }
   .text--sm { font-size: var(--text-sm); }
   .text--base { font-size: var(--text-base); }
   .text--lg { font-size: var(--text-lg); }
 
-  .text--normal { font-weight: 400; }
-  .text--medium { font-weight: 500; }
+  /* Weight variants */
+  .text--light { font-weight: var(--font-light); }
+  .text--normal { font-weight: var(--font-normal); }
+  .text--medium { font-weight: var(--font-medium); }
 
+  /* Line height variants */
+  .text--leading-tight { line-height: var(--leading-tight); }
+  .text--leading-normal { line-height: var(--leading-normal); }
+  .text--leading-relaxed { line-height: var(--leading-relaxed); }
+
+  /* Muted variant */
   .text--muted {
     color: var(--text-muted);
   }

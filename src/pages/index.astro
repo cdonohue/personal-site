@@ -4,44 +4,125 @@ import Stack from '../components/Stack.astro';
 import Heading from '../components/Heading.astro';
 import Text from '../components/Text.astro';
 import Link from '../components/Link.astro';
+import Card from '../components/Card.astro';
 import employment from '../data/employment.json';
 
 const current = employment.find(job => job.current);
 ---
 
-<Layout title="Chad Donohue">
+<Layout title="Home">
   <main>
-    <Stack gap="section" class="content">
-        <Stack gap="micro">
-          <Heading level={1} size="lg">Chad Donohue</Heading>
-          <Text muted>Design Engineer</Text>
+    <Stack gap="section">
+      <!-- Hero Section -->
+      <section class="hero animate-in">
+        <Stack gap="tight">
+          <Heading level={1} size="3xl" class="view-transition-heading">
+            Chad Donohue
+          </Heading>
+          <Text size="lg" muted class="tagline">
+            Design Engineer
+          </Text>
         </Stack>
+      </section>
 
-        <Stack gap="standard" class="intro">
-					<Text>
+      <!-- Introduction -->
+      <section class="intro animate-in animate-in-delay-1">
+        <Stack gap="standard">
+          <Text size="lg" leading="relaxed">
             I'm a software engineer who obsesses over the details so users don't have to. Clean interfaces, smooth interactions, software that just works.
           </Text>
-          <Text>
+          <Text leading="relaxed">
             I've watched frameworks come and go, hype cycles rise and fade. What stays constant: simple is hard and taste matters. Lately I've been thinking about what that means now that we're building for LLMs as much as human users.
           </Text>
         </Stack>
+      </section>
 
-{current && (
-          <Stack gap="standard">
+      <!-- Currently Section -->
+      {current && (
+        <section class="currently animate-in animate-in-delay-2">
+          <Stack gap="layout">
             <Heading level={2} muted>Currently</Heading>
-            <Stack gap="tight">
-              <Heading level={3}>{current.role} at {current.company}</Heading>
-              <Text>{current.description}</Text>
-            </Stack>
-            <Link href="/work">View full work history →</Link>
+            <Card variant="outlined" padding="standard">
+              <Stack gap="standard">
+                <Stack gap="micro">
+                  <Heading level={3} size="lg" weight="medium">
+                    {current.role}
+                  </Heading>
+                  <Text muted>
+                    at {current.company}
+                  </Text>
+                </Stack>
+                <Text leading="relaxed">
+                  {current.description}
+                </Text>
+              </Stack>
+            </Card>
+            <Link href="/work" class="work-link">
+              View full work history
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </Link>
           </Stack>
-        )}
-      </Stack>
+        </section>
+      )}
+    </Stack>
   </main>
 </Layout>
 
 <style>
+  .hero {
+    padding-block: var(--space-8);
+  }
+
+  .tagline {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .tagline::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: var(--radius-full);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.9); }
+  }
+
   .intro {
-    max-width: 50ch;
+    max-width: 55ch;
+  }
+
+  .currently {
+    max-width: 55ch;
+  }
+
+  .work-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-primary);
+    font-weight: var(--font-medium);
+    text-decoration: none;
+    transition: var(--transition-colors);
+  }
+
+  .work-link:hover {
+    color: var(--interactive);
+  }
+
+  .work-link svg {
+    transition: transform var(--transition-fast);
+  }
+
+  .work-link:hover svg {
+    transform: translateX(4px);
   }
 </style>

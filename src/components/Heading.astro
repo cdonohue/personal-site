@@ -1,24 +1,35 @@
 ---
 interface Props {
   level?: 1 | 2 | 3 | 4;
-  size?: 'base' | 'lg';
-  weight?: 'normal' | 'medium';
+  size?: 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl';
+  weight?: 'normal' | 'medium' | 'semibold';
   muted?: boolean;
+  gradient?: boolean;
   class?: string;
 }
 
 const {
   level = 1,
   size = 'base',
-  weight = 'medium',
+  weight = 'semibold',
   muted = false,
+  gradient = false,
   class: className = ''
 } = Astro.props;
 
 const Tag = `h${level}` as any;
 ---
 
-<Tag class:list={[`heading heading--${size} heading--${weight}`, { 'heading--muted': muted }, className]}>
+<Tag
+  class:list={[
+    'heading',
+    `heading--${size}`,
+    `heading--${weight}`,
+    { 'heading--muted': muted },
+    { 'heading--gradient': gradient },
+    className
+  ]}
+>
   <slot />
 </Tag>
 
@@ -27,16 +38,41 @@ const Tag = `h${level}` as any;
     margin: 0;
     color: var(--text-primary);
     line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
     text-wrap: balance;
   }
 
+  /* Size variants */
+  .heading--sm { font-size: var(--text-sm); letter-spacing: var(--tracking-normal); }
   .heading--base { font-size: var(--text-base); }
   .heading--lg { font-size: var(--text-lg); }
+  .heading--xl { font-size: var(--text-xl); }
+  .heading--2xl { font-size: var(--text-2xl); letter-spacing: var(--tracking-tighter); }
+  .heading--3xl { font-size: var(--text-3xl); letter-spacing: var(--tracking-tighter); }
 
-  .heading--normal { font-weight: 400; }
-  .heading--medium { font-weight: 500; }
+  /* Weight variants */
+  .heading--normal { font-weight: var(--font-normal); }
+  .heading--medium { font-weight: var(--font-medium); }
+  .heading--semibold { font-weight: var(--font-semibold); }
 
+  /* Muted variant */
   .heading--muted {
     color: var(--text-muted);
+    font-weight: var(--font-medium);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    font-size: var(--text-xs);
+  }
+
+  /* Gradient text effect */
+  .heading--gradient {
+    background: linear-gradient(
+      135deg,
+      var(--text-primary) 0%,
+      var(--text-tertiary) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 </style>

@@ -1,27 +1,91 @@
 ---
 interface Props {
-  padding?: 'tight' | 'standard' | 'container';
+  padding?: 'none' | 'tight' | 'standard' | 'container';
+  variant?: 'default' | 'elevated' | 'outlined' | 'ghost';
+  interactive?: boolean;
   class?: string;
 }
 
 const {
   padding = 'container',
+  variant = 'default',
+  interactive = false,
   class: className = ''
 } = Astro.props;
 ---
 
-<div class:list={[`card card--${padding}`, className]}>
+<div
+  class:list={[
+    'card',
+    `card--${padding}`,
+    `card--${variant}`,
+    { 'card--interactive': interactive },
+    className
+  ]}
+>
   <slot />
 </div>
 
 <style is:global>
   .card {
-    background: var(--surface);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
+    position: relative;
+    border-radius: var(--radius-xl);
+    transition: var(--transition-colors), transform var(--transition-normal), box-shadow var(--transition-normal);
   }
 
-  .card--tight { padding: var(--space-tight); }
-  .card--standard { padding: var(--space-standard); }
-  .card--container { padding: var(--space-container); }
+  /* Padding variants */
+  .card--none { padding: 0; }
+  .card--tight { padding: var(--space-4); }
+  .card--standard { padding: var(--space-6); }
+  .card--container { padding: var(--space-8); }
+
+  /* Style variants */
+  .card--default {
+    background: var(--surface);
+  }
+
+  .card--elevated {
+    background: var(--surface-elevated);
+    box-shadow: var(--shadow-md);
+  }
+
+  .card--outlined {
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+  }
+
+  .card--ghost {
+    background: transparent;
+  }
+
+  /* Interactive cards */
+  .card--interactive {
+    cursor: pointer;
+  }
+
+  .card--interactive:hover {
+    transform: translateY(-2px);
+  }
+
+  .card--interactive.card--default:hover {
+    background: var(--surface-secondary);
+  }
+
+  .card--interactive.card--elevated:hover {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .card--interactive.card--outlined:hover {
+    border-color: var(--border);
+    background: var(--surface);
+  }
+
+  .card--interactive:active {
+    transform: translateY(0);
+  }
+
+  .card--interactive:focus-visible {
+    outline: none;
+    box-shadow: var(--ring-shadow);
+  }
 </style>
