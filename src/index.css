@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    /* Vertical rhythm unit - everything aligns to this grid */
+    --rhythm-unit: 0.25rem; /* 4px base unit */
+
+    /* T-shirt sizing model - scale describes size, not function */
+    /* Each size is tuned for optical balance and baseline alignment */
+    /* Smaller ranges for better mobile scaling */
+    --type-xs: clamp(0.75rem, 0.5vw + 0.65rem, 0.875rem); /* 12px → 14px */
+    --type-sm: clamp(0.875rem, 0.6vw + 0.75rem, 1rem); /* 14px → 16px */
+    --type-base: clamp(0.9375rem, 0.8vw + 0.8rem, 1.125rem); /* 15px → 18px */
+    --type-md: clamp(1rem, 1.2vw + 0.85rem, 1.375rem); /* 16px → 22px */
+    --type-lg: clamp(1.25rem, 3vw + 0.75rem, 2.25rem); /* 20px → 36px */
+    --type-xl: clamp(2rem, 6vw + 1rem, 4.5rem); /* 32px → 72px */
+
+    /* Line heights designed to align baselines to vertical rhythm */
+    --leading-xs: 1.25rem; /* 20px - locks to 5 rhythm units */
+    --leading-sm: 1.5rem; /* 24px - locks to 6 rhythm units */
+    --leading-base: 1.75rem; /* 28px - locks to 7 rhythm units */
+    --leading-md: 2rem; /* 32px - locks to 8 rhythm units */
+    --leading-lg: 2.5rem; /* 40px - locks to 10 rhythm units */
+    --leading-xl: 1.1; /* Relative for large display text */
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-size: 16px; /* Base for rem calculations */
+    scrollbar-gutter: stable; /* Reserve space for scrollbar to prevent layout shift */
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: #fafafa;
+    color: #1a1a1a;
+    font-size: var(--type-base);
+    line-height: var(--leading-base);
+  }
+
+  /* Display text - Large, impactful, minimal leading */
+  h1 {
+    font-size: var(--type-xl);
+    line-height: var(--leading-xl);
+    letter-spacing: -0.025em;
+    font-weight: 300;
+  }
+
+  /* Section headings - Medium scale, balanced rhythm */
+  h2 {
+    font-size: var(--type-lg);
+    line-height: var(--leading-lg);
+    letter-spacing: -0.015em;
+    font-weight: 400;
+  }
+
+  /* Small headings - Uppercase, wide letter-spacing */
+  h3 {
+    font-size: var(--type-xs);
+    line-height: var(--leading-xs);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  /* Content headings - Medium emphasis */
+  h4 {
+    font-size: var(--type-md);
+    line-height: var(--leading-md);
+    letter-spacing: -0.01em;
+    font-weight: 500;
+  }
+
+  /* Body text - Optimized for readability */
+  p {
+    font-size: var(--type-base);
+    line-height: var(--leading-base);
+  }
+
+  /* Small text - Maintains rhythm */
+  small {
+    font-size: var(--type-sm);
+    line-height: var(--leading-sm);
+  }
+
+  /* Links - Better underline positioning */
+  a {
+    text-underline-offset: 0.15em;
+    text-decoration-thickness: 0.0625rem;
+  }
+}
