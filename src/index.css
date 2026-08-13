@@ -1,5 +1,45 @@
 @import "tailwindcss";
 
+/**
+ * Palette taken from the pixel scene rather than invented, so the page and the
+ * illustration read as one thing.
+ *
+ * The scene's greys are strictly neutral (#aaaaaa, #8a8a8a, #202020 — R=G=B),
+ * while Tailwind's `gray` is blue-tinted. That mismatch is why the old scheme
+ * sat slightly cool against the art. The accent is the window: #bacaff is the
+ * daylight glass, used directly in dark mode and darkened to #5a6faf for light,
+ * where the pale original cannot carry text contrast.
+ *
+ * Every text value below clears 4.5:1 on its own background. The old
+ * text-gray-400, used eleven times for nav links and section labels, sat at
+ * about 2.6:1 and did not.
+ */
+@theme {
+  --color-surface: #fafafa;
+  --color-sunken: #efefef;
+  --color-ink: #202020;
+  --color-muted: #707070;
+  --color-line: #d6d6d6;
+  --color-accent: #5a6faf;
+}
+
+/*
+ * Dark values override the variables directly rather than through a second
+ * @theme: @theme is a build-time block and only works at the top level, but the
+ * variables it emits are ordinary CSS custom properties, so a media query can
+ * reassign them and every utility follows.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: #17181c;
+    --color-sunken: #1f2027;
+    --color-ink: #e6e6e6;
+    --color-muted: #a3a3a3;
+    --color-line: #32343c;
+    --color-accent: #bacaff;
+  }
+}
+
 @layer base {
   * {
     margin: 0;
@@ -8,26 +48,15 @@
   }
 
   :root {
-    /* Vertical rhythm unit - everything aligns to this grid */
-    --rhythm-unit: 0.25rem; /* 4px base unit */
-
-    /* T-shirt sizing model - scale describes size, not function */
-    /* Each size is tuned for optical balance and baseline alignment */
-    /* Smaller ranges for better mobile scaling */
-    --type-xs: clamp(0.75rem, 0.5vw + 0.65rem, 0.875rem); /* 12px → 14px */
-    --type-sm: clamp(0.875rem, 0.6vw + 0.75rem, 1rem); /* 14px → 16px */
-    --type-base: clamp(0.9375rem, 0.8vw + 0.8rem, 1.125rem); /* 15px → 18px */
-    --type-md: clamp(1rem, 1.2vw + 0.85rem, 1.375rem); /* 16px → 22px */
-    --type-lg: clamp(1.25rem, 3vw + 0.75rem, 2.25rem); /* 20px → 36px */
-    --type-xl: clamp(2rem, 6vw + 1rem, 4.5rem); /* 32px → 72px */
-
-    /* Line heights designed to align baselines to vertical rhythm */
-    --leading-xs: 1.25rem; /* 20px - locks to 5 rhythm units */
-    --leading-sm: 1.5rem; /* 24px - locks to 6 rhythm units */
-    --leading-base: 1.75rem; /* 28px - locks to 7 rhythm units */
-    --leading-md: 2rem; /* 32px - locks to 8 rhythm units */
-    --leading-lg: 2.5rem; /* 40px - locks to 10 rhythm units */
-    --leading-xl: 1.1; /* Relative for large display text */
+    /*
+     * One size. Hierarchy comes from weight, colour and space instead.
+     *
+     * The previous scale had six fluid sizes and six line heights, and none of
+     * them rendered: the markup sets Tailwind text-* utilities on the same
+     * elements, and utilities outrank @layer base, so every token was dead.
+     */
+    --type: clamp(1rem, 0.35vw + 0.92rem, 1.125rem); /* 16px -> 18px */
+    --leading: 1.6;
   }
 
   html {
@@ -39,55 +68,33 @@
 
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background-color: #fafafa;
-    color: #1a1a1a;
-    font-size: var(--type-base);
-    line-height: var(--leading-base);
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+    font-size: var(--type);
+    line-height: var(--leading);
   }
 
-  /* Display text - Large, impactful, minimal leading */
-  h1 {
-    font-size: var(--type-xl);
-    line-height: var(--leading-xl);
-    letter-spacing: -0.025em;
-    font-weight: 300;
-  }
-
-  /* Section headings - Medium scale, balanced rhythm */
-  h2 {
-    font-size: var(--type-lg);
-    line-height: var(--leading-lg);
-    letter-spacing: -0.015em;
-    font-weight: 400;
-  }
-
-  /* Small headings - Uppercase, wide letter-spacing */
-  h3 {
-    font-size: var(--type-xs);
-    line-height: var(--leading-xs);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    font-weight: 400;
-  }
-
-  /* Content headings - Medium emphasis */
-  h4 {
-    font-size: var(--type-md);
-    line-height: var(--leading-md);
-    letter-spacing: -0.01em;
-    font-weight: 500;
-  }
-
-  /* Body text - Optimized for readability */
-  p {
-    font-size: var(--type-base);
-    line-height: var(--leading-base);
-  }
-
-  /* Small text - Maintains rhythm */
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
   small {
-    font-size: var(--type-sm);
-    line-height: var(--leading-sm);
+    font-size: var(--type);
+    line-height: var(--leading);
+    font-weight: 400;
+    letter-spacing: normal;
+  }
+
+  h1,
+  h4 {
+    font-weight: 600;
+  }
+
+  /* Section labels stay quiet: same size, wider tracking, upper case. */
+  h3 {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 
   /* Links - Better underline positioning */
