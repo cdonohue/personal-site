@@ -1,0 +1,569 @@
+import { Sheet, loadImage, loadSheet } from './aseprite';
+import { Glow } from './glow';
+import { ToggleValues, WEATHER_CONDITIONS, Weather } from './toggles';
+
+/**
+ * How the sky moves, in pixels per second. Motion comes from scrolling one
+ * tileable frame rather than from more frames, so speed is a number here rather
+ * than a frame rate baked into the art.
+ *
+ * Fog is deliberately still — it is a dithered haze, and drifting it would read
+ * as a moving screen door rather than as weather.
+ */
+type SkyPass = {
+  /** Fraction of the base speed this pass travels at. */
+  speed: number;
+  alpha: number;
+  /** Pixel offset, so a slower pass does not sit exactly on top of a faster one. */
+  shift: [number, number];
+};
+
+/**
+ * How the sky moves, in pixels per second, and in how many depths.
+ *
+ * Motion comes from scrolling one tileable frame rather than from more frames,
+ * so speed is a number here rather than a frame rate baked into the art.
+ *
+ * `passes` draws that frame more than once at different speeds. With a single
+ * pass every drop moves in lockstep and the whole field slides as one rigid
+ * sheet, which reads as a moving texture rather than as falling rain. A second,
+ * slower, dimmer pass — shifted so it does not overlay the first — breaks that
+ * up and gives depth without any extra art.
+ *
+ * Fog is deliberately still; drifting a dithered haze reads as a moving screen
+ * door rather than as weather.
+ */
+const ONE_PASS: SkyPass[] = [{ speed: 1, alpha: 1, shift: [0, 0] }];
+
+/**
+ * Three depths for rain. Shifts are coprime-ish so the passes never line up
+ * into a visible doubling — without them a slower pass sits directly on top of
+ * a faster one and reads as a smear rather than as distance.
+ */
+/**
+ * Speeds are bunched toward the top rather than spread from 0.3, so even the
+ * furthest layer is clearly falling. A slow far pass under a fast near one
+ * reads as drizzle behind a downpour rather than as one shower with depth.
+ */
+const RAIN_PASSES: SkyPass[] = [
+  { speed: 0.45, alpha: 0.18, shift: [61, 29] },
+  { speed: 0.58, alpha: 0.28, shift: [113, 71] },
+  { speed: 0.72, alpha: 0.42, shift: [37, 53] },
+  { speed: 0.86, alpha: 0.62, shift: [149, 17] },
+  { speed: 1, alpha: 1, shift: [0, 0] },
+];
+
+/** Layered veils, so the banks overlap into varying density rather than a mat. */
+const FOG_PASSES: SkyPass[] = [
+  { speed: 0.4, alpha: 0.5, shift: [89, 41] },
+  { speed: 1, alpha: 0.6, shift: [0, 0] },
+];
+
+/** Snow stays shallower: flakes are chunkier, so they clot faster than drops. */
+const SNOW_PASSES: SkyPass[] = [
+  { speed: 0.4, alpha: 0.3, shift: [61, 29] },
+  { speed: 0.65, alpha: 0.55, shift: [37, 53] },
+  { speed: 1, alpha: 1, shift: [0, 0] },
+];
+
+type Drift = { x: number; y: number };
+
+/**
+ * Day and night drift separately, because the pair is different art rather than
+ * the same art tinted. Clouds move; stars do not — a star field sliding
+ * sideways reads as the room turning, not as weather.
+ */
+const SKY_MOTION: Record<Weather, { day: Drift; night: Drift; alpha: number; passes: SkyPass[] }> =
+  {
+    clear: { day: { x: 1.5, y: 0 }, night: { x: 0, y: 0 }, alpha: 1, passes: ONE_PASS },
+    overcast: { day: { x: 1, y: 0 }, night: { x: 1, y: 0 }, alpha: 1, passes: ONE_PASS },
+    // Fog drifts. Held still it reads as something stuck to the glass rather
+    // than weather behind it — slow enough to be barely perceptible.
+    fog: { day: { x: 1.2, y: 0.15 }, night: { x: 1.2, y: 0.15 }, alpha: 1, passes: FOG_PASSES },
+    // Straight down. The streaks are drawn vertical, and any horizontal motion
+    // here would make them slide across the window rather than fall down it.
+    rain: { day: { x: 0, y: 92 }, night: { x: 0, y: 92 }, alpha: 1, passes: RAIN_PASSES },
+    // 8px/s took a flake 13 seconds to cross the window, which read as frozen.
+    snow: { day: { x: 3, y: 20 }, night: { x: 3, y: 20 }, alpha: 1, passes: SNOW_PASSES },
+  };
+
+/**
+ * The weather sheet holds a day frame and a night frame for each condition, in
+ * the same order, so the night of condition N is frame N + this.
+ *
+ * Night is drawn art rather than a tint. Clear night has no clouds at all — it
+ * has stars — and no amount of darkening a cloud turns it into one.
+ */
+const NIGHT_FRAME_OFFSET = WEATHER_CONDITIONS.length;
+
+export const SCENE_WIDTH = 192;
+export const SCENE_HEIGHT = 108;
+
+/**
+ * Frames 0–9 are the digit of the same value; 10 and 11 are the lit and dim
+ * colon; 12 is a cell with every segment unlit, for the blanked leading digit.
+ */
+const COLON_LIT_FRAME = 10;
+const COLON_DIM_FRAME = 11;
+const DIGIT_BLANK_FRAME = 12;
+
+/** switch.aseprite frames are states, not a timeline. */
+const SWITCH_OFF_FRAME = 0;
+const SWITCH_ON_FRAME = 1;
+
+/**
+ * The clock plate is 21x7 and each glyph is 3x5, which lays out exactly as
+ * 1px padding + five 3px glyphs separated by 1px gaps + 1px padding.
+ */
+const GLYPH_ADVANCE = 4;
+const CLOCK_PADDING_X = 1;
+const CLOCK_PADDING_Y = 1;
+
+/**
+ * Bloom around the lit segments. Parked — see glow.ts. Per-segment bloom does
+ * not suit glyphs 3px wide with 1px gaps; backlight bleed is the fit.
+ */
+const DIGIT_GLOW = false;
+
+/**
+ * How much of the dark mask each combination applies.
+ *
+ * The room light and the time of day drive the *same* mask, so they have to
+ * resolve to one opacity rather than stacking two washes — otherwise night with
+ * the lights off double-darkens to near black.
+ *
+ * Night no longer has to carry its whole signal here: the window exterior swaps
+ * to room.night.png, so the glass goes dark on its own. That frees night with
+ * the lamp on to be a *lit* room with dark windows rather than just a dimmer
+ * room, which is what made it indistinguishable from day with the lamp off.
+ */
+const WASH = {
+  day: { on: 0, off: 0.55 },
+  night: { on: 0.28, off: 0.8 },
+};
+
+/**
+ * Interpolated by how far into night it is, so dusk dims the room gradually
+ * rather than snapping when the phase changes.
+ */
+export const washFor = (lightsOn: boolean, nightAmount: number): number => {
+  const key = lightsOn ? 'on' : 'off';
+  return WASH.day[key] + (WASH.night[key] - WASH.day[key]) * nightAmount;
+};
+
+/**
+ * Local time to how night it is, 0..1.
+ *
+ *   night   20:00–05:29   1
+ *   dawn    05:30–07:29   1 -> 0
+ *   day     07:30–16:59   0
+ *   sunset  17:00–19:59   0 -> 1
+ *
+ * Smoothstepped rather than linear so the ramps ease in and out at the phase
+ * boundaries. The plan asks for no hard swap at a boundary, and a linear ramp
+ * still changes direction abruptly at each end even though the value is
+ * continuous.
+ */
+const DAWN_START = 5.5;
+const DAWN_END = 7.5;
+const DUSK_START = 17;
+const DUSK_END = 20;
+
+const smoothstep = (t: number) => t * t * (3 - 2 * t);
+
+export const nightAmountAt = (date: Date): number => {
+  const hour = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
+  if (hour < DAWN_START) return 1;
+  if (hour < DAWN_END) return 1 - smoothstep((hour - DAWN_START) / (DAWN_END - DAWN_START));
+  if (hour < DUSK_START) return 0;
+  if (hour < DUSK_END) return smoothstep((hour - DUSK_START) / (DUSK_END - DUSK_START));
+  return 1;
+};
+
+/** The scene's night level for a lighting mode: auto reads the clock. */
+export const nightAmountFor = (lighting: 'auto' | 'day' | 'night', now: Date): number =>
+  lighting === 'auto' ? nightAmountAt(now) : lighting === 'night' ? 1 : 0;
+
+/** Which character tag each presence state plays. */
+export const PRESENCE_TAG: Record<ToggleValues['presence'], string> = {
+  present: 'idle',
+  typing: 'type',
+  away: 'away',
+  empty: 'empty',
+};
+
+export type Assets = {
+  /** Only used for its slices — the drawn room comes from `skies`. */
+  room: Sheet;
+  character: Sheet;
+  /** Redrawn over the character: the desk lip, and what rests on the desk. */
+  deskFront: HTMLImageElement;
+  deskItems: HTMLImageElement;
+  /** One tileable frame per condition, scrolled and clipped to the glass. */
+  weather: Sheet;
+  /**
+   * White where sky is visible through the window, transparent everywhere else.
+   * Derived rather than authored: clear-day and clear-night differ only where
+   * the glass shows, so diffing them yields the exact region — including the
+   * mullions, mic arm and desk edge that occlude it.
+   */
+  glass: HTMLCanvasElement;
+  /** Full room renders keyed `<weather>-day` / `<weather>-night`. */
+  skies: Record<string, HTMLImageElement>;
+  screen: Sheet;
+  digits: Sheet;
+  switchPlate: Sheet;
+  dark: HTMLImageElement;
+  digitGlow: Glow | null;
+};
+
+/**
+ * `basePath` is where the exported PNG and JSON are served from. It is a
+ * parameter rather than a constant because a host site almost certainly serves
+ * them somewhere other than /art.
+ */
+export const loadAssets = async (basePath = '/art'): Promise<Assets> => {
+  const skyNames = WEATHER_CONDITIONS.flatMap((weather) => [`${weather}-day`, `${weather}-night`]);
+  const [
+    room,
+    screen,
+    digits,
+    switchPlate,
+    weather,
+    character,
+    dark,
+    deskFront,
+    deskItems,
+    ...skyImages
+  ] = await Promise.all([
+    loadSheet(`${basePath}/room`),
+    loadSheet(`${basePath}/screen`),
+    loadSheet(`${basePath}/digits`),
+    loadSheet(`${basePath}/switch`),
+    loadSheet(`${basePath}/weather`),
+    loadSheet(`${basePath}/character`),
+    loadImage(`${basePath}/room.dark.png`),
+    loadImage(`${basePath}/room.desk-front.png`),
+    loadImage(`${basePath}/room.desk-items.png`),
+    ...skyNames.map((sky) => loadImage(`${basePath}/room.${sky}.png`)),
+  ]);
+  const skies = Object.fromEntries(skyNames.map((sky, index) => [sky, skyImages[index]]));
+  return {
+    room,
+    character,
+    deskFront,
+    deskItems,
+    weather,
+    glass: buildGlassMask(skies['clear-day'], skies['clear-night']),
+    skies,
+    screen,
+    digits,
+    switchPlate,
+    dark,
+    digitGlow: DIGIT_GLOW ? Glow.build(digits.image, digits.frames) : null,
+  };
+};
+
+/** Offscreen scratch for clipping the sky to the glass. Reused every frame. */
+let skyBuffer: HTMLCanvasElement | null = null;
+/** Offscreen scratch for dimming the character. Reused every frame. */
+let characterBuffer: HTMLCanvasElement | null = null;
+
+/**
+ * Alpha of room.dark.png. The wash multiplies it, so dimming anything drawn
+ * after the wash by the same amount means matching this.
+ */
+const MASK_ALPHA = 152 / 255;
+
+const scratch = (width: number, height: number) => {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+};
+
+const buildGlassMask = (day: HTMLImageElement, night: HTMLImageElement): HTMLCanvasElement => {
+  const read = (image: HTMLImageElement) => {
+    const canvas = scratch(SCENE_WIDTH, SCENE_HEIGHT);
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('buildGlassMask could not get a 2d context');
+    context.drawImage(image, 0, 0);
+    return context.getImageData(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+  };
+
+  const a = read(day);
+  const b = read(night);
+
+  const mask = scratch(SCENE_WIDTH, SCENE_HEIGHT);
+  const context = mask.getContext('2d');
+  if (!context) throw new Error('buildGlassMask could not get a 2d context');
+  const out = context.createImageData(SCENE_WIDTH, SCENE_HEIGHT);
+
+  for (let i = 0; i < a.data.length; i += 4) {
+    const differs =
+      a.data[i] !== b.data[i] || a.data[i + 1] !== b.data[i + 1] || a.data[i + 2] !== b.data[i + 2];
+    if (differs) {
+      out.data[i] = 255;
+      out.data[i + 1] = 255;
+      out.data[i + 2] = 255;
+      out.data[i + 3] = 255;
+    }
+  }
+  context.putImageData(out, 0, 0);
+  return mask;
+};
+
+/**
+ * Draw the sky, scrolled and clipped so it only appears through the window.
+ *
+ * Canvas clip() takes a path, not an image, so the clipping is done on an
+ * offscreen buffer with destination-in against the glass mask.
+ */
+const drawSky = (
+  context: CanvasRenderingContext2D,
+  assets: Assets,
+  weather: Weather,
+  elapsed: number,
+  nightAmount: number,
+) => {
+  const motion = SKY_MOTION[weather];
+  if (motion.alpha <= 0.01) return;
+
+  if (!skyBuffer) skyBuffer = scratch(SCENE_WIDTH, SCENE_HEIGHT);
+  const buffer = skyBuffer.getContext('2d');
+  if (!buffer) return;
+
+  buffer.imageSmoothingEnabled = false;
+  buffer.globalCompositeOperation = 'source-over';
+  buffer.clearRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+
+  const seconds = elapsed / 1000;
+  const wrap = (value: number, size: number) => ((value % size) + size) % size;
+  const day = Math.max(0, WEATHER_CONDITIONS.indexOf(weather));
+  const night = day + NIGHT_FRAME_OFFSET;
+
+  for (const pass of motion.passes) {
+    // Crossfade the pair, skipping whichever end is not showing. Outside dawn
+    // and dusk that is one of them, so the common case costs no extra drawing.
+    for (const [frame, share, drift] of [
+      [day, 1 - nightAmount, motion.day],
+      [night, nightAmount, motion.night],
+    ] as const) {
+      if (share <= 0.01) continue;
+
+      const offsetX = wrap(Math.round(drift.x * pass.speed * seconds) + pass.shift[0], SCENE_WIDTH);
+      const offsetY = wrap(
+        Math.round(drift.y * pass.speed * seconds) + pass.shift[1],
+        SCENE_HEIGHT,
+      );
+
+      buffer.globalAlpha = pass.alpha * share;
+      // Four placements cover the canvas whatever the offset, so the tile wraps.
+      for (const dx of [offsetX - SCENE_WIDTH, offsetX]) {
+        for (const dy of [offsetY - SCENE_HEIGHT, offsetY]) {
+          assets.weather.draw(buffer, frame, dx, dy);
+        }
+      }
+    }
+  }
+  buffer.globalAlpha = 1;
+
+  buffer.globalCompositeOperation = 'destination-in';
+  buffer.drawImage(assets.glass, 0, 0);
+  buffer.globalCompositeOperation = 'source-over';
+
+  const previous = context.globalAlpha;
+  context.globalAlpha = motion.alpha;
+  context.drawImage(skyBuffer, 0, 0);
+  context.globalAlpha = previous;
+};
+
+export type MonitorPhase = 'on' | 'game' | 'idle' | 'off' | 'turning-on' | 'turning-off';
+
+export const MONITOR_TAG: Record<MonitorPhase, string | null> = {
+  on: 'ai-work',
+  game: 'game',
+  idle: 'screensaver',
+  off: null,
+  'turning-on': 'power-on',
+  'turning-off': 'power-off',
+};
+
+export type SceneState = {
+  /** Milliseconds into the monitor animation. */
+  elapsed: number;
+  now: Date;
+  /** Freezes the monitor loop and holds the colon lit. */
+  reducedMotion: boolean;
+  /** Already-resolved mask opacity — see washFor. */
+  wash: number;
+  lightsOn: boolean;
+  hour24: boolean;
+  weather: Weather;
+  presence: ToggleValues['presence'];
+  /**
+   * Where the monitor is in its power cycle, and how far into that phase.
+   * Resolved by the caller because the transitions are one-shots that have to
+   * be timed from the moment of the toggle, not from the scene clock.
+   */
+  monitor: { phase: MonitorPhase; elapsed: number };
+  /** 0 = day windows, 1 = night windows. Eased, so it crossfades. */
+  nightAmount: number;
+};
+
+/** Colon blinks once a second, lit for the first half. */
+const colonFrame = (date: Date, steady: boolean) =>
+  steady || date.getMilliseconds() < 500 ? COLON_LIT_FRAME : COLON_DIM_FRAME;
+
+/**
+ * Glyph frames for HH:MM in either format.
+ *
+ * 12-hour blanks the leading zero, but the cell is still there on the panel, so
+ * it shows unlit segments rather than nothing. 24-hour always fills all four
+ * digits, so it simply never reaches the blank frame — same sheet either way.
+ */
+export const clockGlyphs = (date: Date, steadyColon: boolean, hour24: boolean): number[] => {
+  const raw = date.getHours();
+  const hours = hour24 ? raw : raw % 12 === 0 ? 12 : raw % 12;
+  const minutes = date.getMinutes();
+  const leading = Math.floor(hours / 10);
+  return [
+    hour24 || hours >= 10 ? leading : DIGIT_BLANK_FRAME,
+    hours % 10,
+    colonFrame(date, steadyColon),
+    Math.floor(minutes / 10),
+    minutes % 10,
+  ];
+};
+
+/**
+ * The chair and its occupant, drawn over everything else.
+ *
+ * They sit between the camera and the desk, so they cover the desk lip and the
+ * lower part of the monitor — which means drawing after the screens, and so
+ * after the wash. Being a wall object rather than an emissive one they still
+ * have to dim at night, so the wash is applied to them individually on a buffer
+ * rather than being skipped.
+ */
+const drawCharacter = (
+  context: CanvasRenderingContext2D,
+  assets: Assets,
+  presence: ToggleValues['presence'],
+  elapsed: number,
+  reducedMotion: boolean,
+  wash: number,
+) => {
+  const { room, character } = assets;
+  const at = room.slice('character');
+
+  // Tags are optional on this sheet. It is the one most likely to be mid-edit,
+  // and a single-frame chair with no poses yet should still render rather than
+  // throw — unlike the screen, where a missing tag really is a mistake. Without
+  // the wanted tag the whole sheet plays instead.
+  const tag = PRESENCE_TAG[presence];
+  const frame = character.hasTag(tag)
+    ? character.frameAt(reducedMotion ? 0 : elapsed, tag)
+    : character.frameAt(reducedMotion ? 0 : elapsed);
+
+  if (wash <= 0.001) {
+    character.draw(context, frame, at.x, at.y);
+    return;
+  }
+
+  if (!characterBuffer) characterBuffer = scratch(SCENE_WIDTH, SCENE_HEIGHT);
+  const buffer = characterBuffer.getContext('2d');
+  if (!buffer) return;
+
+  buffer.imageSmoothingEnabled = false;
+  buffer.globalCompositeOperation = 'source-over';
+  buffer.clearRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+  character.draw(buffer, frame, at.x, at.y);
+
+  // source-atop keeps the dimming inside the drawn pixels, so the transparent
+  // rest of the buffer stays transparent.
+  buffer.globalCompositeOperation = 'source-atop';
+  buffer.fillStyle = `rgba(0, 0, 0, ${MASK_ALPHA * wash})`;
+  buffer.fillRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+  buffer.globalCompositeOperation = 'source-over';
+
+  context.drawImage(characterBuffer, 0, 0);
+};
+
+export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, state: SceneState) => {
+  // character, deskFront and deskItems are not pulled out here: the character
+  // is drawn last by drawCharacter, and once it moved in front of the desk the
+  // lip and desk-top items no longer needed redrawing over it.
+  const { room, skies, screen, digits, switchPlate, dark, digitGlow } = assets;
+  const {
+    elapsed,
+    now,
+    reducedMotion,
+    wash,
+    lightsOn,
+    hour24,
+    monitor,
+    nightAmount,
+    weather,
+    presence,
+  } = state;
+
+  context.imageSmoothingEnabled = false;
+  context.clearRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+
+  // The room itself comes from the weather variant, so room.png is never drawn
+  // — it exists to carry the slices. Day and night are full flattened renders
+  // differing only at the glass, so crossfading them changes the sky without
+  // touching anything drawn in front of the window.
+  context.drawImage(skies[`${weather}-day`], 0, 0);
+  if (nightAmount > 0.001) {
+    const previous = context.globalAlpha;
+    context.globalAlpha = nightAmount;
+    context.drawImage(skies[`${weather}-night`], 0, 0);
+    context.globalAlpha = previous;
+  }
+
+  // Moving sky goes straight on top of the static one, still behind everything
+  // in the room, and clipped so it never reaches the mic arm or the desk.
+  drawSky(context, assets, weather, elapsed, nightAmount);
+
+  // The switch is a wall object, so it belongs under the wash and dims with
+  // everything else. Only the screens are emissive.
+  const switchAt = room.slice('light-switch');
+  switchPlate.draw(context, lightsOn ? SWITCH_ON_FRAME : SWITCH_OFF_FRAME, switchAt.x, switchAt.y);
+
+  if (wash > 0.001) {
+    const previous = context.globalAlpha;
+    context.globalAlpha = wash;
+    context.drawImage(dark, 0, 0);
+    context.globalAlpha = previous;
+  }
+
+  // Everything below is self-lit and is drawn over the wash, so the monitor and
+  // clock keep glowing while the room goes dark. In Aseprite the LIGHTING group
+  // sits on top and dims these too, which is right for a still and wrong here.
+  //
+  // A monitor that is off needs no art: room.png already has a flat dark plate
+  // at this slice, so drawing nothing reveals a blank screen. The power frames
+  // end on that same colour, so the hand-off does not pop.
+  const tag = MONITOR_TAG[monitor.phase];
+  if (tag) {
+    const at = room.slice('monitor-screen');
+    // Content loops off the scene clock; the power transitions are one-shots
+    // timed from the toggle and held on their last frame.
+    const looping = monitor.phase === 'on' || monitor.phase === 'game' || monitor.phase === 'idle';
+    const frame = looping ? screen.frameAt(elapsed, tag) : screen.frameOnce(monitor.elapsed, tag);
+    screen.draw(context, frame, at.x, at.y);
+  }
+
+  const clock = room.slice('clock-screen');
+  const placed = clockGlyphs(now, reducedMotion, hour24).map((glyph, index) => ({
+    glyph,
+    x: clock.x + CLOCK_PADDING_X + index * GLYPH_ADVANCE,
+    y: clock.y + CLOCK_PADDING_Y,
+  }));
+
+  if (digitGlow) placed.forEach(({ glyph, x, y }) => digitGlow.draw(context, glyph, x, y));
+  placed.forEach(({ glyph, x, y }) => digits.draw(context, glyph, x, y));
+
+  drawCharacter(context, assets, presence, elapsed, reducedMotion, wash);
+};
