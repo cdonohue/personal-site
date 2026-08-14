@@ -104,7 +104,10 @@ export default function DeskScene() {
     // once the room is empty. Powering it off wins over all three, so away has
     // exactly two states — screensaver or dark.
     const showing = working ? 'on' : away ? 'idle' : 'game'
-    const powered = powerOverride ?? !isSleeping(now)
+    // Not `powerOverride ?? !isSleeping(now)`: the override is the string
+    // 'off', which is truthy, so ?? would hand a truthy value to the test below
+    // and the monitor could never be switched off.
+    const powered = powerOverride ? powerOverride === 'on' : !isSleeping(now)
 
     return {
       lighting: 'auto',
