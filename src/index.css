@@ -55,7 +55,7 @@
      * them rendered: the markup sets Tailwind text-* utilities on the same
      * elements, and utilities outrank @layer base, so every token was dead.
      */
-    --type: clamp(1rem, 0.35vw + 0.92rem, 1.125rem); /* 16px -> 18px */
+    --type: clamp(0.875rem, 0.3vw + 0.8rem, 1rem); /* 14px -> 16px */
     --leading: 1.6;
   }
 
@@ -67,7 +67,7 @@
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: Cabin, ui-sans-serif, system-ui, sans-serif;
     background-color: var(--color-surface);
     color: var(--color-ink);
     font-size: var(--type);
