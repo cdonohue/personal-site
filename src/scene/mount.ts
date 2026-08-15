@@ -2,6 +2,7 @@ import { Rect } from './aseprite';
 import {
   Assets,
   MonitorPhase,
+  SCREENSAVER_TAGS,
   SCENE_HEIGHT,
   SCENE_WIDTH,
   drawScene,
@@ -81,6 +82,18 @@ export const createDeskRoom = async (
   // moves on its own and the clock's drift is already gradual.
   const timeZone = options.timeZone;
 
+  /**
+   * Which screensaver this visit gets, chosen once at mount.
+   *
+   * Per visit rather than per idle: switching while the viewer is watching would
+   * look like a glitch, and a screensaver that varies between visits is what a
+   * real one does. Anything the sheet does not have is dropped, so a half-drawn
+   * tag cannot leave the screen blank.
+   */
+  const available = SCREENSAVER_TAGS.filter((tag) => assets.screen.hasTag(tag));
+  const screensaverTag =
+    available[Math.floor(Math.random() * available.length)] ?? SCREENSAVER_TAGS[0];
+
   let night = nightAmountFor(values.lighting, new Date(), timeZone);
   let wash = washFor(values.roomLight === 'on', night);
 
@@ -133,6 +146,7 @@ export const createDeskRoom = async (
       elapsed: reducedMotion ? 0 : time - startedAt,
       now,
       timeZone,
+      screensaverTag,
       reducedMotion,
       wash,
       lightsOn: values.roomLight === 'on',

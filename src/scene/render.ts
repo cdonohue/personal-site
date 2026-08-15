@@ -158,7 +158,13 @@ export const washFor = (lightsOn: boolean, nightAmount: number): number => {
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
 const WEEKDAYS: Record<string, number> = {
-  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
 };
 
 /**
@@ -243,6 +249,19 @@ export const nightAmountFor = (
   now: Date,
   timeZone?: string,
 ): number => (lighting === 'auto' ? nightAmountAt(now, timeZone) : lighting === 'night' ? 1 : 0);
+
+/**
+ * The idle screen has more than one screensaver, and they are interchangeable —
+ * each is a self-contained loop on the same panel.
+ *
+ * Named for what they show rather than what they are for. `screensaver` was
+ * fine while there was one, but next to `bounce` it reads as the category
+ * rather than a peer, and the category is already expressed by this list.
+ *
+ * Listed here rather than chosen here: the scene draws whichever it is handed,
+ * and the caller decides, so adding a third is a tag and one entry.
+ */
+export const SCREENSAVER_TAGS = ['cube', 'bounce'] as const;
 
 /** Which character tag each presence state plays. */
 export const PRESENCE_TAG: Record<ToggleValues['presence'], string> = {
@@ -443,7 +462,9 @@ export type MonitorPhase = 'on' | 'game' | 'idle' | 'off' | 'turning-on' | 'turn
 export const MONITOR_TAG: Record<MonitorPhase, string | null> = {
   on: 'ai-work',
   game: 'game',
-  idle: 'screensaver',
+  // The first screensaver, named once in SCREENSAVER_TAGS rather than twice.
+  // Only reached if the caller supplies none.
+  idle: SCREENSAVER_TAGS[0],
   off: null,
   'turning-on': 'power-on',
   'turning-off': 'power-off',
@@ -455,6 +476,8 @@ export type SceneState = {
   now: Date;
   /** Zone the room keeps. Omitted, the scene runs on the viewer's own clock. */
   timeZone?: string;
+  /** Which screensaver the idle screen plays. Falls back to the first. */
+  screensaverTag?: string;
   /** Freezes the monitor loop and holds the colon lit. */
   reducedMotion: boolean;
   /** Already-resolved mask opacity — see washFor. */
@@ -574,6 +597,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     weather,
     presence,
     timeZone,
+    screensaverTag,
   } = state;
 
   context.imageSmoothingEnabled = false;
@@ -614,7 +638,10 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   // A monitor that is off needs no art: room.png already has a flat dark plate
   // at this slice, so drawing nothing reveals a blank screen. The power frames
   // end on that same colour, so the hand-off does not pop.
-  const tag = MONITOR_TAG[monitor.phase];
+  const tag =
+    monitor.phase === 'idle' && screensaverTag && screen.hasTag(screensaverTag)
+      ? screensaverTag
+      : MONITOR_TAG[monitor.phase];
   if (tag) {
     const at = room.slice('monitor-screen');
     // Content loops off the scene clock; the power transitions are one-shots

@@ -100,8 +100,9 @@ The glass mask itself is derived at runtime by diffing `clear-day` against
 | `ai-work` | 0–71 |
 | `power-on` | 72–78 |
 | `power-off` | 79–84 |
-| `screensaver` | 85–116 |
+| `cube` | 85–116 |
 | `game` | 117–164 |
+| `bounce` | 165–244 |
 
 **At 46×26 the panel carries shape, not detail.** About 1200 pixels. Two
 screensaver attempts failed identically here — Matrix rain, then a starfield —
@@ -114,6 +115,25 @@ the start of power-off — the picture is already there, so flashing first reads
 a glitch. Colours used: plate `32,32,32`, collapsing band `120,128,145`, the line
 `225,232,245`, 45 ms a frame. The last off frame matches the dark plate in
 `room.png` exactly, so there is no pop at the hand-off.
+
+`cube` and `bounce` are interchangeable — `SCREENSAVER_TAGS` in
+`render.ts` lists them and the mount picks one per visit, so a third is a tag
+plus one entry. Per visit, not per idle: swapping while someone is watching
+reads as a glitch. Both are named for what they show — a tag called
+`screensaver` sitting next to `bounce` reads as the category rather than a
+peer, and the category is what the list is for.
+
+`bounce` is exact the same way. A 6×6 shape travels 40px across and 20px down,
+so at 1px/frame the periods are 80 and 40 — LCM 80, and frame 80 is frame 0.
+The vertical phase is offset by a quarter period **on purpose**: started
+together, both axes reverse on frames 0 and 40 and the shape corners every 3.6
+seconds, which is the one thing a bouncing logo should almost never do. Offset,
+the turns land on 0/40 and 10/30/50/70, never coincide, and it near-misses
+forever. Six bounces a loop and six colours, so the colour cycle closes too.
+
+**The sheet is a single row**, so frames are capped by texture width — browsers
+give out around 16384px, which at 46px a frame is about 356 frames. It is at
+245.
 
 The game loop is exact rather than tuned: ground repeats over 96 px scrolled 2
 px/frame, hills over 48 px at half speed, a 4-pose runner — all dividing 48
