@@ -46,6 +46,16 @@ export type DeskRoomOptions = {
    * host gets that for free but can override it.
    */
   reducedMotion?: boolean;
+  /**
+   * IANA zone the room keeps its hours in — the clock face, the day/night
+   * curve, everything the scene derives from time.
+   *
+   * Left out, the room runs on the viewer's clock, which is the right default
+   * for a scene that could be anyone's. Set, the room keeps somebody's actual
+   * hours and a visitor is looking in on them rather than at a mirror. Must be
+   * a zone name, never an offset, or it drifts an hour twice a year.
+   */
+  timeZone?: string;
 };
 
 /** How quickly the wash and the night level chase their targets. */
@@ -69,7 +79,9 @@ export const createDeskRoom = async (
 
   // Eased, so a manual switch fades rather than cutting. In auto the target
   // moves on its own and the clock's drift is already gradual.
-  let night = nightAmountFor(values.lighting, new Date());
+  const timeZone = options.timeZone;
+
+  let night = nightAmountFor(values.lighting, new Date(), timeZone);
   let wash = washFor(values.roomLight === 'on', night);
 
   const litPhase = (): MonitorPhase =>
@@ -85,7 +97,7 @@ export const createDeskRoom = async (
   const step = (time: number) => {
     const now = new Date();
 
-    const nightTarget = nightAmountFor(values.lighting, now);
+    const nightTarget = nightAmountFor(values.lighting, now, timeZone);
     night = reducedMotion ? nightTarget : night + (nightTarget - night) * EASING;
     const washTarget = washFor(values.roomLight === 'on', night);
     wash = reducedMotion ? washTarget : wash + (washTarget - wash) * EASING;
@@ -120,6 +132,7 @@ export const createDeskRoom = async (
     drawScene(context, assets, {
       elapsed: reducedMotion ? 0 : time - startedAt,
       now,
+      timeZone,
       reducedMotion,
       wash,
       lightsOn: values.roomLight === 'on',

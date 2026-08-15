@@ -152,6 +152,62 @@ export const washFor = (lightsOn: boolean, nightAmount: number): number => {
 };
 
 /**
+ * Formatters are cached: the clock is read every frame, and building an
+ * Intl.DateTimeFormat is far more expensive than using one.
+ */
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+const WEEKDAYS: Record<string, number> = {
+  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+};
+
+/**
+ * The clock the scene runs on, split into parts.
+ *
+ * With no `timeZone` this is the viewer's own clock, which is what a portable
+ * scene should default to. A host that wants the room to keep somebody else's
+ * hours passes one — and it has to be a zone name rather than an offset, or the
+ * room is an hour wrong either side of a daylight-saving change.
+ */
+export const zonedParts = (
+  date: Date,
+  timeZone?: string,
+): { hour: number; minute: number; second: number; weekday: number } => {
+  if (!timeZone) {
+    return {
+      hour: date.getHours(),
+      minute: date.getMinutes(),
+      second: date.getSeconds(),
+      weekday: date.getDay(),
+    };
+  }
+
+  let formatter = formatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      // h23 rather than hour12: false — the latter reports midnight as 24.
+      hourCycle: 'h23',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    formatters.set(timeZone, formatter);
+  }
+
+  const parts: Record<string, string> = {};
+  for (const part of formatter.formatToParts(date)) parts[part.type] = part.value;
+
+  return {
+    hour: Number(parts.hour),
+    minute: Number(parts.minute),
+    second: Number(parts.second),
+    weekday: WEEKDAYS[parts.weekday] ?? date.getDay(),
+  };
+};
+
+/**
  * Local time to how night it is, 0..1.
  *
  *   night   20:00–05:29   1
@@ -171,8 +227,9 @@ const DUSK_END = 20;
 
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
-export const nightAmountAt = (date: Date): number => {
-  const hour = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
+export const nightAmountAt = (date: Date, timeZone?: string): number => {
+  const at = zonedParts(date, timeZone);
+  const hour = at.hour + at.minute / 60 + at.second / 3600;
   if (hour < DAWN_START) return 1;
   if (hour < DAWN_END) return 1 - smoothstep((hour - DAWN_START) / (DAWN_END - DAWN_START));
   if (hour < DUSK_START) return 0;
@@ -181,8 +238,11 @@ export const nightAmountAt = (date: Date): number => {
 };
 
 /** The scene's night level for a lighting mode: auto reads the clock. */
-export const nightAmountFor = (lighting: 'auto' | 'day' | 'night', now: Date): number =>
-  lighting === 'auto' ? nightAmountAt(now) : lighting === 'night' ? 1 : 0;
+export const nightAmountFor = (
+  lighting: 'auto' | 'day' | 'night',
+  now: Date,
+  timeZone?: string,
+): number => (lighting === 'auto' ? nightAmountAt(now, timeZone) : lighting === 'night' ? 1 : 0);
 
 /** Which character tag each presence state plays. */
 export const PRESENCE_TAG: Record<ToggleValues['presence'], string> = {
@@ -393,6 +453,8 @@ export type SceneState = {
   /** Milliseconds into the monitor animation. */
   elapsed: number;
   now: Date;
+  /** Zone the room keeps. Omitted, the scene runs on the viewer's own clock. */
+  timeZone?: string;
   /** Freezes the monitor loop and holds the colon lit. */
   reducedMotion: boolean;
   /** Already-resolved mask opacity — see washFor. */
@@ -422,10 +484,16 @@ const colonFrame = (date: Date, steady: boolean) =>
  * it shows unlit segments rather than nothing. 24-hour always fills all four
  * digits, so it simply never reaches the blank frame — same sheet either way.
  */
-export const clockGlyphs = (date: Date, steadyColon: boolean, hour24: boolean): number[] => {
-  const raw = date.getHours();
+export const clockGlyphs = (
+  date: Date,
+  steadyColon: boolean,
+  hour24: boolean,
+  timeZone?: string,
+): number[] => {
+  const at = zonedParts(date, timeZone);
+  const raw = at.hour;
   const hours = hour24 ? raw : raw % 12 === 0 ? 12 : raw % 12;
-  const minutes = date.getMinutes();
+  const minutes = at.minute;
   const leading = Math.floor(hours / 10);
   return [
     hour24 || hours >= 10 ? leading : DIGIT_BLANK_FRAME,
@@ -505,6 +573,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     nightAmount,
     weather,
     presence,
+    timeZone,
   } = state;
 
   context.imageSmoothingEnabled = false;
@@ -556,7 +625,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   }
 
   const clock = room.slice('clock-screen');
-  const placed = clockGlyphs(now, reducedMotion, hour24).map((glyph, index) => ({
+  const placed = clockGlyphs(now, reducedMotion, hour24, timeZone).map((glyph, index) => ({
     glyph,
     x: clock.x + CLOCK_PADDING_X + index * GLYPH_ADVANCE,
     y: clock.y + CLOCK_PADDING_Y,

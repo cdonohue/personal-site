@@ -2,16 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
-import { nightAmountAt } from '../scene/render'
-import type { ToggleValues } from '../scene/toggles'
+import { nightAmountAt, zonedParts } from '../scene/render'
+import type { ToggleValues, Weather } from '../scene/toggles'
+import { REFRESH_MS, currentCondition, lastKnownCondition } from '../weather'
 
 /**
  * The pixel desk scene, as the home page hero.
  *
- * Most of it runs itself: what is on the monitor and whether the lamp is lit
- * follow a schedule and the visitor's own clock. The objects are there to
- * override that, not to drive it — which is why the state below is two nullable
- * overrides rather than the six raw values the prototype exposed.
+ * Most of it runs itself: what is on the monitor, whether the lamp is lit and
+ * what the weather is doing all follow the real world rather than the page. The
+ * objects are there to override that, not to drive it — which is why the state
+ * below is two nullable overrides rather than the six raw values the prototype
+ * exposed.
  */
 
 /**
@@ -32,11 +34,21 @@ const MIN_TARGET_PX = 44
 /** How often the derived state is re-checked against the clock. */
 const TICK_MS = 30_000
 
-/** Weekdays, nine to five. */
+/**
+ * The room keeps its own hours, not the viewer's.
+ *
+ * Everything the scene derives from time — the clock face, dusk, whether anyone
+ * is at the desk — reads from this zone, so a visitor anywhere sees the desk as
+ * it actually is rather than a copy running on their own clock. It is the
+ * difference between looking in on a room and looking at a mirror.
+ */
+const TIME_ZONE = 'America/Chicago'
+
+/** Weekdays, nine to five, in the room's zone. */
 const isWorkHours = (now: Date) => {
-  const day = now.getDay()
-  if (day === 0 || day === 6) return false
-  const hour = now.getHours() + now.getMinutes() / 60
+  const at = zonedParts(now, TIME_ZONE)
+  if (at.weekday === 0 || at.weekday === 6) return false
+  const hour = at.hour + at.minute / 60
   return hour >= 9 && hour < 17
 }
 
@@ -49,7 +61,7 @@ const isWorkHours = (now: Date) => {
  * are the same moment, so they read as one person leaving rather than two
  * unrelated timers.
  */
-const isNight = (now: Date) => nightAmountAt(now) > 0.5
+const isNight = (now: Date) => nightAmountAt(now, TIME_ZONE) > 0.5
 
 /**
  * The hours the machine sleeps too, and the monitor goes dark rather than
@@ -67,7 +79,8 @@ const SLEEP_UNTIL = 6
 type Override = 'on' | 'off' | null
 
 const isSleeping = (now: Date) => {
-  const hour = now.getHours() + now.getMinutes() / 60
+  const at = zonedParts(now, TIME_ZONE)
+  const hour = at.hour + at.minute / 60
   // Wraps past midnight, so this is an or rather than a range.
   return hour >= SLEEP_FROM || hour < SLEEP_UNTIL
 }
@@ -88,6 +101,25 @@ export default function DeskScene() {
   const [powerOverride, setPowerOverride] = useState<Override>(null)
   const [lightOverride, setLightOverride] = useState<Override>(null)
   const [clock, setClock] = useState<ToggleValues['clock']>('12-hour')
+
+  // Seeded from the last visit rather than a default, so the sky does not paint
+  // clear and then visibly correct itself once the request lands.
+  const [weather, setWeather] = useState<Weather>(() => lastKnownCondition() ?? 'clear')
+
+  useEffect(() => {
+    let cancelled = false
+    const load = () => {
+      currentCondition().then((condition) => {
+        if (!cancelled) setWeather(condition)
+      })
+    }
+    load()
+    const timer = window.setInterval(load, REFRESH_MS)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [])
 
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
@@ -111,7 +143,7 @@ export default function DeskScene() {
 
     return {
       lighting: 'auto',
-      weather: 'clear',
+      weather,
       // `present` and not `typing`: there is no typing pose yet, and a missing
       // tag falls back to playing the whole sheet — which would cycle the empty
       // chair and flicker the person in and out.
@@ -122,7 +154,7 @@ export default function DeskScene() {
       roomLight: lightOverride ?? (away ? 'off' : 'on'),
       clock,
     }
-  }, [now, powerOverride, lightOverride, clock])
+  }, [now, weather, powerOverride, lightOverride, clock])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -131,7 +163,7 @@ export default function DeskScene() {
     let scene: DeskRoom | null = null
     let cancelled = false
 
-    createDeskRoom(canvas, { values })
+    createDeskRoom(canvas, { values, timeZone: TIME_ZONE })
       .then((created) => {
         if (cancelled) return
         scene = created
@@ -178,15 +210,9 @@ export default function DeskScene() {
   // Both flip from whatever is showing now, so the first click always does
   // something visible rather than re-asserting the scheduled value.
   const flip =
-    (
-      setOverride: Dispatch<SetStateAction<Override>>,
-      onByDefault: (now: Date) => boolean,
-    ) =>
-    () =>
+    (setOverride: Dispatch<SetStateAction<Override>>, onByDefault: (now: Date) => boolean) => () =>
       setOverride((current) =>
-        (current ?? (onByDefault(new Date()) ? 'on' : 'off')) === 'on'
-          ? 'off'
-          : 'on',
+        (current ?? (onByDefault(new Date()) ? 'on' : 'off')) === 'on' ? 'off' : 'on',
       )
 
   const toggleLight = useCallback(
@@ -225,8 +251,7 @@ export default function DeskScene() {
     {
       slice: 'clock-screen',
       label: 'Switch the clock between 12 and 24 hour',
-      onClick: () =>
-        setClock((current) => (current === '12-hour' ? '24-hour' : '12-hour')),
+      onClick: () => setClock((current) => (current === '12-hour' ? '24-hour' : '12-hour')),
     },
   ]
 
