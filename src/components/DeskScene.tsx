@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
-import { nightAmountAt, zonedParts } from '../scene/render'
+import { FIRST_IMPRESSION_FLOOR, TIME_ZONE, dwellMs, roll, type Activity } from '../activity'
 import type { ToggleValues, Weather } from '../scene/toggles'
 import { REFRESH_MS, currentCondition, lastKnownCondition } from '../weather'
 
@@ -31,59 +31,8 @@ const SCENE_H = 108
 /** Touch targets below this get an invisible margin so small art stays tappable. */
 const MIN_TARGET_PX = 44
 
-/** How often the derived state is re-checked against the clock. */
-const TICK_MS = 30_000
-
-/**
- * The room keeps its own hours, not the viewer's.
- *
- * Everything the scene derives from time — the clock face, dusk, whether anyone
- * is at the desk — reads from this zone, so a visitor anywhere sees the desk as
- * it actually is rather than a copy running on their own clock. It is the
- * difference between looking in on a room and looking at a mirror.
- */
-const TIME_ZONE = 'America/Chicago'
-
-/** Weekdays, nine to five, in the room's zone. */
-const isWorkHours = (now: Date) => {
-  const at = zonedParts(now, TIME_ZONE)
-  if (at.weekday === 0 || at.weekday === 6) return false
-  const hour = at.hour + at.minute / 60
-  return hour >= 9 && hour < 17
-}
-
-/**
- * Past halfway into the night ramp. nightAmountAt is a smooth 0..1 curve, so
- * this crosses partway through dusk rather than snapping at a fixed hour, and
- * it agrees with the lighting the scene is already drawing.
- *
- * This doubles as "nobody is here": the lamp going off and the chair emptying
- * are the same moment, so they read as one person leaving rather than two
- * unrelated timers.
- */
-const isNight = (now: Date) => nightAmountAt(now, TIME_ZONE) > 0.5
-
-/**
- * The hours the machine sleeps too, and the monitor goes dark rather than
- * running a screensaver.
- *
- * Later than the lamp and the empty chair on purpose. The room emptying at dusk
- * and the screen going out at bedtime are two different departures, and
- * collapsing them would skip straight from working to a dead desk — losing the
- * lit screensaver glowing in a dark room, which is the best-looking state here.
- */
-const SLEEP_FROM = 23
-const SLEEP_UNTIL = 6
-
-/** A visitor's choice, or null to follow the hour. */
+/** A visitor's choice, or null to follow whatever the room is doing. */
 type Override = 'on' | 'off' | null
-
-const isSleeping = (now: Date) => {
-  const at = zonedParts(now, TIME_ZONE)
-  const hour = at.hour + at.minute / 60
-  // Wraps past midnight, so this is an or rather than a range.
-  return hour >= SLEEP_FROM || hour < SLEEP_UNTIL
-}
 
 export default function DeskScene() {
   const frameRef = useRef<HTMLDivElement>(null)
@@ -94,10 +43,10 @@ export default function DeskScene() {
   const [scale, setScale] = useState(0)
   const [failed, setFailed] = useState(false)
 
-  // What a visitor can change. Everything else is derived. Both of these are
-  // nullable rather than plain booleans so that null means "whatever the hour
-  // says" — a boolean default would have to pick on or off and would then fight
-  // the schedule at one end of the day or the other.
+  // What a visitor can change. Everything else is rolled. Both of these are
+  // nullable rather than plain booleans so that null means "whatever the room is
+  // doing" — a boolean default would have to pick on or off and would then fight
+  // the roll.
   const [powerOverride, setPowerOverride] = useState<Override>(null)
   const [lightOverride, setLightOverride] = useState<Override>(null)
   const [clock, setClock] = useState<ToggleValues['clock']>('12-hour')
@@ -121,40 +70,46 @@ export default function DeskScene() {
     }
   }, [])
 
-  const [now, setNow] = useState(() => new Date())
+  // The room's own comings and goings. Rolled once now, then again on a dwell
+  // timer, so a visitor who stays a while sees it change rather than sitting on
+  // one frozen state.
+  const [activity, setActivity] = useState<Activity>(() => roll(new Date(), FIRST_IMPRESSION_FLOOR))
+
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), TICK_MS)
-    return () => window.clearInterval(timer)
+    let timer = 0
+    const schedule = () => {
+      // A fresh interval each time, because the dwell itself is random — a fixed
+      // setInterval would make the room change on a metronome.
+      timer = window.setTimeout(() => {
+        setActivity(roll(new Date()))
+        schedule()
+      }, dwellMs())
+    }
+    schedule()
+    return () => window.clearTimeout(timer)
   }, [])
 
   const values = useMemo<Partial<ToggleValues>>(() => {
-    const away = isNight(now)
-    const working = isWorkHours(now)
-
-    // What the monitor shows follows whoever is in the chair: work during
-    // office hours, the game in the evening and at weekends, and a screensaver
-    // once the room is empty. Powering it off wins over all three, so away has
-    // exactly two states — screensaver or dark.
-    const showing = working ? 'on' : away ? 'idle' : 'game'
-    // Not `powerOverride ?? !isSleeping(now)`: the override is the string
+    // Not `powerOverride ?? activity.powered`: the override is the string
     // 'off', which is truthy, so ?? would hand a truthy value to the test below
     // and the monitor could never be switched off.
-    const powered = powerOverride ? powerOverride === 'on' : !isSleeping(now)
+    const powered = powerOverride ? powerOverride === 'on' : activity.powered
 
     return {
+      // The environment is still real. Only the room's occupancy is rolled.
       lighting: 'auto',
       weather,
       // `present` and not `typing`: there is no typing pose yet, and a missing
       // tag falls back to playing the whole sheet — which would cycle the empty
       // chair and flicker the person in and out.
-      presence: away ? 'away' : 'present',
-      monitor: powered ? showing : 'off',
-      // Dark outside means the lamp is off, unless someone has said otherwise.
-      // An override holds for the visit rather than expiring on the next tick.
-      roomLight: lightOverride ?? (away ? 'off' : 'on'),
+      presence: activity.presence,
+      monitor: powered ? activity.content : 'off',
+      // The lamp goes off on the way out, unless someone has said otherwise. An
+      // override holds for the visit rather than expiring on the next roll.
+      roomLight: lightOverride ?? (activity.presence === 'present' ? 'on' : 'off'),
       clock,
     }
-  }, [now, weather, powerOverride, lightOverride, clock])
+  }, [activity, weather, powerOverride, lightOverride, clock])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -215,12 +170,17 @@ export default function DeskScene() {
         (current ?? (onByDefault(new Date()) ? 'on' : 'off')) === 'on' ? 'off' : 'on',
       )
 
+  // Read through a ref so the callbacks stay stable while still flipping from
+  // whatever the room is doing at the moment of the click.
+  const activityRef = useRef(activity)
+  activityRef.current = activity
+
   const toggleLight = useCallback(
-    flip(setLightOverride, (now) => !isNight(now)),
+    flip(setLightOverride, () => activityRef.current.presence === 'present'),
     [],
   )
   const toggleMonitor = useCallback(
-    flip(setPowerOverride, (now) => !isSleeping(now)),
+    flip(setPowerOverride, () => activityRef.current.powered),
     [],
   )
 
