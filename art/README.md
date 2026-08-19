@@ -97,12 +97,16 @@ The glass mask itself is derived at runtime by diffing `clear-day` against
 
 | tag | frames |
 |---|---|
-| `ai-work` | 0–71 |
-| `power-on` | 72–78 |
-| `power-off` | 79–84 |
-| `cube` | 85–116 |
-| `game` | 117–164 |
-| `bounce` | 165–244 |
+| `ai-work` | 0–95 |
+| `power-on` | 96–102 |
+| `power-off` | 103–108 |
+| `cube` | 109–140 |
+| `game` | 141–188 |
+| `bounce` | 189–268 |
+
+Frame numbers move when a tag grows, and that is safe **only** because nothing
+addresses this sheet by index — `render.ts` asks for tags by name. Keep it that
+way.
 
 **At 46×26 the panel carries shape, not detail.** About 1200 pixels. Two
 screensaver attempts failed identically here — Matrix rain, then a starfield —
@@ -133,7 +137,7 @@ forever. Six bounces a loop and six colours, so the colour cycle closes too.
 
 **The sheet is a single row**, so frames are capped by texture width — browsers
 give out around 16384px, which at 46px a frame is about 356 frames. It is at
-245.
+269, so roughly 87 frames of headroom.
 
 The game loop is exact rather than tuned: ground repeats over 96 px scrolled 2
 px/frame, hills over 48 px at half speed, a 4-pose runner — all dividing 48
