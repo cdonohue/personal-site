@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" fill="none">
+  <style>
+    .dot { fill: var(--gray-2, #ebe7e3); }
+    .container { fill: var(--gray-5, #99917f); }
+    .card { stroke: var(--gray-5, #99917f); stroke-width: 2; fill: none; }
+  </style>
+  <!-- App components: styled containers grouped into cards -->
+
+  <!-- Card 1 -->
+  <rect class="card" x="30" y="40" width="160" height="120" rx="10" />
+  <!-- Container inside card -->
+  <rect class="container" x="46" y="56" width="60" height="40" rx="6" />
+  <rect class="dot" x="54" y="68" width="12" height="12" rx="2" />
+  <rect class="dot" x="74" y="68" width="12" height="12" rx="2" />
+  <!-- Another container -->
+  <rect class="container" x="46" y="108" width="128" height="36" rx="6" />
+  <rect class="dot" x="54" y="118" width="12" height="12" rx="2" />
+  <rect class="dot" x="74" y="118" width="12" height="12" rx="2" />
+  <rect class="dot" x="94" y="118" width="12" height="12" rx="2" />
+  <rect class="dot" x="114" y="118" width="12" height="12" rx="2" />
+  <rect class="dot" x="134" y="118" width="12" height="12" rx="2" />
+  <rect class="dot" x="154" y="118" width="12" height="12" rx="2" />
+
+  <!-- Card 2 -->
+  <rect class="card" x="210" y="40" width="160" height="120" rx="10" />
+  <!-- Container inside card -->
+  <rect class="container" x="226" y="56" width="60" height="40" rx="6" />
+  <rect class="dot" x="234" y="68" width="12" height="12" rx="2" />
+  <rect class="dot" x="254" y="68" width="12" height="12" rx="2" />
+  <!-- Another container -->
+  <rect class="container" x="226" y="108" width="128" height="36" rx="6" />
+  <rect class="dot" x="234" y="118" width="12" height="12" rx="2" />
+  <rect class="dot" x="254" y="118" width="12" height="12" rx="2" />
+  <rect class="dot" x="274" y="118" width="12" height="12" rx="2" />
+  <rect class="dot" x="294" y="118" width="12" height="12" rx="2" />
+  <rect class="dot" x="314" y="118" width="12" height="12" rx="2" />
+  <rect class="dot" x="334" y="118" width="12" height="12" rx="2" />
+</svg>
