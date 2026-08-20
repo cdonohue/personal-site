@@ -10,17 +10,20 @@
  * daylight glass, used directly in dark mode and darkened to #5a6faf for light,
  * where the pale original cannot carry text contrast.
  *
- * Every text value below clears 4.5:1 on its own background. The old
- * text-gray-400, used eleven times for nav links and section labels, sat at
- * about 2.6:1 and did not.
+ * Every text value clears 4.5:1 on its own background, and light's muted and
+ * accent are a few percent darker than the values read straight off the art.
+ * At #707070 and #5a6faf they cleared the surface at only 4.74:1 and 4.65:1,
+ * close enough to the line that any change behind them pushed them under it.
+ * At #636363 and #4e6198 they sit at 5.76:1 and 5.77:1 with room to spare. The
+ * text-gray-400 they replaced was about 2.6:1.
  */
 @theme {
   --color-surface: #fafafa;
   --color-sunken: #efefef;
   --color-ink: #202020;
-  --color-muted: #707070;
+  --color-muted: #636363;
   --color-line: #d6d6d6;
-  --color-accent: #5a6faf;
+  --color-accent: #4e6198;
 }
 
 /*
@@ -70,8 +73,8 @@
      * instead, which is why the markup carries no font-weight utilities on
      * headings.
      */
-    --font-display: 'Tiny5', ui-sans-serif, system-ui, sans-serif;
-    --font-body: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Tiny5", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
 
     /*
      * Body size holds the measure: at 18px this column runs about 76 characters
@@ -106,6 +109,26 @@
 
     /* Short strings do not want the 1.6 that paragraphs do. */
     --display-leading: 1.25;
+
+    /*
+     * A 50% checkerboard, the same dither the scene uses for fog. `currentColor`
+     * resolves against whatever element paints it, so one definition serves the
+     * accent links, the muted nav and the active page alike.
+     */
+    --dither: repeating-conic-gradient(currentColor 0% 25%, transparent 0% 50%);
+
+    /*
+     * The backdrop grid. Derived from the palette rather than hardcoded, so it
+     * follows the surface colour and a theme gets it without a second set of
+     * values.
+     *
+     * Deliberately faint: at 8% toward the ink it is texture you notice only
+     * when looking for it, and because it never sits behind text as a solid
+     * band, it does not move any contrast ratio. Set --grid-dot to transparent
+     * to switch it off.
+     */
+    --grid-dot: color-mix(in srgb, var(--color-surface) 92%, var(--color-ink));
+    --grid-size: 16px;
   }
 
   html {
@@ -121,6 +144,32 @@
     color: var(--color-ink);
     font-size: var(--type);
     line-height: var(--leading);
+  }
+
+  /*
+   * A dot grid, one lit pixel every 16px.
+   *
+   * The quietest way to say the page is made of pixels: it is what a sprite
+   * editor canvas looks like, which is honest about how the scene above was
+   * drawn. A stepped gradient was tried here first and read as banding rather
+   * than as texture.
+   *
+   * 16px on purpose. Patterns at one or two pixels moire badly on fractional
+   * device-pixel ratios and when zoomed, because the pattern period and the
+   * device grid beat against each other; at this spacing they cannot.
+   *
+   * Fixed rather than scrolling, so the grid stays put and the page moves over
+   * it, and inert so it never intercepts a click.
+   */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+
+    background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+    background-size: var(--grid-size) var(--grid-size);
   }
 
   /*
@@ -146,27 +195,27 @@
     font-size: calc(var(--type) * var(--display-adjust));
   }
 
-  [data-role='site-name'] {
+  [data-role="site-name"] {
     font-size: calc(var(--type) * var(--type-h1) * var(--display-adjust));
   }
 
-  [data-role='page-title'] {
+  [data-role="page-title"] {
     font-size: calc(var(--type) * var(--type-h2) * var(--display-adjust));
   }
 
-  [data-role='item-title'] {
+  [data-role="item-title"] {
     font-size: calc(var(--type) * var(--type-h4) * var(--display-adjust));
   }
 
   /* Quiet by design: it orients you and then gets out of the way. */
-  [data-role='section-label'] {
+  [data-role="section-label"] {
     font-size: calc(var(--type) * var(--display-adjust));
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
 
   /* Dates and companies: body face, because they are data rather than titles. */
-  [data-role='item-meta'] {
+  [data-role="item-meta"] {
     font-family: var(--font-body);
     font-size: var(--type);
     line-height: var(--leading);
@@ -180,15 +229,98 @@
     letter-spacing: normal;
   }
 
-  h1,
-  h4 {
-    font-weight: 600;
+  /*
+   * Links.
+   *
+   * Two kinds, and they want opposite defaults. A link inside prose has to be
+   * visible without shouting, because it interrupts a sentence. A link in the
+   * nav is the interface, so it should be quiet until you reach for it. Both are
+   * styled here rather than with utilities in the markup, so a theme can restyle
+   * every link on the site without touching a component.
+   *
+   * The hover mark is a checkerboard rather than a rule.
+   *
+   * A solid underline is the one smooth edge on a page built out of pixels. This
+   * is the 50% dither the scene already uses for fog: a repeating conic gradient
+   * makes a 2x2 checker inside each 4px tile, and repeat-x lays a single row of
+   * it along the bottom.
+   *
+   * Drawn as a background rather than a pseudo-element so it survives a link
+   * wrapping across two lines, which an absolutely positioned bar does not.
+   */
+  a {
+    color: var(--color-accent);
+    text-decoration-line: none;
+    background-image: none;
+    background-size: 4px 4px;
+    background-repeat: repeat-x;
+    background-position: 0 100%;
+    /* Clears the descenders, so the bar sits under the word rather than through it. */
+    padding-bottom: 0.3em;
   }
 
-  /* Section labels stay quiet: same size, wider tracking, upper case. */
-  /* Links - Better underline positioning */
-  a {
-    text-underline-offset: 0.15em;
-    text-decoration-thickness: 0.0625rem;
+  /*
+   * No transition on purpose. Fading a dither in re-introduces the smooth edge
+   * the pattern exists to avoid; snapping is what the rest of the scene does.
+   */
+  a:hover {
+    background-image: var(--dither);
+  }
+
+  /*
+   * Only for keyboard users, and offset so it never sits on the glyphs. Uses the
+   * accent rather than the browser default, which is invisible against the dark
+   * surface on some platforms.
+   */
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 1px;
+  }
+
+  /*
+   * Chrome, not content: quiet until you reach for it.
+   *
+   * The colour is set here rather than with a text-muted utility in the markup.
+   * Tailwind utilities sit in a later layer than @layer base and win regardless
+   * of specificity, so a utility on the element would beat the aria-current rule
+   * below and the active page would show no state at all.
+   */
+  nav a {
+    color: var(--color-muted);
+    text-decoration-line: none;
+  }
+
+  [data-role="site-name"] a {
+    color: inherit;
+    text-decoration-line: none;
+  }
+
+  nav a:hover {
+    color: var(--color-ink);
+  }
+
+  [data-role="site-name"] a:hover {
+    background-image: var(--dither);
+  }
+
+  /*
+   * The current page. NavLink sets aria-current itself, so this needs no class
+   * plumbing.
+   *
+   * Marked by colour alone, at Chad's request: no dither bar here. That leaves
+   * the current page and a hovered one looking identical, and it asks anyone
+   * with low vision to tell two greys apart, so if the state ever needs to be
+   * firmer this is the rule to change.
+   */
+  nav a[aria-current="page"] {
+    color: var(--color-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    a {
+      transition: none;
+    }
   }
 }
