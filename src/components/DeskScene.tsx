@@ -2,14 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
-import {
-  FIRST_IMPRESSION_FLOOR,
-  TIME_ZONE,
-  dwellMs,
-  roll,
-  sceneStateFor,
-  type Activity,
-} from '../activity'
+import { LIVE_ON_ARRIVAL, TIME_ZONE, roll, sceneStateFor, type Activity } from '../activity'
 import type { ToggleValues, Weather } from '../scene/toggles'
 import { REFRESH_MS, currentCondition, lastKnownCondition } from '../weather'
 
@@ -116,24 +109,18 @@ export default function DeskScene() {
     }
   }, [])
 
-  // The room's own comings and goings. Rolled once now, then again on a dwell
-  // timer, so a visitor who stays a while sees it change rather than sitting on
-  // one frozen state.
-  const [activity, setActivity] = useState<Activity>(() => roll(new Date(), FIRST_IMPRESSION_FLOOR))
-
-  useEffect(() => {
-    let timer = 0
-    const schedule = () => {
-      // A fresh interval each time, because the dwell itself is random — a fixed
-      // setInterval would make the room change on a metronome.
-      timer = window.setTimeout(() => {
-        setActivity(roll(new Date()))
-        schedule()
-      }, dwellMs())
-    }
-    schedule()
-    return () => window.clearTimeout(timer)
-  }, [])
+  /**
+   * The room's state for this visit, rolled once and then left alone.
+   *
+   * It used to re-roll every minute or two, so the chair could empty or the
+   * screen switch content while someone was mid-sentence. Change with no cause
+   * reads as a glitch rather than as life: nothing the visitor did explains it,
+   * so it pulls the eye off the words for nothing.
+   *
+   * A reload is the only thing that rolls again, which is also what makes the
+   * variety land — between visits rather than during one.
+   */
+  const [activity] = useState<Activity>(() => roll(new Date(), LIVE_ON_ARRIVAL))
 
   const values = useMemo<Partial<ToggleValues>>(() => {
     const { presence, monitor } = sceneStateFor(activity, powerOverride)
