@@ -10,6 +10,8 @@
 export type Job = {
   title: string
   company: string
+  /** Optional: an entry without one renders the company as plain text. */
+  url?: string
   date: string
   description: string
 }
@@ -48,6 +50,7 @@ export const jobs: Job[] = [
   {
     title: 'Senior Software Engineer',
     company: 'Ramp',
+    url: 'https://ramp.com',
     date: 'April 2026 - Present',
     description:
       'Tooling for managing vendors and spend, and the agentic experiences built on top of it.',
@@ -55,6 +58,7 @@ export const jobs: Job[] = [
   {
     title: 'Staff Software Engineer',
     company: 'Droplet',
+    url: 'https://droplet.io',
     date: 'March 2024 - April 2026',
     description:
       'Document workflow and PDF annotation tools for K-12 schools, and the design system underneath them.',
@@ -62,12 +66,14 @@ export const jobs: Job[] = [
   {
     title: 'Staff Software Engineer',
     company: 'Sleep Doctor',
+    url: 'https://sleepdoctor.com',
     date: 'April 2023 - March 2024',
     description: 'Customer data platform and product recommendation engine serving 6M+ users.',
   },
   {
     title: 'Senior Software Engineer / Tech Lead',
     company: 'Webflow',
+    url: 'https://webflow.com',
     date: 'November 2019 - April 2023',
     description:
       'Authentication and content scoping enabling visual designers to build membership sites.',
@@ -75,13 +81,15 @@ export const jobs: Job[] = [
   {
     title: 'Senior Software Engineer',
     company: 'Red Ventures',
+    url: 'https://www.redventures.com',
     date: 'November 2015 - November 2019',
     description:
       'Embeddable widget platform with dynamic theming, running across hundreds of domains.',
   },
   {
     title: 'Software Engineer',
-    company: 'Apex Capital Corp',
+    company: 'Apex Capital',
+    url: 'https://www.apexcapitalcorp.com',
     date: 'October 2008 - October 2015',
     description:
       'Load board marketplace and credit check systems, and the design standards behind them.',

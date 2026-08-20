@@ -230,6 +230,36 @@
   }
 
   /*
+   * The masthead rule: the line the name and nav sit on.
+   *
+   * Only once they are side by side. Stacked, the name and nav are already
+   * separated by their own spacing and the rule just draws a line under the
+   * whole block, which reads as a stray divider rather than as something the
+   * two are sitting on.
+   *
+   * A pseudo-element rather than a border-bottom, because a border can only be
+   * a solid stroke and that is the one smooth edge this design keeps avoiding.
+   * Setting `color` here is what aims the dither, since --dither is built on
+   * currentColor; it affects nothing else, as the element has no text.
+   */
+  @media (width >= 40rem) {
+    [data-role="masthead"] {
+      position: relative;
+      padding-bottom: 1.25rem;
+    }
+
+    [data-role="masthead"]::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 4px;
+      color: var(--color-line);
+      background-image: var(--dither);
+      background-size: 4px 4px;
+    }
+  }
+
+  /*
    * Links.
    *
    * Two kinds, and they want opposite defaults. A link inside prose has to be

@@ -34,7 +34,14 @@ export default function Experience() {
             <article key={`${job.company}-${job.date}`} className="space-y-1">
               <h3 data-role="item-title">{job.title}</h3>
               <p data-role="item-meta" className="text-muted">
-                {job.company} · {job.date}
+                {job.url ? (
+                  <a href={job.url} target="_blank" rel="noreferrer noopener">
+                    {job.company}
+                  </a>
+                ) : (
+                  job.company
+                )}{' '}
+                · {job.date}
               </p>
               <p className="pt-2 leading-relaxed">{job.description}</p>
             </article>
