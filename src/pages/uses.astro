@@ -1,0 +1,32 @@
+---
+import Layout from '../layouts/Layout.astro'
+import { toolCategories } from '../content'
+---
+
+<Layout title="Uses">
+  <section class="mb-16">
+    <h2 data-role="page-title" class="mb-12">Tools &amp; Software</h2>
+
+    <div class="space-y-12">
+      {
+        toolCategories.map((category) => (
+          <div>
+            <h3 data-role="section-label" class="text-muted mb-6">
+              {category.title}
+            </h3>
+            <div class="space-y-6">
+              {category.items.map((item) => (
+                <div>
+                  <h4 data-role="item-title" class="mb-1">
+                    {item.name}
+                  </h4>
+                  <p class="text-muted leading-relaxed">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+</Layout>

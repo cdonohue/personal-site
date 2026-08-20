@@ -1,0 +1,356 @@
+@import "tailwindcss";
+
+/**
+ * Palette taken from the pixel scene rather than invented, so the page and the
+ * illustration read as one thing.
+ *
+ * The scene's greys are strictly neutral (#aaaaaa, #8a8a8a, #202020 — R=G=B),
+ * while Tailwind's `gray` is blue-tinted. That mismatch is why the old scheme
+ * sat slightly cool against the art. The accent is the window: #bacaff is the
+ * daylight glass, used directly in dark mode and darkened to #5a6faf for light,
+ * where the pale original cannot carry text contrast.
+ *
+ * Every text value clears 4.5:1 on its own background, and light's muted and
+ * accent are a few percent darker than the values read straight off the art.
+ * At #707070 and #5a6faf they cleared the surface at only 4.74:1 and 4.65:1,
+ * close enough to the line that any change behind them pushed them under it.
+ * At #636363 and #4e6198 they sit at 5.76:1 and 5.77:1 with room to spare. The
+ * text-gray-400 they replaced was about 2.6:1.
+ */
+@theme {
+  --color-surface: #fafafa;
+  --color-sunken: #efefef;
+  --color-ink: #202020;
+  --color-muted: #636363;
+  --color-line: #d6d6d6;
+  --color-accent: #4e6198;
+}
+
+/*
+ * Dark values override the variables directly rather than through a second
+ * @theme: @theme is a build-time block and only works at the top level, but the
+ * variables it emits are ordinary CSS custom properties, so a media query can
+ * reassign them and every utility follows.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: #17181c;
+    --color-sunken: #1f2027;
+    --color-ink: #e6e6e6;
+    --color-muted: #a3a3a3;
+    --color-line: #32343c;
+    --color-accent: #bacaff;
+  }
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    /*
+     * Typography is two roles, not two font names: display and body.
+     *
+     * The site is heading toward the same content rendered by entirely
+     * different designs, so a theme should be able to change the whole voice of
+     * the page by reassigning these — and nothing below this block names a
+     * typeface. Swapping display to a serif, or collapsing both roles onto one
+     * family, is a change here and nowhere else.
+     *
+     * The current pair: Tiny5 for display, because it is the hero's pixel grid
+     * in letterform; IBM Plex Sans for prose, because its squared terminals echo
+     * the same blocks without being tiring to read. Pixel faces antialias at
+     * every size — they are outlines drawn as pixels, not true bitmaps — so a
+     * paragraph in one is mostly partial pixels and hard going. Hence a face for
+     * glancing at and a face for reading.
+     *
+     * Tiny5 ships a single weight. Nothing in the display role may ask for bold:
+     * the browser would synthesise it by smearing the glyphs, which is exactly
+     * the pixel grid coming apart. Hierarchy comes from size, colour and space
+     * instead, which is why the markup carries no font-weight utilities on
+     * headings.
+     */
+    --font-display: "Tiny5", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+
+    /*
+     * Body size holds the measure: at 18px this column runs about 76 characters
+     * a line, just inside the comfortable 45–75, against ~101 before.
+     */
+    --type: clamp(1rem, 0.3vw + 0.9rem, 1.125rem); /* 16px -> 18px */
+    --leading: 1.6;
+
+    /*
+     * Display faces rarely sit at the same optical size as the body face at the
+     * same nominal size, and pixel faces are the worst offenders: Tiny5 has a
+     * cap height of 11px where Plex has 13 at 18px. Left uncorrected every
+     * heading reads a size smaller than it is set.
+     *
+     * Pure optical parity would be 1.056. This runs deliberately above it: more
+     * size means proportionally fewer partial pixels along each edge, so the
+     * blocks read as blocks rather than as blur.
+     *
+     * Isolated here so that swapping the display face is two values — the family
+     * and this — rather than retuning every ratio below.
+     */
+    --display-adjust: 1.2;
+
+    /*
+     * Headings size off the body rather than carrying their own clamps, so the
+     * scale stays proportional at every viewport and a theme retunes it by
+     * changing ratios instead of rewriting media queries.
+     */
+    --type-h1: 1.75;
+    --type-h2: 1.4;
+    --type-h4: 1.125;
+
+    /* Short strings do not want the 1.6 that paragraphs do. */
+    --display-leading: 1.25;
+
+    /*
+     * A 50% checkerboard, the same dither the scene uses for fog. `currentColor`
+     * resolves against whatever element paints it, so one definition serves the
+     * accent links, the muted nav and the active page alike.
+     */
+    --dither: repeating-conic-gradient(currentColor 0% 25%, transparent 0% 50%);
+
+    /*
+     * The backdrop grid. Derived from the palette rather than hardcoded, so it
+     * follows the surface colour and a theme gets it without a second set of
+     * values.
+     *
+     * Deliberately faint: at 8% toward the ink it is texture you notice only
+     * when looking for it, and because it never sits behind text as a solid
+     * band, it does not move any contrast ratio. Set --grid-dot to transparent
+     * to switch it off.
+     */
+    --grid-dot: color-mix(in srgb, var(--color-surface) 92%, var(--color-ink));
+    --grid-size: 16px;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-size: 16px; /* Base for rem calculations */
+    scrollbar-gutter: stable; /* Reserve space for scrollbar to prevent layout shift */
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+    font-size: var(--type);
+    line-height: var(--leading);
+  }
+
+  /*
+   * A dot grid, one lit pixel every 16px.
+   *
+   * The quietest way to say the page is made of pixels: it is what a sprite
+   * editor canvas looks like, which is honest about how the scene above was
+   * drawn. A stepped gradient was tried here first and read as banding rather
+   * than as texture.
+   *
+   * 16px on purpose. Patterns at one or two pixels moire badly on fractional
+   * device-pixel ratios and when zoomed, because the pattern period and the
+   * device grid beat against each other; at this spacing they cannot.
+   *
+   * Fixed rather than scrolling, so the grid stays put and the page moves over
+   * it, and inert so it never intercepts a click.
+   */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+
+    background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+    background-size: var(--grid-size) var(--grid-size);
+  }
+
+  /*
+   * Heading *levels* say what the document is; `data-role` says what a thing
+   * looks like. They are deliberately separate.
+   *
+   * The two used to be conflated, and it broke in both directions: h3 was a
+   * section label in the footer and a job title on the Experience page, so
+   * neither could be styled without hitting the other, and the only thing
+   * telling them apart was a font-weight utility in the markup — invisible to
+   * CSS and impossible for a theme to override. Levels are now chosen purely
+   * for structure, and every visual decision hangs off a role.
+   */
+  h1,
+  h2,
+  h3,
+  h4,
+  nav {
+    font-family: var(--font-display);
+    line-height: var(--display-leading);
+    font-weight: 400;
+    letter-spacing: normal;
+    font-size: calc(var(--type) * var(--display-adjust));
+  }
+
+  [data-role="site-name"] {
+    font-size: calc(var(--type) * var(--type-h1) * var(--display-adjust));
+  }
+
+  [data-role="page-title"] {
+    font-size: calc(var(--type) * var(--type-h2) * var(--display-adjust));
+  }
+
+  [data-role="item-title"] {
+    font-size: calc(var(--type) * var(--type-h4) * var(--display-adjust));
+  }
+
+  /* Quiet by design: it orients you and then gets out of the way. */
+  [data-role="section-label"] {
+    font-size: calc(var(--type) * var(--display-adjust));
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* Dates and companies: body face, because they are data rather than titles. */
+  [data-role="item-meta"] {
+    font-family: var(--font-body);
+    font-size: var(--type);
+    line-height: var(--leading);
+  }
+
+  p,
+  small {
+    font-size: var(--type);
+    line-height: var(--leading);
+    font-weight: 400;
+    letter-spacing: normal;
+  }
+
+  /*
+   * The masthead rule: the line the name and nav sit on.
+   *
+   * Only once they are side by side. Stacked, the name and nav are already
+   * separated by their own spacing and the rule just draws a line under the
+   * whole block, which reads as a stray divider rather than as something the
+   * two are sitting on.
+   *
+   * A pseudo-element rather than a border-bottom, because a border can only be
+   * a solid stroke and that is the one smooth edge this design keeps avoiding.
+   * Setting `color` here is what aims the dither, since --dither is built on
+   * currentColor; it affects nothing else, as the element has no text.
+   */
+  @media (width >= 40rem) {
+    [data-role="masthead"] {
+      position: relative;
+      padding-bottom: 1.25rem;
+    }
+
+    [data-role="masthead"]::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 4px;
+      color: var(--color-line);
+      background-image: var(--dither);
+      background-size: 4px 4px;
+    }
+  }
+
+  /*
+   * Links.
+   *
+   * Two kinds, and they want opposite defaults. A link inside prose has to be
+   * visible without shouting, because it interrupts a sentence. A link in the
+   * nav is the interface, so it should be quiet until you reach for it. Both are
+   * styled here rather than with utilities in the markup, so a theme can restyle
+   * every link on the site without touching a component.
+   *
+   * The hover mark is a checkerboard rather than a rule.
+   *
+   * A solid underline is the one smooth edge on a page built out of pixels. This
+   * is the 50% dither the scene already uses for fog: a repeating conic gradient
+   * makes a 2x2 checker inside each 4px tile, and repeat-x lays a single row of
+   * it along the bottom.
+   *
+   * Drawn as a background rather than a pseudo-element so it survives a link
+   * wrapping across two lines, which an absolutely positioned bar does not.
+   */
+  a {
+    color: var(--color-accent);
+    text-decoration-line: none;
+    background-image: none;
+    background-size: 4px 4px;
+    background-repeat: repeat-x;
+    background-position: 0 100%;
+    /* Clears the descenders, so the bar sits under the word rather than through it. */
+    padding-bottom: 0.3em;
+  }
+
+  /*
+   * No transition on purpose. Fading a dither in re-introduces the smooth edge
+   * the pattern exists to avoid; snapping is what the rest of the scene does.
+   */
+  a:hover {
+    background-image: var(--dither);
+  }
+
+  /*
+   * Only for keyboard users, and offset so it never sits on the glyphs. Uses the
+   * accent rather than the browser default, which is invisible against the dark
+   * surface on some platforms.
+   */
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 1px;
+  }
+
+  /*
+   * Chrome, not content: quiet until you reach for it.
+   *
+   * The colour is set here rather than with a text-muted utility in the markup.
+   * Tailwind utilities sit in a later layer than @layer base and win regardless
+   * of specificity, so a utility on the element would beat the aria-current rule
+   * below and the active page would show no state at all.
+   */
+  nav a {
+    color: var(--color-muted);
+    text-decoration-line: none;
+  }
+
+  [data-role="site-name"] a {
+    color: inherit;
+    text-decoration-line: none;
+  }
+
+  nav a:hover {
+    color: var(--color-ink);
+  }
+
+  [data-role="site-name"] a:hover {
+    background-image: var(--dither);
+  }
+
+  /*
+   * The current page. NavLink sets aria-current itself, so this needs no class
+   * plumbing.
+   *
+   * Marked by colour alone, at Chad's request: no dither bar here. That leaves
+   * the current page and a hovered one looking identical, and it asks anyone
+   * with low vision to tell two greys apart, so if the state ever needs to be
+   * firmer this is the rule to change.
+   */
+  nav a[aria-current="page"] {
+    color: var(--color-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    a {
+      transition: none;
+    }
+  }
+}

@@ -1,47 +1,34 @@
 ---
-import Layout from '../layouts/layout.astro';
-import Stack from '../components/Stack.astro';
-import Heading from '../components/Heading.astro';
-import Text from '../components/Text.astro';
-import Link from '../components/Link.astro';
-import employment from '../data/employment.json';
-
-const current = employment.find(job => job.current);
+import DeskScene from '../components/DeskScene'
+import Layout from '../layouts/Layout.astro'
 ---
 
-<Layout title="Chad Donohue">
-  <main>
-    <Stack gap="section" class="content">
-        <Stack gap="micro">
-          <Heading level={1} size="lg">Chad Donohue</Heading>
-          <Text muted>Design Engineer</Text>
-        </Stack>
+<Layout>
+  {/*
+    client:only rather than client:load. The scene reads the visitor's clock and
+    fetches weather on mount, so a server pass would render a room at the build
+    machine's hour and then correct itself, and it would have to be reconciled
+    against markup that can never match. There is nothing to prerender here: the
+    whole component is a canvas.
+  */}
+  <DeskScene client:only="react" />
 
-        <Stack gap="standard" class="intro">
-					<Text>
-            I'm a software engineer who obsesses over the details so users don't have to. Clean interfaces, smooth interactions, software that just works.
-          </Text>
-          <Text>
-            I've watched frameworks come and go, hype cycles rise and fade. What stays constant: simple is hard and taste matters. Lately I've been thinking about what that means now that we're building for LLMs as much as human users.
-          </Text>
-        </Stack>
-
-{current && (
-          <Stack gap="standard">
-            <Heading level={2} muted>Currently</Heading>
-            <Stack gap="tight">
-              <Heading level={3}>{current.role} at {current.company}</Heading>
-              <Text>{current.description}</Text>
-            </Stack>
-            <Link href="/work">View full work history →</Link>
-          </Stack>
-        )}
-      </Stack>
-  </main>
+  {/*
+    Deliberately thin. The scene above already shows the kind of thing I make,
+    and the full history is one click away on Experience, so this only has to
+    say what I do and where, then get out of the way.
+  */}
+  <section class="mb-16">
+    <div class="space-y-6 leading-relaxed">
+      <p>
+        I build web experiences at <a href="https://ramp.com">Ramp</a>. Most of my work sits where
+        design and engineering meet: design systems, frontend architecture, and the shared pieces
+        other teams build on top of.
+      </p>
+      <p>
+        AI agents and workflows have changed how I work, and I enjoy finding new ways to fold them
+        into how I make things.
+      </p>
+    </div>
+  </section>
 </Layout>
-
-<style>
-  .intro {
-    max-width: 50ch;
-  }
-</style>

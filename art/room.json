@@ -1,0 +1,55 @@
+{ "frames": [
+   {
+    "filename": "room.aseprite",
+    "frame": { "x": 0, "y": 0, "w": 192, "h": 108 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 192, "h": 108 },
+    "sourceSize": { "w": 192, "h": 108 },
+    "duration": 100
+   }
+ ],
+ "meta": {
+  "app": "https://www.aseprite.org/",
+  "version": "1.3.18.1-arm64",
+  "image": "room.png",
+  "format": "RGBA8888",
+  "size": { "w": 192, "h": 108 },
+  "scale": "1",
+  "frameTags": [
+  ],
+  "layers": [
+   { "name": "WEATHER" },
+   { "name": "clear-day", "group": "WEATHER", "opacity": 255, "blendMode": "normal" },
+   { "name": "ROOM" },
+   { "name": "wall", "group": "ROOM", "opacity": 255, "blendMode": "normal" },
+   { "name": "floor", "group": "ROOM", "opacity": 255, "blendMode": "normal" },
+   { "name": "windows", "group": "ROOM", "opacity": 255, "blendMode": "normal" },
+   { "name": "outlets", "group": "ROOM", "opacity": 255, "blendMode": "normal" },
+   { "name": "DESK" },
+   { "name": "clock", "group": "DESK", "opacity": 255, "blendMode": "normal" },
+   { "name": "mic", "group": "DESK", "opacity": 255, "blendMode": "normal" },
+   { "name": "mac", "group": "DESK", "opacity": 255, "blendMode": "normal" },
+   { "name": "legs-inner", "group": "DESK", "opacity": 255, "blendMode": "normal" },
+   { "name": "legs-mid", "group": "DESK", "opacity": 255, "blendMode": "normal" },
+   { "name": "legs-outer", "group": "DESK", "opacity": 255, "blendMode": "normal" },
+   { "name": "legs-base", "group": "DESK", "opacity": 255, "blendMode": "normal" },
+   { "name": "shadow", "group": "DESK", "opacity": 255, "blendMode": "normal" },
+   { "name": "surface", "group": "DESK", "opacity": 255, "blendMode": "normal" },
+   { "name": "desk-items", "group": "DESK", "opacity": 255, "blendMode": "normal" },
+   { "name": "desk-front", "group": "DESK", "opacity": 255, "blendMode": "normal" },
+   { "name": "MONITOR", "group": "DESK" },
+   { "name": "camera", "group": "MONITOR", "opacity": 255, "blendMode": "normal" },
+   { "name": "arm", "group": "MONITOR", "opacity": 255, "blendMode": "normal" },
+   { "name": "screen", "group": "MONITOR", "opacity": 255, "blendMode": "normal" },
+   { "name": "CHARACTER" },
+   { "name": "FOREGROUND" }
+  ],
+  "slices": [
+   { "name": "clock-screen", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 125, "y": 54, "w": 21, "h": 7 } }] },
+   { "name": "monitor-screen", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 73, "y": 29, "w": 46, "h": 26 } }] },
+   { "name": "light-switch", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 10, "y": 45, "w": 4, "h": 6 } }] },
+   { "name": "character", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 76, "y": 22, "w": 40, "h": 74 } }] }
+  ]
+ }
+}
