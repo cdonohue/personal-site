@@ -1,7 +1,5 @@
-import { Rect } from './aseprite';
+import type { Rect } from './aseprite';
 import {
-  Assets,
-  MonitorPhase,
   SCREENSAVER_TAGS,
   SCENE_HEIGHT,
   SCENE_WIDTH,
@@ -10,7 +8,8 @@ import {
   nightAmountFor,
   washFor,
 } from './render';
-import { DEFAULT_VALUES, ToggleValues } from './toggles';
+import type { Assets, MonitorPhase } from './render';
+import { DEFAULT_VALUES, type ToggleValues } from './toggles';
 
 /**
  * A mounted desk-room scene, independent of any framework.

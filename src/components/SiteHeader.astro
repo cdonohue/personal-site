@@ -1,0 +1,52 @@
+---
+import { navigation, siteName } from '../content'
+
+/**
+ * The masthead, shared by every page.
+ *
+ * It was copied into all three pages before this, which meant the active nav
+ * item was hardcoded per page: each carried its own muted/ink pair, and adding
+ * a route meant editing three files and remembering to flip the colours in
+ * each. It is derived from the current URL instead, and marked with
+ * aria-current, which is what the stylesheet keys off.
+ *
+ * Astro renders this on the server, so the active item is correct in the HTML
+ * itself rather than being resolved after hydration. That is the whole reason
+ * this is a .astro file and not an island: it needs the request path, not
+ * interactivity.
+ *
+ * The name and nav sit on a shared rule rather than floating, and align on
+ * their baselines rather than by box centre: with a 38px name against a 22px
+ * nav, centring the boxes leaves the nav visibly adrift, while a common
+ * baseline locks both to the same line the rule draws.
+ *
+ * Side by side from `sm` (640px) rather than `lg`. The column stops growing at
+ * 768px, so between 768 and 1024 the old breakpoint kept the header stacked
+ * while the space beneath it was already at full width and unchanged. The name
+ * and nav need about 448px of the 720 available, so 640 is the first standard
+ * step with room to spare.
+ */
+
+/** Trailing slashes vary by host and by how a link was written, so normalise. */
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
+
+const isCurrent = (to: string, end?: boolean) => {
+  const target = to.replace(/\/+$/, '') || '/'
+  return end ? path === target : path === target || path.startsWith(`${target}/`)
+}
+---
+
+<header data-role="masthead" class="mb-12 sm:flex sm:items-baseline sm:justify-between">
+  <h1 data-role="site-name" class="mb-8 sm:mb-0">
+    <a href="/">{siteName}</a>
+  </h1>
+  <nav class="flex gap-8">
+    {
+      navigation.map(({ label, to, end }) => (
+        <a href={to} aria-current={isCurrent(to, end) ? 'page' : undefined}>
+          {label}
+        </a>
+      ))
+    }
+  </nav>
+</header>

@@ -1,3 +1,15 @@
+---
+import SiteHeader from '../components/SiteHeader.astro'
+import '../index.css'
+
+interface Props {
+  /** Appended to the site name in the tab. Omitted on the home page. */
+  title?: string
+}
+
+const { title } = Astro.props
+---
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -9,10 +21,12 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Tiny5&display=swap"
       rel="stylesheet"
     />
-    <title>Chad Donohue</title>
+    <title>{title ? `Chad Donohue — ${title}` : 'Chad Donohue'}</title>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div class="mx-auto w-full max-w-3xl px-6 py-12">
+      <SiteHeader />
+      <slot />
+    </div>
   </body>
 </html>

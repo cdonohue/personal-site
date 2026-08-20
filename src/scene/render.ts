@@ -1,6 +1,6 @@
 import { Sheet, loadImage, loadSheet } from './aseprite';
 import { Glow } from './glow';
-import { ToggleValues, WEATHER_CONDITIONS, Weather } from './toggles';
+import { WEATHER_CONDITIONS, type ToggleValues, type Weather } from './toggles';
 
 /**
  * How the sky moves, in pixels per second. Motion comes from scrolling one

@@ -9,3 +9,6 @@ dist-ssr
 *.local
 .DS_Store
 *.tsbuildinfo
+
+# astro generated types
+.astro
