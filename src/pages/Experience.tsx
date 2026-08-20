@@ -18,24 +18,25 @@ export default function Experience() {
           Experience
         </h2>
 
-        <div className="space-y-16">
+        {/*
+         * Company and date share one muted line under the title.
+         *
+         * The date used to be pushed to the far right of the title's row, which
+         * left a lane of dead space across every entry and split two facts that
+         * belong together. The company then sat alone on the next line as a
+         * fragment. This says the same thing in a third of the height.
+         *
+         * The company is a detail of the role rather than a heading under it:
+         * as an h4 it implied the description belonged to the company.
+         */}
+        <div className="space-y-10">
           {jobs.map((job) => (
-            <article key={`${job.company}-${job.date}`} className="space-y-3">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-2">
-                <h3 data-role="item-title">{job.title}</h3>
-                <p data-role="item-meta" className="text-muted">
-                  {job.date}
-                </p>
-              </div>
-              {/*
-               * The company is a detail of the role, not a heading under it —
-               * as an h4 it implied the description belonged to the company
-               * rather than the job.
-               */}
+            <article key={`${job.company}-${job.date}`} className="space-y-1">
+              <h3 data-role="item-title">{job.title}</h3>
               <p data-role="item-meta" className="text-muted">
-                {job.company}
+                {job.company} · {job.date}
               </p>
-              <p className="leading-relaxed">{job.description}</p>
+              <p className="pt-2 leading-relaxed">{job.description}</p>
             </article>
           ))}
         </div>

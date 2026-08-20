@@ -16,15 +16,13 @@ export default function App() {
       <section className="mb-16">
         <div className="space-y-6 leading-relaxed">
           <p>
-            I build web experiences at{' '}
-            <a href="https://ramp.com" className="text-accent underline">
-              Ramp
-            </a>
-            . Most of my work sits where design and engineering meet: design systems, frontend
-            architecture, and the shared pieces other teams build on top of.
+            I build web experiences at <a href="https://ramp.com">Ramp</a>. Most of my work sits
+            where design and engineering meet: design systems, frontend architecture, and the shared
+            pieces other teams build on top of.
           </p>
           <p>
-            AI agents have changed how I work, and I'm still working out what that means for a team.
+            AI agents and workflows have changed how I work, and I enjoy finding new ways to fold
+            them into how I make things.
           </p>
         </div>
       </section>
