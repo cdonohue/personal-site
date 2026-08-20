@@ -40,14 +40,18 @@ editable without re-exporting everything.
 ## Pipeline
 
 ```
-art/*.aseprite  ──►  export.sh          ──►  art/*.png + art/*.json
-                └─►  vite-plugin-aseprite ─►  art/room.<layer>.png
-                                              art/room.<condition>-<phase>.png
+art/*.aseprite  ──►  export.sh              ──►  art/*.png + art/*.json
+                └─►  vite-plugin-aseprite.ts ─►  art/room.<layer>.png
+                                                 art/room.<condition>-<phase>.png
 ```
 
 `export.sh` does whole sprites and is incremental; pass `--force` to rebuild
-regardless of mtime. The Vite plugin re-exports on save in dev and shells out to
-the two scripts in `scripts/`:
+regardless of mtime.
+
+The plugin is a Vite plugin and keeps that name, but there is no `vite.config.ts`
+to look for: Astro runs on Vite, so it is registered under `vite.plugins` in
+`astro.config.mjs`. It re-exports on save in dev and shells out to the two
+scripts in `scripts/`:
 
 - **`export-layer.lua`** — one layer alone. Needed because `--layer` combined
   with `--all-layers` silently exports the whole sprite instead of erroring.

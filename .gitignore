@@ -20,6 +20,7 @@ pnpm-debug.log*
 
 # local env / editor
 *.local
+.claude/settings.local.json
 *.tsbuildinfo
 .DS_Store
 .idea/
