@@ -54,10 +54,6 @@ export const PRESENCE_CURVE: [hour: number, chance: number][] = [
  */
 export const FIRST_IMPRESSION_FLOOR = 0.8
 
-/** How long a state holds before the next roll, in ms. */
-export const DWELL_MIN = 60_000
-export const DWELL_MAX = 120_000
-
 /** Chance the screen is left running once the room empties. */
 const LEFT_ON_CHANCE = 0.7
 const LEFT_ON_CHANCE_LATE = 0.25
@@ -113,8 +109,6 @@ export const roll = (now: Date, floor = 0): Activity => {
   const powered = Math.random() < (late ? LEFT_ON_CHANCE_LATE : LEFT_ON_CHANCE)
   return { presence: 'away', content: 'idle', powered }
 }
-
-export const dwellMs = () => DWELL_MIN + Math.random() * (DWELL_MAX - DWELL_MIN)
 
 /**
  * The final scene state, once a visitor's monitor toggle is taken into account.
