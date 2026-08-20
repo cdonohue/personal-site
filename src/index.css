@@ -49,14 +49,63 @@
 
   :root {
     /*
-     * One size. Hierarchy comes from weight, colour and space instead.
+     * Typography is two roles, not two font names: display and body.
      *
-     * The previous scale had six fluid sizes and six line heights, and none of
-     * them rendered: the markup sets Tailwind text-* utilities on the same
-     * elements, and utilities outrank @layer base, so every token was dead.
+     * The site is heading toward the same content rendered by entirely
+     * different designs, so a theme should be able to change the whole voice of
+     * the page by reassigning these — and nothing below this block names a
+     * typeface. Swapping display to a serif, or collapsing both roles onto one
+     * family, is a change here and nowhere else.
+     *
+     * The current pair: Tiny5 for display, because it is the hero's pixel grid
+     * in letterform; IBM Plex Sans for prose, because its squared terminals echo
+     * the same blocks without being tiring to read. Pixel faces antialias at
+     * every size — they are outlines drawn as pixels, not true bitmaps — so a
+     * paragraph in one is mostly partial pixels and hard going. Hence a face for
+     * glancing at and a face for reading.
+     *
+     * Tiny5 ships a single weight. Nothing in the display role may ask for bold:
+     * the browser would synthesise it by smearing the glyphs, which is exactly
+     * the pixel grid coming apart. Hierarchy comes from size, colour and space
+     * instead, which is why the markup carries no font-weight utilities on
+     * headings.
      */
-    --type: clamp(0.875rem, 0.3vw + 0.8rem, 1rem); /* 14px -> 16px */
+    --font-display: 'Tiny5', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+
+    /*
+     * Body size holds the measure: at 18px this column runs about 76 characters
+     * a line, just inside the comfortable 45–75, against ~101 before.
+     */
+    --type: clamp(1rem, 0.3vw + 0.9rem, 1.125rem); /* 16px -> 18px */
     --leading: 1.6;
+
+    /*
+     * Display faces rarely sit at the same optical size as the body face at the
+     * same nominal size, and pixel faces are the worst offenders: Tiny5 has a
+     * cap height of 11px where Plex has 13 at 18px. Left uncorrected every
+     * heading reads a size smaller than it is set.
+     *
+     * Pure optical parity would be 1.056. This runs deliberately above it: more
+     * size means proportionally fewer partial pixels along each edge, so the
+     * blocks read as blocks rather than as blur.
+     *
+     * Isolated here so that swapping the display face is two values — the family
+     * and this — rather than retuning every ratio below.
+     */
+    --display-adjust: 1.2;
+
+    /*
+     * Headings size off the body rather than carrying their own clamps, so the
+     * scale stays proportional at every viewport and a theme retunes it by
+     * changing ratios instead of rewriting media queries.
+     */
+    --type-h1: 1.75;
+    --type-h2: 1.4;
+    --type-h4: 1.125;
+
+    /* Short strings do not want the 1.6 that paragraphs do. */
+    --display-leading: 1.25;
   }
 
   html {
@@ -67,17 +116,62 @@
   }
 
   body {
-    font-family: Cabin, ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-body);
     background-color: var(--color-surface);
     color: var(--color-ink);
     font-size: var(--type);
     line-height: var(--leading);
   }
 
+  /*
+   * Heading *levels* say what the document is; `data-role` says what a thing
+   * looks like. They are deliberately separate.
+   *
+   * The two used to be conflated, and it broke in both directions: h3 was a
+   * section label in the footer and a job title on the Experience page, so
+   * neither could be styled without hitting the other, and the only thing
+   * telling them apart was a font-weight utility in the markup — invisible to
+   * CSS and impossible for a theme to override. Levels are now chosen purely
+   * for structure, and every visual decision hangs off a role.
+   */
   h1,
   h2,
   h3,
   h4,
+  nav {
+    font-family: var(--font-display);
+    line-height: var(--display-leading);
+    font-weight: 400;
+    letter-spacing: normal;
+    font-size: calc(var(--type) * var(--display-adjust));
+  }
+
+  [data-role='site-name'] {
+    font-size: calc(var(--type) * var(--type-h1) * var(--display-adjust));
+  }
+
+  [data-role='page-title'] {
+    font-size: calc(var(--type) * var(--type-h2) * var(--display-adjust));
+  }
+
+  [data-role='item-title'] {
+    font-size: calc(var(--type) * var(--type-h4) * var(--display-adjust));
+  }
+
+  /* Quiet by design: it orients you and then gets out of the way. */
+  [data-role='section-label'] {
+    font-size: calc(var(--type) * var(--display-adjust));
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* Dates and companies: body face, because they are data rather than titles. */
+  [data-role='item-meta'] {
+    font-family: var(--font-body);
+    font-size: var(--type);
+    line-height: var(--leading);
+  }
+
   p,
   small {
     font-size: var(--type);
@@ -92,11 +186,6 @@
   }
 
   /* Section labels stay quiet: same size, wider tracking, upper case. */
-  h3 {
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
   /* Links - Better underline positioning */
   a {
     text-underline-offset: 0.15em;
