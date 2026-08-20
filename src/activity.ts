@@ -115,3 +115,27 @@ export const roll = (now: Date, floor = 0): Activity => {
 }
 
 export const dwellMs = () => DWELL_MIN + Math.random() * (DWELL_MAX - DWELL_MIN)
+
+/**
+ * The final scene state, once a visitor's monitor toggle is taken into account.
+ *
+ * Enforces the one rule the roll cannot: nobody sits at a dark screen or watches
+ * their own screensaver. The roll never produces that pairing, but a visitor
+ * switching the monitor off while someone is at the desk would, so the person
+ * gets up instead. Turn it back on and they come back.
+ *
+ * Separate from `roll` and exported so the invariant can be checked directly
+ * rather than by watching the hero and hoping.
+ */
+export const sceneStateFor = (
+  activity: Activity,
+  powerOverride: 'on' | 'off' | null,
+): { presence: Activity['presence']; monitor: 'on' | 'game' | 'idle' | 'off' } => {
+  const powered = powerOverride ? powerOverride === 'on' : activity.powered
+  const monitor = powered ? activity.content : 'off'
+  const worthSittingAt = monitor === 'on' || monitor === 'game'
+  return {
+    presence: activity.presence === 'present' && worthSittingAt ? 'present' : 'away',
+    monitor,
+  }
+}

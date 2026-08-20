@@ -2,7 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
-import { FIRST_IMPRESSION_FLOOR, TIME_ZONE, dwellMs, roll, type Activity } from '../activity'
+import {
+  FIRST_IMPRESSION_FLOOR,
+  TIME_ZONE,
+  dwellMs,
+  roll,
+  sceneStateFor,
+  type Activity,
+} from '../activity'
 import type { ToggleValues, Weather } from '../scene/toggles'
 import { REFRESH_MS, currentCondition, lastKnownCondition } from '../weather'
 
@@ -30,6 +37,45 @@ const SCENE_H = 108
 
 /** Touch targets below this get an invisible margin so small art stays tappable. */
 const MIN_TARGET_PX = 44
+
+/**
+ * How far each row is inset at the corners, outermost first, in scene pixels.
+ *
+ * A CSS border-radius is the wrong tool here: it draws a smooth antialiased
+ * curve over art that is deliberately hard-edged, so the corner ends up being
+ * the one part of the frame not made of pixels. This steps instead, and because
+ * the steps are scene pixels the corner scales with everything else.
+ */
+const CORNER_STEPS = [1]
+
+/**
+ * The stair as a clip-path polygon, in percentages so it tracks the element.
+ *
+ * Walks the outline clockwise from the top-left. Each row `i` of a corner spans
+ * one scene pixel vertically and is inset by CORNER_STEPS[i] horizontally, which
+ * is what puts every tread exactly on the pixel grid rather than between two of
+ * them.
+ */
+const cornerClipPath = (w: number, h: number, steps: number[]) => {
+  const n = steps.length
+  const inset = (i: number) => steps[i] ?? 0
+  const points: [number, number][] = []
+
+  points.push([inset(0), 0], [w - inset(0), 0])
+  for (let i = 0; i < n; i += 1) points.push([w - inset(i), i + 1], [w - inset(i + 1), i + 1])
+  points.push([w, h - n])
+  for (let i = n - 1; i >= 0; i -= 1) points.push([w - inset(i), h - 1 - i], [w - inset(i), h - i])
+  points.push([inset(0), h])
+  for (let i = 0; i < n; i += 1) points.push([inset(i), h - i - 1], [inset(i + 1), h - i - 1])
+  points.push([0, n])
+  for (let i = n - 1; i >= 0; i -= 1) points.push([inset(i), i + 1], [inset(i), i])
+
+  return `polygon(${points
+    .map(([x, y]) => `${((x / w) * 100).toFixed(4)}% ${((y / h) * 100).toFixed(4)}%`)
+    .join(', ')})`
+}
+
+const SCENE_CLIP = cornerClipPath(SCENE_W, SCENE_H, CORNER_STEPS)
 
 /** A visitor's choice, or null to follow whatever the room is doing. */
 type Override = 'on' | 'off' | null
@@ -90,10 +136,7 @@ export default function DeskScene() {
   }, [])
 
   const values = useMemo<Partial<ToggleValues>>(() => {
-    // Not `powerOverride ?? activity.powered`: the override is the string
-    // 'off', which is truthy, so ?? would hand a truthy value to the test below
-    // and the monitor could never be switched off.
-    const powered = powerOverride ? powerOverride === 'on' : activity.powered
+    const { presence, monitor } = sceneStateFor(activity, powerOverride)
 
     return {
       // The environment is still real. Only the room's occupancy is rolled.
@@ -102,11 +145,11 @@ export default function DeskScene() {
       // `present` and not `typing`: there is no typing pose yet, and a missing
       // tag falls back to playing the whole sheet — which would cycle the empty
       // chair and flicker the person in and out.
-      presence: activity.presence,
-      monitor: powered ? activity.content : 'off',
+      presence,
+      monitor,
       // The lamp goes off on the way out, unless someone has said otherwise. An
       // override holds for the visit rather than expiring on the next roll.
-      roomLight: lightOverride ?? (activity.presence === 'present' ? 'on' : 'off'),
+      roomLight: lightOverride ?? (presence === 'present' ? 'on' : 'off'),
       clock,
     }
   }, [activity, weather, powerOverride, lightOverride, clock])
@@ -218,10 +261,11 @@ export default function DeskScene() {
   return (
     <div ref={frameRef} className="mb-16 w-full">
       <div
-        className="relative w-full overflow-hidden rounded-md"
+        className="relative w-full overflow-hidden"
         style={{
           aspectRatio: `${SCENE_W} / ${SCENE_H}`,
           opacity: scale ? 1 : 0,
+          clipPath: SCENE_CLIP,
         }}
       >
         <canvas
