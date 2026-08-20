@@ -2,13 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
-import {
-  FIRST_IMPRESSION_FLOOR,
-  TIME_ZONE,
-  roll,
-  sceneStateFor,
-  type Activity,
-} from '../activity'
+import { LIVE_ON_ARRIVAL, TIME_ZONE, roll, sceneStateFor, type Activity } from '../activity'
 import type { ToggleValues, Weather } from '../scene/toggles'
 import { REFRESH_MS, currentCondition, lastKnownCondition } from '../weather'
 
@@ -126,7 +120,7 @@ export default function DeskScene() {
    * A reload is the only thing that rolls again, which is also what makes the
    * variety land — between visits rather than during one.
    */
-  const [activity] = useState<Activity>(() => roll(new Date(), FIRST_IMPRESSION_FLOOR))
+  const [activity] = useState<Activity>(() => roll(new Date(), LIVE_ON_ARRIVAL))
 
   const values = useMemo<Partial<ToggleValues>>(() => {
     const { presence, monitor } = sceneStateFor(activity, powerOverride)

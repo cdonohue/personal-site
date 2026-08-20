@@ -46,13 +46,20 @@ export const PRESENCE_CURVE: [hour: number, chance: number][] = [
 ]
 
 /**
- * The first roll is floored well above the curve.
+ * The room is never handed to a visitor completely dark.
  *
- * A hero that opens on an empty chair and a dark screen reads as broken rather
- * than as nobody being home, and first paint is the one frame every visitor is
- * guaranteed to see. After that the curve runs honestly.
+ * An empty chair is fine, and after midnight it is the truth. An empty chair
+ * in front of a dead monitor is not: nothing moves, nothing is lit, and the
+ * hero reads as broken rather than as quiet. So the guarantee is about the
+ * screen, not the chair.
+ *
+ * This replaced a floor on presence itself, which had to be high enough to
+ * avoid that dark state and therefore drowned the hourly curve — 80% occupied
+ * at three in the morning, against a dark window. Guaranteeing only the screen
+ * lets the curve run honestly at every hour while still never opening on
+ * nothing.
  */
-export const FIRST_IMPRESSION_FLOOR = 0.8
+export const LIVE_ON_ARRIVAL = true
 
 /** Chance the screen is left running once the room empties. */
 const LEFT_ON_CHANCE = 0.7
@@ -94,19 +101,20 @@ export type Activity = {
   powered: boolean
 }
 
-export const roll = (now: Date, floor = 0): Activity => {
+export const roll = (now: Date, mustBeLit = false): Activity => {
   const at = zonedParts(now, TIME_ZONE)
   const hour = at.hour + at.minute / 60
 
-  const present = Math.random() < Math.max(presenceChanceAt(hour), floor)
-  if (present) {
+  // Straight off the curve. Nothing overrides this any more.
+  if (Math.random() < presenceChanceAt(hour)) {
     const working = Math.random() < (isWorkHours(at) ? WORKING_CHANCE : WORKING_CHANCE_OFF_HOURS)
     return { presence: 'present', content: working ? 'on' : 'game', powered: true }
   }
 
-  // Empty room: the screensaver, or a screen that was shut off on the way out.
+  // Empty room: the screensaver, or a screen shut off on the way out — unless
+  // this is the frame the visitor arrives on, which is never allowed to be dark.
   const late = hour >= 23 || hour < 6
-  const powered = Math.random() < (late ? LEFT_ON_CHANCE_LATE : LEFT_ON_CHANCE)
+  const powered = mustBeLit || Math.random() < (late ? LEFT_ON_CHANCE_LATE : LEFT_ON_CHANCE)
   return { presence: 'away', content: 'idle', powered }
 }
 
