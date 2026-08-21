@@ -205,6 +205,12 @@ const CABLE_COLOUR = '#3a3a3e';
 const POWER_LED = { x: 125, y: 73 };
 const POWER_LED_COLOUR = '#bacaff';
 
+/** The work scene whose room setup includes a live camera, headset and boom. */
+export const ZOOM_CALL_SCREEN = 'zoom-call';
+
+/** One emissive pixel inside the webcam body, padded one pixel from its right edge. */
+const CAMERA_LED = { x: 98, y: 23 };
+
 /** switch.aseprite frames are states, not a timeline. */
 const SWITCH_OFF_FRAME = 0;
 const SWITCH_ON_FRAME = 1;
@@ -406,7 +412,7 @@ export const SCREENSAVER_TAGS = [
  * whether a drawing shows work or not is a fact about the drawing. *When* each
  * gets used is the schedule's business, and that stays out there.
  */
-export const WORK_TAGS = ['ai-work'] as const;
+export const WORK_TAGS = ['ai-work', ZOOM_CALL_SCREEN] as const;
 export const PLAY_TAGS = ['game'] as const;
 
 /** Every scene, for callers that do not care which kind it is. */
@@ -581,6 +587,10 @@ export type Assets = {
   deskLegsMid: HTMLImageElement;
   deskLegsFixed: HTMLImageElement;
   deskTop: HTMLImageElement;
+  /** Call-state desktop: extended mic, with the hanging headphones hidden. */
+  callDeskTop: HTMLImageElement;
+  /** Character-registered overlay with one authored headset frame per pose. */
+  headphones: Sheet;
   /** One tileable frame per condition, scrolled and clipped to the glass. */
   weather: Sheet;
   /**
@@ -711,11 +721,13 @@ export const loadAssets = async (
     weather,
     character,
     chair,
+    headphones,
     dark,
     deskLegsInner,
     deskLegsMid,
     deskLegsFixed,
     deskTop,
+    callDeskTop,
     ...rest
   ] = await Promise.all([
     loadSheet(`${basePath}/room`),
@@ -729,11 +741,13 @@ export const loadAssets = async (
       return characterCanvas;
     }),
     loadSheet(`${basePath}/chair`),
+    loadSheet(`${basePath}/headphones`),
     loadImage(`${basePath}/room.dark.png`),
     loadImage(`${basePath}/room.legs-inner.png`),
     loadImage(`${basePath}/room.legs-mid.png`),
     loadImage(`${basePath}/room.legs-fixed.png`),
     loadImage(`${basePath}/room.desk-top.png`),
+    loadImage(`${basePath}/room.desk-top-call.png`),
     ...skyNames.map((sky) => loadImage(`${basePath}/room.${sky}.png`)),
     ...wanted.map((tag) => loadScreen(basePath, tag)),
     outfit.shirt.logo ? loadLogo(basePath, outfit.shirt.logo.art) : Promise.resolve(null),
@@ -748,10 +762,12 @@ export const loadAssets = async (
     room,
     character,
     chair,
+    headphones,
     deskLegsInner,
     deskLegsMid,
     deskLegsFixed,
     deskTop,
+    callDeskTop,
     weather,
     glass: buildGlassMask(skies['clear-day'], skies['clear-night']),
     skies,
@@ -1052,10 +1068,15 @@ const drawCharacter = (
   assets: Assets,
   state: Pick<
     SceneState,
-    'presence' | 'posture' | 'reducedMotion' | 'characterOneShot' | 'chairOneShot'
+    | 'presence'
+    | 'posture'
+    | 'reducedMotion'
+    | 'characterOneShot'
+    | 'chairOneShot'
+    | 'screenTag'
   > & { elapsed: number; wash: number; chairShift: number },
 ) => {
-  const { room, character, chair, logo, torsoTop } = assets;
+  const { room, character, chair, headphones, logo, torsoTop } = assets;
   const at = room.slice('character');
   const {
     presence,
@@ -1064,6 +1085,7 @@ const drawCharacter = (
     reducedMotion,
     wash,
     chairShift,
+    screenTag,
     characterOneShot: oneShot,
     chairOneShot,
   } = state;
@@ -1105,6 +1127,7 @@ const drawCharacter = (
   // entirely does.
   const paint = (target: CanvasRenderingContext2D) => {
     character.draw(target, frame, at.x, at.y);
+    if (screenTag === ZOOM_CALL_SCREEN) headphones.draw(target, frame, at.x, at.y);
     if (logo && shirtTop !== null) {
       // Both are rows and columns within the frame, so they need the slice's
       // own origin added to land in scene space.
@@ -1192,7 +1215,7 @@ const drawCable = (context: CanvasRenderingContext2D, fall: number) => {
 export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, state: SceneState) => {
   // The character is not pulled out here: it is drawn last by drawCharacter.
   const { room, skies, power, screens, digits, switchPlate, dark, digitGlow } = assets;
-  const { deskLegsInner, deskLegsMid, deskLegsFixed, deskTop } = assets;
+  const { deskLegsInner, deskLegsMid, deskLegsFixed, deskTop, callDeskTop } = assets;
   const {
     elapsed,
     now,
@@ -1260,7 +1283,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   context.drawImage(deskLegsInner, 0, -deskRise);
   context.drawImage(deskLegsMid, 0, -midRise);
   context.drawImage(deskLegsFixed, 0, 0);
-  context.drawImage(deskTop, 0, -deskRise);
+  context.drawImage(screenTag === ZOOM_CALL_SCREEN ? callDeskTop : deskTop, 0, -deskRise);
 
   // The switch is a wall object, so it belongs under the wash and dims with
   // everything else. Only the screens are emissive.
@@ -1329,6 +1352,14 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     context.fillRect(POWER_LED.x, POWER_LED.y - deskRise, 1, 1);
   }
 
+  // The camera light is part of the call state, not merely mains power. It is
+  // emissive like the power-box LED and only lit while the monitor is actually
+  // showing the call.
+  if (powered && monitor.phase === 'lit' && screenTag === ZOOM_CALL_SCREEN) {
+    context.fillStyle = POWER_LED_COLOUR;
+    context.fillRect(CAMERA_LED.x, CAMERA_LED.y - deskRise, 1, 1);
+  }
+
   drawCharacter(context, assets, {
     presence,
     posture,
@@ -1336,6 +1367,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     reducedMotion,
     wash,
     chairShift,
+    screenTag,
     characterOneShot,
     chairOneShot,
   });

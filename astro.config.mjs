@@ -31,6 +31,17 @@ const SKIES = WEATHER_CONDITIONS.flatMap((weather) => [`${weather}-day`, `${weat
  * cannot stay in the plate either: they are drawn *over* the sliding sections,
  * so anything painted before them would come out in front.
  */
+const DESK_TOP_COMMON = [
+  'clock',
+  'mac',
+  'surface',
+  'desk-items',
+  'desk-front',
+  'camera',
+  'arm',
+  'screen',
+]
+
 const DESK_PIECES = {
   // Bolted to the desktop: travels the full distance.
   'legs-inner': ['legs-inner'],
@@ -46,21 +57,21 @@ const DESK_PIECES = {
   // the sliding sections and has no reason to leave the plate.
   'legs-fixed': ['legs-outer', 'legs-base'],
   // The desktop and everything standing on it. Travels with legs-inner.
-  'desk-top': [
-    'clock',
-    'mic',
-    'mac',
-    'surface',
-    'desk-items',
-    'desk-front',
-    'camera',
-    'arm',
-    'screen',
-  ],
+  'desk-top': [...DESK_TOP_COMMON, 'mic', 'headphones-hanging'],
 }
 
+/**
+ * The call keeps the same desktop but swaps two authored states: the parked
+ * microphone for its extended drawing, and the hanging headphones for no desk
+ * drawing at all. The matching headphones-on character overlay is a separate
+ * sprite because the person is composed later and can move independently.
+ */
+const DESK_TOP_CALL = [...DESK_TOP_COMMON, 'mic-extended']
+
+const DESK_VARIANTS = { ...DESK_PIECES, 'desk-top-call': DESK_TOP_CALL }
+
 /** The pieces that leave the plate, so the plate must hide exactly these. */
-const DESK_LAYERS = Object.values(DESK_PIECES).flat()
+const DESK_LAYERS = [...new Set(Object.values(DESK_VARIANTS).flat())]
 
 /**
  * Every layer in the DESK group, including `shadow`, which stays in the plate.
@@ -75,7 +86,7 @@ const DESK_GROUP = [...DESK_LAYERS, 'shadow']
 const NOT_DESK = ['WEATHER', 'ROOM', 'LIGHTING']
 
 const deskVariants = Object.fromEntries(
-  Object.entries(DESK_PIECES).map(([piece, show]) => [
+  Object.entries(DESK_VARIANTS).map(([piece, show]) => [
     piece,
     { hide: [...NOT_DESK, ...DESK_GROUP.filter((l) => !show.includes(l))], show },
   ]),

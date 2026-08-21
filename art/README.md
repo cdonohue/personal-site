@@ -1,7 +1,7 @@
 # The desk scene
 
-Pixel art for the home page hero. Seven Aseprite sprites, exported to PNG +
-JSON, composited on a canvas at runtime by `src/scene/`.
+Pixel art for the home page hero. Aseprite sprites are exported to PNG + JSON
+and composited on a canvas at runtime by `src/scene/`.
 
 The art and the code meet at exactly two places: **slice names** and **tag
 names**. Everything else on either side can change freely. Rename a slice or a
@@ -90,6 +90,19 @@ Layers exported separately, because each needs its own opacity at runtime:
 - `desk-front` — the desk lip, redrawn *over* the character
 - `desk-items` — what rests on the desk
 
+The Zoom-call setup is authored as room state, not painted by the runtime:
+
+- `headphones-hanging` is visible by default and contains the pair formerly on
+  `surface`.
+- `mic-extended` is hidden by default and is the drawing surface for the boom's
+  call position. It is deliberately blank until that pose is drawn.
+- `room.desk-top.png` shows `mic` plus `headphones-hanging`.
+- `room.desk-top-call.png` shows `mic-extended` and hides both the parked mic
+  and hanging headphones.
+
+Keep both state layers inside `DESK`, at full-room registration. The variant
+definitions live beside the other desk pieces in `astro.config.mjs`.
+
 Sky colour lives in this file as full-canvas `WEATHER` layers, one per
 condition-phase, exported as ten flattened variants. **Flattened, not masked:**
 the wall occludes the sky everywhere except the glass, and flattening in
@@ -107,6 +120,7 @@ runtime plays it end to end.
 | file | frames | ms | kind |
 |---|---|---|---|
 | `screen-ai-work` | 96 | 9600 | scene |
+| `screen-zoom-call` | 48 | 4800 | scene |
 | `screen-game` | 48 | 3360 | scene |
 | `screen-cube` | 32 | 2880 | screensaver |
 | `screen-bounce` | 80 | 7200 | screensaver |
@@ -177,6 +191,13 @@ The runtime falls back to the first scene if it is handed a tag this sheet does
 not have, rather than throwing the way a missing slice does. Screen content is
 the one part of the contract a host chooses at runtime, so a name that has not
 been drawn yet should show the wrong picture rather than take the page down.
+
+`screen-zoom-call` is a four-person call loop. Its active-speaker outline and
+meter rotate through all four tiles over 48 frames. Selecting it also chooses
+the call desk variant, draws the matching frame from `headphones.aseprite`, and
+lights the one-pixel camera indicator inside the webcam. That indicator uses
+the power-box LED colour and only lights while desk power, the monitor, and the
+call are all active.
 
 **At 46×26 the panel carries shape, not detail.** About 1200 pixels. Two
 screensaver attempts failed identically here — Matrix rain, then a starfield —
@@ -410,6 +431,19 @@ would be mostly outline, so they carry a shade on the outer side only.
 cap covers it on all 23 frames — zero pixels of it reach the export. It is there
 for a hatless pose, so drawing one is a matter of hiding the `hat` layer rather
 than inventing a scalp.
+
+### `headphones.aseprite` — 40×86, character overlay
+
+This file matches `character.aseprite` exactly: same canvas, 23 frames, frame
+durations, and tags. `reference-character` and `reference-hat` are hidden
+drawing guides. Draw only on the visible `headphones-on` layer, using the frame
+that matches the pose underneath it.
+
+Every frame already has a blank cel. The runtime draws the overlay at the
+character slice only for `zoom-call`, using the same frame index it selected
+for the person. That keeps seated, standing, transition, and reaction poses in
+registration without a second position table. The layer is deliberately blank
+until those drawings are authored.
 
 ### `logo-*.aseprite` — 14×14, shirt logos
 
