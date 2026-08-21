@@ -117,7 +117,6 @@ runtime plays it end to end.
 | `screen-radar` | 48 | 3600 | screensaver |
 | `screen-comet` | 48 | 3600 | screensaver |
 | `screen-hypno` | 100 | 7500 | screensaver |
-| `screen-matrix` | 40 | 3000 | screensaver |
 | `screen-power` | 13 | 585 | transitions, tagged `power-on` / `power-off` |
 
 These were one 269-frame sheet until the width forced the issue. An Aseprite
@@ -179,11 +178,10 @@ not have, rather than throwing the way a missing slice does. Screen content is
 the one part of the contract a host chooses at runtime, so a name that has not
 been drawn yet should show the wrong picture rather than take the page down.
 
-**At 46×26 the panel carries shape, not detail.** About 1200 pixels. Early
-Matrix-rain and starfield attempts failed identically because many small,
-independent elements resolve to noise at this size. The wireframe cube works
-because it is one continuous form; the later Matrix pass works by reducing the
-rain to eleven readable columns with bright heads and short fading trails.
+**At 46×26 the panel carries shape, not detail.** About 1200 pixels. Two
+screensaver attempts failed identically here — Matrix rain, then a starfield —
+because anything built from many small independent elements resolves to noise at
+this size. The wireframe cube works because it is one continuous form.
 
 Power on/off is a CRT collapse: the picture squeezes vertically to a bright
 one-pixel line, the line shrinks to a stub, the stub goes out. No white flash at
@@ -197,11 +195,11 @@ per idle: swapping while somebody is watching reads as a glitch. Each is named
 for what it shows — a tag called `screensaver` sitting next to `bounce` reads as
 the category rather than a peer, and the category is what the list is for.
 
-The screensaver expansion takes its cue from early graphical screensaver packs:
+The seven-screen expansion takes its cue from early graphical screensaver packs:
 limited palettes, unapologetically synthetic motion, and one readable subject
 per loop. It borrows that grammar rather than any specific module. At 46×26,
-the aquarium, fireworks, ribbons, orbit, radar, comet, hypno and Matrix loops
-each have to read as a silhouette before their motion does any work.
+the aquarium, fireworks, ribbons, orbit, radar, comet and hypno loops each have
+to read as a silhouette before their motion does any work.
 
 `aquarium` closes on 58 frames. Every fish crosses a 58-pixel wrapped path;
 the bubbles use a 29-frame rise, exactly half that period, and reset above the
@@ -212,11 +210,6 @@ produces a visible jump even though the individual movements look correct.
 the panel rather than changing shape to meet its bounds. Radius 47 carries that
 aspect through the four corners; each ring continues to radius 50 so it is fully
 clipped before wrapping back to the centre.
-
-`matrix` uses eleven two-pixel-wide columns instead of a field of single-pixel
-marks. Each bright head pulls a twelve-pixel fading trail; one- and two-pixel
-fall speeds both divide the 40-frame path, and every trail is fully outside the
-panel at its wrap point.
 
 `bounce` is exact the same way. A 6×6 shape travels 40px across and 20px down,
 so at 1px/frame the periods are 80 and 40 — LCM 80, and frame 80 is frame 0.
@@ -446,8 +439,8 @@ that is roughly one visit in three.
 14×14 is what fits: the clean run of shirt back is 14 wide on both poses, and
 standing has 22 rows spare. At that size, with one ink, expect a glyph or a
 two-letter monogram. A wordmark will not survive — the same limit that killed
-the initial dense Matrix-rain pass and the starfield, where many small
-independent elements resolve to noise.
+the Matrix-rain and starfield screensavers, where many small independent
+elements resolve to noise.
 
 `logo-monogram` is a placeholder to check the plumbing against. No outfit
 references it; delete it once there are real ones. Its exported `.json` goes

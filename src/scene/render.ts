@@ -393,7 +393,6 @@ export const SCREENSAVER_TAGS = [
   'radar',
   'comet',
   'hypno',
-  'matrix',
 ] as const;
 
 /**
