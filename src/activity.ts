@@ -144,9 +144,10 @@ export const roll = (now: Date): Activity => {
     return { presence: 'present', screen, posture, outfit }
   }
 
-  // An empty room runs a screensaver, and which one varies between visits
-  // rather than within one — switching while somebody is watching reads as a
-  // glitch, which is also why the whole roll happens once.
+  // An empty room starts with a random screensaver, and the automatic choice
+  // varies between visits rather than changing underneath somebody. The page
+  // may advance from that choice when the visitor clicks the monitor; that is
+  // an explained change rather than an ambient glitch.
   //
   // The screen is never simply off. The only thing that darkens it is the plug
   // coming out of the wall, which is a visitor's doing rather than a schedule's.

@@ -87,6 +87,14 @@ export type DeskRoomOptions = {
   /** Initial values, merged over the defaults. */
   values?: Partial<ToggleValues>;
   /**
+   * Screens to fetch alongside the initial one.
+   *
+   * Usually omitted: a room only pays for what it shows. A host offering a
+   * screen picker can preload its choices so changing screens never flashes the
+   * fallback while another sheet downloads.
+   */
+  preloadScreens?: readonly string[];
+  /**
    * What the figure is wearing. Defaults to the drawing as exported.
    *
    * Applied while the sheet is decoded rather than per frame, so it costs one
@@ -258,10 +266,14 @@ export const createDeskRoom = async (
   options: DeskRoomOptions = {},
 ): Promise<DeskRoom> => {
   const basePath = options.basePath ?? '/art';
-  // Only the screen this visit will show. Anything a host names later is
-  // fetched then, rather than every screen being shipped to everyone.
+  // Only the screen this visit will show, unless the host exposes a picker and
+  // asks for its choices up front. Anything else named later is fetched then.
   const initialScreen = options.values?.screen ?? DEFAULT_VALUES.screen;
-  const assets: Assets = await loadAssets(basePath, [initialScreen], options.outfit);
+  const assets: Assets = await loadAssets(
+    basePath,
+    [initialScreen, ...(options.preloadScreens ?? [])],
+    options.outfit,
+  );
 
   /** Already in flight, so repeated `set` calls cannot stack requests. */
   const fetching = new Set<string>();

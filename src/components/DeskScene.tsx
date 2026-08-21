@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
+import { SCREENSAVER_TAGS } from '../scene/render'
 import { TIME_ZONE, roll, type Activity } from '../activity'
 import type { ToggleValues } from '../scene/toggles'
 import { REFRESH_MS, currentSky, lastKnownSky, type Sky } from '../weather'
@@ -151,6 +152,12 @@ export default function DeskScene() {
    * variety land — between visits rather than during one.
    */
   const [activity] = useState<Activity>(() => roll(new Date()))
+  /**
+   * Starts at the visit's random choice. In an empty room the monitor becomes
+   * a picker from there, advancing through the canonical screensaver order.
+   */
+  const [screen, setScreen] = useState(activity.screen)
+  const [cableUnplugged, setCableUnplugged] = useState(false)
 
   const values = useMemo<Partial<ToggleValues>>(() => {
     return {
@@ -162,14 +169,15 @@ export default function DeskScene() {
       // tag falls back to playing the whole sheet — which would cycle the empty
       // chair and flicker the person in and out.
       presence: activity.presence,
-      // Power. What is playing is `screen`, and the roll decides which.
+      // Power. The roll supplies the first screen; an empty-room visitor may
+      // advance it from there by clicking the monitor.
       monitor: 'on',
-      screen: activity.screen,
+      screen,
       // The lamp and the page are the same fact seen twice.
       roomLight: dark ? 'off' : 'on',
       clock,
     }
-  }, [activity, sky, dark, clock])
+  }, [activity, sky, dark, clock, screen])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -178,14 +186,21 @@ export default function DeskScene() {
     let scene: DeskRoom | null = null
     let cancelled = false
 
-    createDeskRoom(canvas, { values, timeZone: TIME_ZONE, posture: activity.posture, outfit: activity.outfit })
+    createDeskRoom(canvas, {
+      values,
+      timeZone: TIME_ZONE,
+      posture: activity.posture,
+      outfit: activity.outfit,
+      // Cycling should be instant. Only empty-room visits pay to load the set.
+      preloadScreens: activity.presence === 'away' ? SCREENSAVER_TAGS : [],
+    })
       .then((created) => {
         if (cancelled) return
         scene = created
         sceneRef.current = created
         setSlices(
           new Map(
-            ['light-switch', 'clock-screen', 'desk-controls', 'power-outlet']
+            ['light-switch', 'monitor-screen', 'clock-screen', 'desk-controls', 'power-outlet']
               .map((name) => [name, created.slice(name)] as const)
               .filter((entry): entry is [string, Rect] => Boolean(entry[1])),
           ),
@@ -244,6 +259,19 @@ export default function DeskScene() {
       }),
     [],
   )
+
+  const screensaverIndex = SCREENSAVER_TAGS.findIndex((tag) => tag === screen)
+  const screensaverRunning =
+    activity.presence === 'away' && screensaverIndex >= 0 && !cableUnplugged
+
+  const advanceScreensaver = useCallback(() => {
+    setScreen((current) => {
+      const index = SCREENSAVER_TAGS.findIndex((tag) => tag === current)
+      if (index < 0) return current
+      return SCREENSAVER_TAGS[(index + 1) % SCREENSAVER_TAGS.length]
+    })
+  }, [])
+
   if (failed) return null
 
   /** Slices that ride the desk, so their hit targets have to ride it too. */
@@ -275,13 +303,27 @@ export default function DeskScene() {
     {
       slice: 'power-outlet',
       label: 'Unplug the desk, or plug it back in',
-      onClick: () => sceneRef.current?.toggleCable(),
+      onClick: () => {
+        const scene = sceneRef.current
+        if (!scene) return
+        scene.toggleCable()
+        setCableUnplugged(scene.cableUnplugged())
+      },
     },
     {
       slice: 'clock-screen',
       label: 'Switch the clock between 12 and 24 hour',
       onClick: () => setClock((current) => (current === '12-hour' ? '24-hour' : '12-hour')),
     },
+    ...(screensaverRunning
+      ? [
+          {
+            slice: 'monitor-screen',
+            label: `Show the next screensaver; currently ${screen}`,
+            onClick: advanceScreensaver,
+          },
+        ]
+      : []),
   ]
 
   return (
