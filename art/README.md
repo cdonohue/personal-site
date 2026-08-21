@@ -116,7 +116,7 @@ runtime plays it end to end.
 | `screen-orbit` | 48 | 4320 | screensaver |
 | `screen-radar` | 48 | 3600 | screensaver |
 | `screen-comet` | 48 | 3600 | screensaver |
-| `screen-hypno` | 80 | 6000 | screensaver |
+| `screen-hypno` | 100 | 7500 | screensaver |
 | `screen-power` | 13 | 585 | transitions, tagged `power-on` / `power-off` |
 
 These were one 269-frame sheet until the width forced the issue. An Aseprite
@@ -206,9 +206,10 @@ the bubbles use a 29-frame rise, exactly half that period, and reset above the
 panel. A frame count that divides neither path restarts the scene mid-motion and
 produces a visible jump even though the individual movements look correct.
 
-`hypno` expands in Manhattan distance rather than scaling a diamond to the
-panel's aspect ratio. Radius 36 reaches the four corners; each ring continues
-to radius 40 so it is fully offscreen before wrapping back to the centre.
+`hypno` keeps its wide 0.55-height diamonds and lets their lines continue past
+the panel rather than changing shape to meet its bounds. Radius 47 carries that
+aspect through the four corners; each ring continues to radius 50 so it is fully
+clipped before wrapping back to the centre.
 
 `bounce` is exact the same way. A 6×6 shape travels 40px across and 20px down,
 so at 1px/frame the periods are 80 and 40 — LCM 80, and frame 80 is frame 0.
