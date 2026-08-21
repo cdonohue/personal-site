@@ -49,6 +49,20 @@ export const PRESENCE_CURVE: [hour: number, chance: number][] = [
 const WORKING_CHANCE = 0.75
 const WORKING_CHANCE_OFF_HOURS = 0.25
 
+/**
+ * Chance the desk is already up when you arrive.
+ *
+ * Rolled independently of whether anyone is there, because the desk keeps its
+ * height either way — it is furniture, not a posture. An empty room at standing
+ * height is somebody who stood up and walked off, which is the commonest way a
+ * sit-stand desk is actually found.
+ *
+ * A third is about what someone with one of these spends standing. Higher and
+ * the seated pose, which is the drawing the page is built around, stops being
+ * the thing you usually see.
+ */
+const STANDING_CHANCE = 0.3
+
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 
 /** The curve read at an arbitrary hour, interpolated between its keyframes. */
@@ -77,11 +91,23 @@ const isWorkHours = (at: { hour: number; weekday: number }) =>
 export type Activity = {
   presence: 'present' | 'away'
   content: 'on' | 'game' | 'idle'
+  /**
+   * How the room is found, not how it got that way.
+   *
+   * The scene animates between the two when a visitor works the desk control,
+   * but on arrival it is simply already one or the other — nobody stands up in
+   * an empty room to explain why the desk is high.
+   */
+  posture: 'seated' | 'standing'
 }
 
 export const roll = (now: Date): Activity => {
   const at = zonedParts(now, TIME_ZONE)
   const hour = at.hour + at.minute / 60
+
+  // Independent of everything below it. The desk is where it was left, which
+  // has no bearing on whether anyone came back to it.
+  const posture = Math.random() < STANDING_CHANCE ? 'standing' : 'seated'
 
   // Two states, and only two. Someone at the desk is working or playing;
   // an empty room runs a screensaver. The screen is never simply off — the only
@@ -89,7 +115,7 @@ export const roll = (now: Date): Activity => {
   // visitor's doing rather than the schedule's.
   if (Math.random() < presenceChanceAt(hour)) {
     const working = Math.random() < (isWorkHours(at) ? WORKING_CHANCE : WORKING_CHANCE_OFF_HOURS)
-    return { presence: 'present', content: working ? 'on' : 'game' }
+    return { presence: 'present', content: working ? 'on' : 'game', posture }
   }
-  return { presence: 'away', content: 'idle' }
+  return { presence: 'away', content: 'idle', posture }
 }

@@ -18,6 +18,7 @@ there are no rewrite rules to configure and no client-side routing to get wrong.
 art/            Aseprite sources and their exports  (see art/README.md)
 src/scene/      the desk scene, framework-agnostic
 src/pages/      one .astro file per route
+src/activity.ts what the room is doing when you arrive, and how likely it is
 src/content.ts  everything the site says about jobs, tools and links
 src/index.css   the whole design system: tokens, roles, type
 ```
@@ -41,9 +42,23 @@ Three things drive it:
 - **The time is real, and it is not the visitor's.** The clock, dusk and the
   light all read `America/Chicago`, so someone in Tokyo looks in on the room
   rather than at a copy running on their own clock.
-- **Who is at the desk is invented.** A weighted roll against the hour,
-  re-rolled every minute or two. It was a fixed nine-to-five rule once, which was
-  a guess dressed up as a schedule.
+- **Who is at the desk is invented.** A weighted roll against the hour in
+  `src/activity.ts`, decided once per visit. It was a fixed nine-to-five rule
+  once, which was a guess dressed up as a schedule, and then a re-roll every
+  minute or two, which let the chair empty while somebody was mid-sentence.
+  Change with no cause reads as a glitch rather than as life.
+
+The same roll decides how the desk is found: sitting or standing, with or
+without anyone at it, so there are four openings rather than two. That one is
+settled rather than played. A page that opens by performing a stand nobody asked
+for is an animation happening *at* the visitor, and in an empty room there is
+nobody to perform it anyway.
+
+Three things can be worked: the light switch, the desk control on the right edge
+of the desktop, and the plug under the left window. The desk is the involved one
+— the occupant stands, shoves the chair out of shot and the desktop rises, three
+overlapping beats that come to about 800ms. Pulling the plug cuts the monitor,
+the clock and the indicator on the power box, and startles whoever is there.
 
 The art and the code meet at exactly two places: **slice names** and **tag
 names**. `art/README.md` documents that contract and the reasoning behind the

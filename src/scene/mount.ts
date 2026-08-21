@@ -8,6 +8,7 @@ import {
   SCREENSAVER_TAGS,
   SCENE_HEIGHT,
   SCENE_WIDTH,
+  STARTLE_TAG,
   drawScene,
   loadAssets,
   nightAmountFor,
@@ -64,6 +65,15 @@ export type DeskRoomOptions = {
   basePath?: string;
   /** Initial values, merged over the defaults. */
   values?: Partial<ToggleValues>;
+  /**
+   * How the desk is found on arrival. Defaults to seated.
+   *
+   * Settled rather than played: the scene opens on a room that is already one
+   * way or the other. Animating into it would mean the page loads and then
+   * immediately performs a stand nobody asked for, and in an empty room there
+   * is no one to perform it.
+   */
+  posture?: Posture;
   /**
    * Freeze animation. Defaults to the visitor's prefers-reduced-motion, so a
    * host gets that for free but can override it.
@@ -305,14 +315,30 @@ export const createDeskRoom = async (
     return Math.max(plan.person.at + postureDuration(to), plan.chair.at + plan.chair.for);
   };
 
-  /** Snap everything to the settled end of a posture, with no travel. */
+  /**
+   * Drop a posture into place with no sequence, leaving the desk to travel there
+   * on its spring.
+   *
+   * The chair is only out of shot because somebody pushed it there. An empty
+   * room's chair is at the desk whatever height the desk is, which is also the
+   * only reading that survives a visitor working the control while nobody is
+   * home: the desk moves, and no furniture slides around on its own.
+   */
   const settleInto = (to: Posture) => {
     posture = to;
     move = null;
     pending = null;
-    chairShift = to === 'standing' ? CHAIR_EXIT : 0;
+    chairShift = to === 'standing' && values.presence === 'present' ? CHAIR_EXIT : 0;
     deskRaised = to === 'standing';
   };
+
+  if (options.posture === 'standing') {
+    settleInto('standing');
+    // And the desk is put there rather than sent there. settleInto only moves
+    // the spring's target, which is right for a toggle and wrong for an
+    // arrival: the room would open at sitting height and rise on its own.
+    desk = DESK_RAISED;
+  }
 
   /**
    * The plug. Eased so it drops rather than teleporting, and quickly — it is
@@ -328,7 +354,7 @@ export const createDeskRoom = async (
    * an empty room just kills the screen quietly. It runs on its own clock
    * rather than the scene's, so it always starts at the tag's first frame.
    */
-  let reaction: { phase: 'noticing' | 'surprised'; since: number } | null = null;
+  let reaction: { phase: 'noticing' | 'surprised'; since: number; tag: string } | null = null;
 
   let handle = 0;
   let startedAt = 0;
@@ -344,10 +370,19 @@ export const createDeskRoom = async (
     if (reaction) {
       const inPhase = time - reaction.since;
       if (reaction.phase === 'noticing' && inPhase >= REACTION_DELAY) {
-        reaction = { phase: 'surprised', since: time };
+        // The pose is chosen here rather than at the click, because the delay is
+        // long enough to stand up inside. Whichever way they are by the time
+        // they actually look up is the one that gets drawn, and it is then held
+        // for the rest of the reaction so it cannot switch underneath itself.
+        const wanted = STARTLE_TAG[posture];
+        reaction = {
+          phase: 'surprised',
+          since: time,
+          tag: assets.character.hasTag(wanted) ? wanted : STARTLE_TAG.seated,
+        };
       } else if (reaction.phase === 'surprised') {
         const hold = Math.max(
-          assets.character.hasTag('surprised') ? assets.character.tagDuration('surprised') : 0,
+          assets.character.hasTag(reaction.tag) ? assets.character.tagDuration(reaction.tag) : 0,
           REACTION_MIN,
         );
         if (inPhase >= hold) reaction = null;
@@ -470,7 +505,7 @@ export const createDeskRoom = async (
       characterOneShot:
         postureOneShot ??
         (reaction?.phase === 'surprised'
-          ? { tag: 'surprised', elapsed: time - reaction.since }
+          ? { tag: reaction.tag, elapsed: time - reaction.since }
           : undefined),
     });
 
@@ -493,17 +528,13 @@ export const createDeskRoom = async (
       return desk;
     },
     toggleDesk() {
-      // Nobody here to stand up, so the desk simply travels, as it did before
-      // there was anyone to consider. An empty chair rolling itself out of shot
-      // is a poltergeist rather than a feature.
-      if (values.presence !== 'present') {
-        deskRaised = !deskRaised;
-        return;
-      }
-
       const target: Posture = (move?.to ?? posture) === 'standing' ? 'seated' : 'standing';
 
-      if (reducedMotion) {
+      // Nobody here to stand up, so the desk simply travels. settleInto leaves
+      // the chair alone when the room is empty, and the spring still carries the
+      // desk — an empty chair rolling itself out of shot is a poltergeist rather
+      // than a feature.
+      if (values.presence !== 'present' || reducedMotion) {
         settleInto(target);
         return;
       }
@@ -518,21 +549,18 @@ export const createDeskRoom = async (
     },
     toggleCable() {
       cablePlugged = !cablePlugged;
-      // Startle only on the way out, only with somebody there, only from a
-      // settled seat, and not on top of a reaction already running — otherwise
-      // working the outlet back and forth machine-guns it.
+      // Startle only on the way out, only with somebody there, and not on top of
+      // a reaction already running — otherwise working the outlet back and
+      // forth machine-guns it.
       //
-      // The posture gate is not fussiness: the pose is drawn seated, so playing
-      // it mid-stand or while on their feet would drop them back into a chair
-      // that is halfway across the room.
-      if (
-        !cablePlugged &&
-        values.presence === 'present' &&
-        !reaction &&
-        !move &&
-        posture === 'seated'
-      ) {
-        reaction = { phase: 'noticing', since: performance.now() };
+      // Not while a stand or sit is running, though. That is not squeamishness:
+      // the posture one-shot outranks the startle in the draw, so the reaction
+      // would burn its whole hold behind an animation nobody can see it through.
+      //
+      // The tag is decided later, when they look up. `noticing` has no pose of
+      // its own, so there is nothing to choose yet.
+      if (!cablePlugged && values.presence === 'present' && !reaction && !move) {
+        reaction = { phase: 'noticing', since: performance.now(), tag: STARTLE_TAG.seated };
       }
     },
     cableUnplugged() {

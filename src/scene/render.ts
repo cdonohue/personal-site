@@ -393,6 +393,19 @@ export const POSTURE_TAG: Record<Posture, string> = {
 };
 
 /**
+ * The startle when the power goes, which is a different drawing on your feet
+ * than in a chair.
+ *
+ * Seated it is mostly the marks doing the work, because the chair hides the
+ * legs. Standing the hop is a translation of the whole figure, and the two
+ * pixels of floor that open up under the shoes are what make it a jump.
+ */
+export const STARTLE_TAG: Record<Posture, string> = {
+  seated: 'surprised',
+  standing: 'surprised-standing',
+};
+
+/**
  * The chair's own reaction to being pushed off.
  *
  * Only on the way out. Going back it is being pulled into place by hand, which

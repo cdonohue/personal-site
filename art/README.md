@@ -72,12 +72,14 @@ produces them.
 
 Slices, which are the contract with `render.ts`:
 
-| slice | x,y | size |
-|---|---|---|
-| `monitor-screen` | 73,29 | 46×26 |
-| `clock-screen` | 125,54 | 21×7 |
-| `light-switch` | 10,45 | 4×6 |
-| `character` | 76,16 | 40×80 |
+| slice | x,y | size | what uses it |
+|---|---|---|---|
+| `monitor-screen` | 73,29 | 46×26 | where `screen.aseprite` is composited |
+| `clock-screen` | 125,54 | 21×7 | where the digits go |
+| `light-switch` | 10,45 | 4×6 | drawn, and a hit target |
+| `desk-controls` | 140,68 | 19×5 | hit target only; rides the desk |
+| `power-outlet` | 10,84 | 4×7 | hit target only |
+| `character` | 76,10 | 40×86 | anchors both the person and the chair |
 
 Newly created slices have no colour assigned and are invisible in the GUI even
 though they exist — assign one or you will think the slice failed to save.
@@ -185,16 +187,17 @@ opposite side — because the runtime tiles these.
 
 This sprite is sky only, clipped to the glass at runtime.
 
-### `character.aseprite` — 40×80, the person
+### `character.aseprite` — 40×86, the person
 
 | tag | frames | ms | what |
 |---|---|---|---|
 | `idle` | 0 | — | seated |
 | `away` | 1 | — | empty: no person at all |
-| `surprised` | 2–5 | 175 | the startle when the power goes |
-| `stand-up` | 6–11 | 400 | seated to standing |
+| `surprised` | 2–5 | 175 | the startle when the power goes, seated |
+| `stand-up` | 6–11 | 505 | seated to standing |
 | `standing` | 12 | — | on their feet |
 | `sit-down` | 13–18 | 400 | standing to seated |
+| `surprised-standing` | 19–22 | 175 | the same startle, on their feet |
 
 Layers: `character`, `hat`. **The chair is not in this file** — it moves
 independently of its occupant now, so it is its own sprite. `away` is therefore
@@ -202,9 +205,17 @@ a genuinely blank frame rather than a chair with nobody in it.
 
 The height is not arbitrary: **slice y + sprite height must equal 96**, the
 floor line in `room.png`, or the figure does not touch the ground. Currently
-16 + 80 = 96. It has been grown from the top twice — 42 + 54 originally, then
-22 + 74 for room above the head, then this for a standing one. Resize the canvas
-from the top and move the slice up by the same amount, or everything floats.
+10 + 86 = 96. It has grown from the top three times — 42 + 54 originally, then
+22 + 74 for room above the head, then 16 + 80 for a standing one, then this so
+the startle marks clear a standing head. Resize the canvas from the top and move
+the slice up by the same amount, or everything floats.
+
+**The startle marks are what sets the headroom.** They fan seven rows above the
+cap, and the standing cap sits near the top of the canvas, so a standing startle
+needs seven rows of nothing above it plus whatever the hop adds. That is what
+the last growth bought. Draw anything higher over the head and the canvas has to
+grow again — Aseprite discards pixels outside a cel without a word, so the
+failure is silent.
 
 The figure is in *front* of the desk, between the camera and everything else, so
 it draws over the desk lip and the lower monitor. An earlier version put it
@@ -217,27 +228,26 @@ change, so the body and the desktop have to move together or the arms stop
 meeting the desk. If `DESK_RAISED` in `render.ts` changes, this art changes with
 it.
 
-Raised whole it gives a 22px torso over 34px of leg, which reads as somebody on
-stilts, so **the torso opens up at the waist in proportion to the rise** — six
-pixels at full height, nothing at all seated. Doing it in the seated drawing
-instead was the obvious move and the wrong one: the trousers would slide down
-into the five-row band that actually shows between the backrest and the seat,
-changing the pose you look at most for something only visible standing. Zero at
-rest is also what keeps the last frame of `sit-down` identical to `idle`.
+The feet stay planted, so the whole 14px goes into making the figure longer:
+**six rows into the torso and eight into the legs.** Raising the seated drawing
+whole instead puts a 22px torso over 34px of leg, which reads as somebody on
+stilts. The six rows must be zero when seated, which is also what keeps the last
+frame of `sit-down` identical to `idle` — and they cannot be added to the seated
+drawing to save the trouble, because the trousers would slide down into the
+five-row band that does show between the backrest and the seat, changing the
+pose you look at most for something only visible standing.
 
-Below the waist the body is a straight column one pixel proud of the legs on
-each side, meeting trousers already that width. Repeating the waist row instead
-carries the shirt's full 18px down over legs half that, and the figure comes out
-barrel-shaped.
+Below the waist the silhouette steps in twice, 16px of shirt to 14px of trouser
+to two 5px legs, each step one pixel per side. Carrying the shirt's full 18px
+straight down over legs half that width comes out barrel-shaped.
 
-**The seated shins and the standing legs are different shapes.** Seated they are
-threaded between the chair's own parts and stop at the star base; five-pixel
-legs land flush against the gas cylinder on both sides and the three shapes
-merge into one slab that reads as a plinth. Standing there is no chair to work
-around, so they are wider, further apart, and have shoes. The seated pair exist
-almost entirely so the standing ones have something to grow out of — without
-them the legs simply appear, six pixels into the rise, which was the one
-obvious tell in the sequence.
+**The legs are one drawing at two lengths.** Same columns, same shoes, seated
+and standing; only the hem moves. They were briefly two different shapes —
+narrower seated, to thread between the gas cylinder and the star base — and the
+seam that produced at the top of the rise was worse than anything the overlap
+costs. The seated pair exist mostly so the standing ones have something to grow
+out of: without them the legs simply appear a few pixels into the rise, which
+was the one obvious tell in the sequence.
 
 **`stand-up`'s last frame and `standing` must be the same drawing.** `frameOnce`
 holds on a one-shot's final frame and the runtime swaps to `standing` the
@@ -251,13 +261,21 @@ through. Squash and stretch is the hat moving a pixel ahead of the body on the
 way up and a pixel behind on the way down — actually scaling thirty pixels of
 drawing resamples it into mush.
 
+The two startles are the same six marks at the same offsets from the cap, so the
+effect reads as one thing at either height. What differs is the hop: seated it
+is nearly all marks, because the chair hides the legs, while standing it moves
+the whole figure and the two pixels of floor that open under the shoes are what
+make it a jump. `STARTLE_TAG` in `render.ts` picks between them, and the choice
+is made when the person looks up rather than when the plug comes out — the delay
+between those is long enough to stand up inside.
+
 `PRESENCE_TAG` in `render.ts` maps presence states to tag names, and includes
 `type` and `empty` which **do not exist in the sheet**. A missing tag falls back
 to the seated pose, so an undrawn state reads as somebody who does not do that
 yet rather than as a flicker. Draw the pose and tag it before using those
 states.
 
-### `chair.aseprite` — 40×80, the chair
+### `chair.aseprite` — 40×86, the chair
 
 | tag | frames | ms | what |
 |---|---|---|---|
@@ -267,6 +285,10 @@ states.
 Drawn at the same slice as the person, at a horizontal offset the runtime owns,
 and **after** them — so the seat back covers the seated body exactly as the
 layer did when this was part of `character.aseprite`.
+
+**Its canvas has to match `character.aseprite`'s exactly.** Both are positioned
+from the same slice, so growing one and not the other drops the chair through
+the floor by the difference. There is nothing in the code that checks this.
 
 It travels `CHAIR_EXIT` = 114px, which is measured rather than chosen: the
 chair's left edge is at x78 and the scene is 192 wide, so 114 is the exact

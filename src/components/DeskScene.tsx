@@ -159,7 +159,7 @@ export default function DeskScene() {
     let scene: DeskRoom | null = null
     let cancelled = false
 
-    createDeskRoom(canvas, { values, timeZone: TIME_ZONE })
+    createDeskRoom(canvas, { values, timeZone: TIME_ZONE, posture: activity.posture })
       .then((created) => {
         if (cancelled) return
         scene = created
