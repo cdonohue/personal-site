@@ -23,6 +23,25 @@ const { title } = Astro.props
       rel="stylesheet"
     />
     <title>{title ? `Chad Donohue — ${title}` : 'Chad Donohue'}</title>
+    <script is:inline>
+      /*
+       * Apply a stored theme before anything paints.
+       *
+       * The light switch that sets it lives in the hero island on the home
+       * page, which does not exist on the other two and does not run until
+       * after first paint on this one. Without this, choosing dark and then
+       * clicking through to Experience would flash light and correct itself.
+       *
+       * is:inline keeps it out of the bundle: it has to be in the document, and
+       * it has to run before the stylesheet has anything to apply.
+       */
+      try {
+        const stored = localStorage.getItem('desk-room.theme')
+        if (stored === 'light' || stored === 'dark') {
+          document.documentElement.setAttribute('data-theme', stored)
+        }
+      } catch {}
+    </script>
   </head>
   <body>
     <div class="mx-auto w-full max-w-3xl px-6 py-12">

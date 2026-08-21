@@ -33,7 +33,7 @@
  * reassign them and every utility follows.
  */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --color-surface: #17181c;
     --color-sunken: #1f2027;
     --color-ink: #e6e6e6;
@@ -41,6 +41,27 @@
     --color-line: #32343c;
     --color-accent: #bacaff;
   }
+}
+
+/*
+ * An explicit choice beats the system preference, both directions.
+ *
+ * The light switch in the scene sets this, so the room and the page share one
+ * state rather than one chasing the other — with the switch writing a theme and
+ * the theme driving the switch, the two would be a loop.
+ *
+ * The six declarations are repeated rather than shared. A media query cannot
+ * join a selector list, so the alternative is aliasing every token through a
+ * second variable, which doubles the indirection to save six lines. The values
+ * are the same ones above; keep them in step.
+ */
+:root[data-theme='dark'] {
+  --color-surface: #17181c;
+  --color-sunken: #1f2027;
+  --color-ink: #e6e6e6;
+  --color-muted: #a3a3a3;
+  --color-line: #32343c;
+  --color-accent: #bacaff;
 }
 
 @layer base {

@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Dispatch, SetStateAction } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
-import { nightAmountAt } from '../scene/render'
 import { TIME_ZONE, roll, type Activity } from '../activity'
 import type { ToggleValues } from '../scene/toggles'
 import { REFRESH_MS, currentSky, lastKnownSky, type Sky } from '../weather'
+import { chooseTheme, isDark, watchSystem } from '../theme'
 
 /**
  * The pixel desk scene, as the home page hero.
@@ -41,16 +40,21 @@ const MIN_TARGET_PX = 44
  */
 const DESK_SAMPLE_MS = 80
 
-/**
- * How dark it has to be outside before the lamp goes on, and how often that is
- * checked.
+/*
+ * The room's lamp and the page's colours are one setting, owned by `theme.ts`.
  *
- * A third of the way into dusk rather than at full night: nobody sits in a room
- * until it is pitch dark and only then reaches for the switch. Ten minutes is
- * far finer than a ninety-minute fade needs, and it is one arithmetic call.
+ * A dark page beside a lit room is the two halves of one frame disagreeing, so
+ * the switch on the wall and the system appearance write the same value and
+ * both the lamp and the stylesheet read it.
+ *
+ * It replaced a lamp derived from dusk and presence — on when it was dark
+ * outside and somebody was home. That read well on its own and cannot coexist
+ * with this: one lamp cannot follow two things. What survives is the half worth
+ * keeping, because the windows still run on real sunrise and sunset. The room
+ * keeps its own time; only the light switch belongs to whoever is looking.
+ *
+ * The wash is eased, so a flip fades over about a second rather than cutting.
  */
-const LAMP_AT = 0.35
-const LAMP_CHECK_MS = 10 * 60 * 1000
 
 /**
  * How far each row is inset at the corners, outermost first, in scene pixels.
@@ -91,8 +95,6 @@ const cornerClipPath = (w: number, h: number, steps: number[]) => {
 
 const SCENE_CLIP = cornerClipPath(SCENE_W, SCENE_H, CORNER_STEPS)
 
-/** A visitor's choice, or null to follow whatever the room is doing. */
-type Override = 'on' | 'off' | null
 
 export default function DeskScene() {
   const frameRef = useRef<HTMLDivElement>(null)
@@ -105,11 +107,6 @@ export default function DeskScene() {
   const [scale, setScale] = useState(0)
   const [failed, setFailed] = useState(false)
 
-  // What a visitor can change. Everything else is rolled. Both of these are
-  // nullable rather than plain booleans so that null means "whatever the room is
-  // doing" — a boolean default would have to pick on or off and would then fight
-  // the roll.
-  const [lightOverride, setLightOverride] = useState<Override>(null)
   const [clock, setClock] = useState<ToggleValues['clock']>('12-hour')
 
   // Seeded from the last visit rather than a default, so the sky does not paint
@@ -132,24 +129,15 @@ export default function DeskScene() {
   }, [])
 
   /**
-   * Whether it is dark enough outside to want the lamp on.
+   * Light or dark, for the room and the page both.
    *
-   * Re-checked on a timer, unlike everything else here, and that is deliberate:
-   * this is the one change a visitor can see the cause of. The windows dim
-   * continuously on their own, so a lamp coming on partway through dusk reads as
-   * the room answering the sky rather than as something happening at random.
-   *
-   * Coarse on purpose. It is a boolean that flips twice a day, tracking a fade
-   * that takes ninety minutes.
+   * One piece of state with two writers — the switch on the wall and the system
+   * appearance — rather than a preference the room follows and an override that
+   * escapes it. That collapse is the point: with the switch setting a theme and
+   * the theme driving the switch, anything less than one shared value is a loop.
    */
-  const [dark, setDark] = useState(false)
-  useEffect(() => {
-    const check = () => setDark(nightAmountAt(new Date(), TIME_ZONE, sky.daylight) > LAMP_AT)
-    check()
-    const timer = window.setInterval(check, LAMP_CHECK_MS)
-    return () => window.clearInterval(timer)
-    // Re-armed when the real sunset lands, which moves where the threshold sits.
-  }, [sky.daylight])
+  const [dark, setDark] = useState(isDark)
+  useEffect(() => watchSystem(setDark), [])
 
   /**
    * The room's state for this visit, rolled once and then left alone.
@@ -177,18 +165,11 @@ export default function DeskScene() {
       // Power. What is playing is `screen`, and the roll decides which.
       monitor: 'on',
       screen: activity.screen,
-      // Dark out and somebody home. Presence alone left the lamp burning
-      // through a bright afternoon; darkness alone would leave it burning all
-      // night in an empty room, which is not what anyone does on the way out.
-      //
-      // An override holds for the visit rather than expiring on the next roll,
-      // and follows the roll's own occupancy rather than anything computed from
-      // it — keyed to the latter, switching the monitor off turned the room
-      // lights off too, one derived value quietly driving another.
-      roomLight: lightOverride ?? (activity.presence === 'present' && dark ? 'on' : 'off'),
+      // The lamp and the page are the same fact seen twice.
+      roomLight: dark ? 'off' : 'on',
       clock,
     }
-  }, [activity, sky, dark, lightOverride, clock])
+  }, [activity, sky, dark, clock])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -252,19 +233,15 @@ export default function DeskScene() {
 
   // Both flip from whatever is showing now, so the first click always does
   // something visible rather than re-asserting the scheduled value.
-  const flip =
-    (setOverride: Dispatch<SetStateAction<Override>>, onByDefault: (now: Date) => boolean) => () =>
-      setOverride((current) =>
-        (current ?? (onByDefault(new Date()) ? 'on' : 'off')) === 'on' ? 'off' : 'on',
-      )
 
-  // Read through a ref so the callbacks stay stable while still flipping from
-  // whatever the room is doing at the moment of the click.
-  const activityRef = useRef(activity)
-  activityRef.current = activity
-
+  // Working the switch is choosing a theme, which is why it writes through the
+  // module rather than only into React state: the choice outlives this page.
   const toggleLight = useCallback(
-    flip(setLightOverride, () => activityRef.current.presence === 'present'),
+    () =>
+      setDark((current) => {
+        chooseTheme(!current)
+        return !current
+      }),
     [],
   )
   if (failed) return null
