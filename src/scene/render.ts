@@ -1,6 +1,6 @@
 import { Sheet, loadImage, loadSheet } from './aseprite';
 import { Glow } from './glow';
-import { WEATHER_CONDITIONS, type ToggleValues, type Weather } from './toggles';
+import { WEATHER_CONDITIONS, type Daylight, type ToggleValues, type Weather } from './toggles';
 
 /**
  * How the sky moves, in pixels per second. Motion comes from scrolling one
@@ -310,32 +310,54 @@ export const zonedParts = (
 };
 
 /**
+ * How far either side of sunrise and sunset the room takes to change over.
+ *
+ * Not symmetric, because dusk is not the reverse of dawn: the sky keeps some
+ * light for a while after the sun has gone and has almost none before it
+ * arrives. Half an hour before sunset to an hour after covers civil twilight
+ * with a little either side, which is about when a room stops being usable
+ * without a lamp.
+ */
+const DAWN_LEAD = 1;
+const DAWN_TRAIL = 0.5;
+const DUSK_LEAD = 0.5;
+const DUSK_TRAIL = 1;
+
+/**
+ * Used when nothing has been fetched. With the leads above it gives dawn
+ * 05:30–07:00 and dusk 18:00–19:30 — roughly Houston's equinox.
+ *
+ * A fixed pair was the whole model once, and it was only defensible for a few
+ * weeks a year: the sun sets at 20:26 here in June and 17:25 in December, so
+ * any single answer is over an hour wrong for most of it. Kept as the offline
+ * case because a fixed curve is wrong by a bounded amount and a missing one is
+ * wrong by half a day.
+ */
+const FALLBACK_DAYLIGHT: Daylight = { sunrise: 6.5, sunset: 18.5 };
+
+/**
  * Local time to how night it is, 0..1.
  *
- *   night   20:00–05:29   1
- *   dawn    05:30–07:29   1 -> 0
- *   day     07:30–16:59   0
- *   sunset  17:00–19:59   0 -> 1
- *
  * Smoothstepped rather than linear so the ramps ease in and out at the phase
- * boundaries. The plan asks for no hard swap at a boundary, and a linear ramp
- * still changes direction abruptly at each end even though the value is
- * continuous.
+ * boundaries. No hard swap at a boundary, and a linear ramp still changes
+ * direction abruptly at each end even though the value itself is continuous.
  */
-const DAWN_START = 5.5;
-const DAWN_END = 7.5;
-const DUSK_START = 17;
-const DUSK_END = 20;
-
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
-export const nightAmountAt = (date: Date, timeZone?: string): number => {
+export const nightAmountAt = (date: Date, timeZone?: string, daylight?: Daylight | null): number => {
   const at = zonedParts(date, timeZone);
   const hour = at.hour + at.minute / 60 + at.second / 3600;
-  if (hour < DAWN_START) return 1;
-  if (hour < DAWN_END) return 1 - smoothstep((hour - DAWN_START) / (DAWN_END - DAWN_START));
-  if (hour < DUSK_START) return 0;
-  if (hour < DUSK_END) return smoothstep((hour - DUSK_START) / (DUSK_END - DUSK_START));
+  const { sunrise, sunset } = daylight ?? FALLBACK_DAYLIGHT;
+
+  const dawnStart = sunrise - DAWN_LEAD;
+  const dawnEnd = sunrise + DAWN_TRAIL;
+  const duskStart = sunset - DUSK_LEAD;
+  const duskEnd = sunset + DUSK_TRAIL;
+
+  if (hour < dawnStart) return 1;
+  if (hour < dawnEnd) return 1 - smoothstep((hour - dawnStart) / (dawnEnd - dawnStart));
+  if (hour < duskStart) return 0;
+  if (hour < duskEnd) return smoothstep((hour - duskStart) / (duskEnd - duskStart));
   return 1;
 };
 
@@ -344,7 +366,9 @@ export const nightAmountFor = (
   lighting: 'auto' | 'day' | 'night',
   now: Date,
   timeZone?: string,
-): number => (lighting === 'auto' ? nightAmountAt(now, timeZone) : lighting === 'night' ? 1 : 0);
+  daylight?: Daylight | null,
+): number =>
+  lighting === 'auto' ? nightAmountAt(now, timeZone, daylight) : lighting === 'night' ? 1 : 0;
 
 /**
  * The idle screen has more than one screensaver, and they are interchangeable —
@@ -627,18 +651,37 @@ const drawSky = (
   context.globalAlpha = previous;
 };
 
-export type MonitorPhase = 'on' | 'game' | 'idle' | 'off' | 'turning-on' | 'turning-off';
+/**
+ * Where the monitor is in its power cycle. Power only.
+ *
+ * It used to carry the content as well — `'on' | 'game' | 'idle' | 'off'` plus
+ * the two transitions — which made a third scene a change to a union type, a
+ * lookup table and two boolean expressions that had to list every lit state by
+ * name. What is playing is a tag, and tags belong in a list.
+ */
+export type MonitorPhase = 'lit' | 'off' | 'turning-on' | 'turning-off';
 
+/**
+ * The tag each power phase plays, or null for the phases that draw nothing.
+ *
+ * `lit` is null because it does not know: the content is whatever the caller
+ * hands over in `screenTag`.
+ */
 export const MONITOR_TAG: Record<MonitorPhase, string | null> = {
-  on: 'ai-work',
-  game: 'game',
-  // The first screensaver, named once in SCREENSAVER_TAGS rather than twice.
-  // Only reached if the caller supplies none.
-  idle: SCREENSAVER_TAGS[0],
+  lit: null,
   off: null,
   'turning-on': 'power-on',
   'turning-off': 'power-off',
 };
+
+/**
+ * What the monitor can be showing while somebody is at the desk.
+ *
+ * A list rather than a type, for the same reason SCREENSAVER_TAGS is one: a new
+ * scene should be a tag in the sheet and an entry here, and nothing else. The
+ * caller picks; the scene draws whichever it is handed.
+ */
+export const SCREEN_TAGS = ['ai-work', 'game'] as const;
 
 export type SceneState = {
   /** Milliseconds into the monitor animation. */
@@ -682,8 +725,16 @@ export type SceneState = {
   chairOneShot?: { tag: string; elapsed: number };
   /** In the chair or on their feet. Defaults to seated. */
   posture?: Posture;
-  /** Which screensaver the idle screen plays. Falls back to the first. */
-  screensaverTag?: string;
+  /**
+   * What plays while the monitor is lit — a scene or a screensaver, whichever
+   * the caller decided.
+   *
+   * One field for both, because the monitor does not care which it is. Choosing
+   * is host policy: it depends on whether anyone is at the desk, and the scene
+   * has no opinion about that. Falls back to the first scene if the tag has not
+   * been drawn.
+   */
+  screenTag?: string;
   /** Freezes the monitor loop and holds the colon lit. */
   reducedMotion: boolean;
   /** Already-resolved mask opacity — see washFor. */
@@ -899,7 +950,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     weather,
     presence,
     timeZone,
-    screensaverTag,
+    screenTag = SCREEN_TAGS[0],
     deskOffset = 0,
     cableFall = 0,
     chairShift = 0,
@@ -975,16 +1026,22 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   // A monitor that is off needs no art: room.png already has a flat dark plate
   // at this slice, so drawing nothing reveals a blank screen. The power frames
   // end on that same colour, so the hand-off does not pop.
-  const tag =
-    monitor.phase === 'idle' && screensaverTag && screen.hasTag(screensaverTag)
-      ? screensaverTag
-      : MONITOR_TAG[monitor.phase];
+  //
+  // Lit is the only phase whose tag comes from outside, and the fallback is a
+  // real one rather than a throw: this sheet's tags are looked up by name and
+  // `tag()` throws on a miss, so a caller naming a scene that has not been drawn
+  // yet would take the page down rather than show the wrong screen.
+  const looping = monitor.phase === 'lit';
+  const tag = looping
+    ? screen.hasTag(screenTag)
+      ? screenTag
+      : SCREEN_TAGS[0]
+    : MONITOR_TAG[monitor.phase];
   if (tag) {
     // Rides the desk, so the content has to move with the bezel around it.
     const at = room.slice('monitor-screen');
     // Content loops off the scene clock; the power transitions are one-shots
     // timed from the toggle and held on their last frame.
-    const looping = monitor.phase === 'on' || monitor.phase === 'game' || monitor.phase === 'idle';
     const frame = looping ? screen.frameAt(elapsed, tag) : screen.frameOnce(monitor.elapsed, tag);
     screen.draw(context, frame, at.x, at.y - deskRise);
   }

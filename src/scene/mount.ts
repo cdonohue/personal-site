@@ -5,7 +5,6 @@ import {
   DESK_MAX,
   DESK_RAISED,
   POSTURE_TAG,
-  SCREENSAVER_TAGS,
   SCENE_HEIGHT,
   SCENE_WIDTH,
   STARTLE_TAG,
@@ -245,25 +244,11 @@ export const createDeskRoom = async (
   // moves on its own and the clock's drift is already gradual.
   const timeZone = options.timeZone;
 
-  /**
-   * Which screensaver this visit gets, chosen once at mount.
-   *
-   * Per visit rather than per idle: switching while the viewer is watching would
-   * look like a glitch, and a screensaver that varies between visits is what a
-   * real one does. Anything the sheet does not have is dropped, so a half-drawn
-   * tag cannot leave the screen blank.
-   */
-  const available = SCREENSAVER_TAGS.filter((tag) => assets.screen.hasTag(tag));
-  const screensaverTag =
-    available[Math.floor(Math.random() * available.length)] ?? SCREENSAVER_TAGS[0];
-
-  let night = nightAmountFor(values.lighting, new Date(), timeZone);
+  let night = nightAmountFor(values.lighting, new Date(), timeZone, values.daylight);
   let wash = washFor(values.roomLight === 'on', night);
 
-  const litPhase = (): MonitorPhase =>
-    values.monitor === 'off' ? 'on' : (values.monitor as MonitorPhase);
   const monitor = {
-    phase: values.monitor === 'off' ? ('off' as MonitorPhase) : litPhase(),
+    phase: (values.monitor === 'off' ? 'off' : 'lit') as MonitorPhase,
     since: 0,
   };
 
@@ -362,7 +347,7 @@ export const createDeskRoom = async (
   const step = (time: number) => {
     const now = new Date();
 
-    const nightTarget = nightAmountFor(values.lighting, now, timeZone);
+    const nightTarget = nightAmountFor(values.lighting, now, timeZone, values.daylight);
     night = reducedMotion ? nightTarget : night + (nightTarget - night) * EASING;
     const washTarget = washFor(values.roomLight === 'on', night);
     wash = reducedMotion ? washTarget : wash + (washTarget - wash) * EASING;
@@ -446,8 +431,9 @@ export const createDeskRoom = async (
       }
     }
 
-    // idle and game are powered states too — they only swap content, so
-    // switching between them must not replay the power transition.
+    // Swapping what is on the screen is not a power event, and now cannot be
+    // read as one: the content is a tag the caller hands over and this only ever
+    // asks whether there is power.
     //
     // An unplugged cable beats the schedule outright: the desk is fed from that
     // outlet, so there is no power to be on with.
@@ -460,15 +446,13 @@ export const createDeskRoom = async (
       // than sticking mid-transition.
       monitor.phase = 'turning-off';
       monitor.since = time;
-    } else if (monitor.phase === 'on' || monitor.phase === 'game' || monitor.phase === 'idle') {
-      monitor.phase = litPhase();
     }
 
     const inPhase = time - monitor.since;
     if (reducedMotion) {
-      monitor.phase = wantOn ? litPhase() : 'off';
+      monitor.phase = wantOn ? 'lit' : 'off';
     } else if (monitor.phase === 'turning-on' && inPhase >= assets.screen.tagDuration('power-on')) {
-      monitor.phase = litPhase();
+      monitor.phase = 'lit';
     } else if (
       monitor.phase === 'turning-off' &&
       inPhase >= assets.screen.tagDuration('power-off')
@@ -480,7 +464,7 @@ export const createDeskRoom = async (
       elapsed: reducedMotion ? 0 : time - startedAt,
       now,
       timeZone,
-      screensaverTag,
+      screenTag: values.screen,
       reducedMotion,
       wash,
       lightsOn: values.roomLight === 'on',

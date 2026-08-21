@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
+import { nightAmountAt } from '../scene/render'
 import { TIME_ZONE, roll, type Activity } from '../activity'
-import type { ToggleValues, Weather } from '../scene/toggles'
-import { REFRESH_MS, currentCondition, lastKnownCondition } from '../weather'
+import type { ToggleValues } from '../scene/toggles'
+import { REFRESH_MS, currentSky, lastKnownSky, type Sky } from '../weather'
 
 /**
  * The pixel desk scene, as the home page hero.
@@ -39,6 +40,17 @@ const MIN_TARGET_PX = 44
  * is doing the actual animation.
  */
 const DESK_SAMPLE_MS = 80
+
+/**
+ * How dark it has to be outside before the lamp goes on, and how often that is
+ * checked.
+ *
+ * A third of the way into dusk rather than at full night: nobody sits in a room
+ * until it is pitch dark and only then reaches for the switch. Ten minutes is
+ * far finer than a ninety-minute fade needs, and it is one arithmetic call.
+ */
+const LAMP_AT = 0.35
+const LAMP_CHECK_MS = 10 * 60 * 1000
 
 /**
  * How far each row is inset at the corners, outermost first, in scene pixels.
@@ -102,13 +114,13 @@ export default function DeskScene() {
 
   // Seeded from the last visit rather than a default, so the sky does not paint
   // clear and then visibly correct itself once the request lands.
-  const [weather, setWeather] = useState<Weather>(() => lastKnownCondition() ?? 'clear')
+  const [sky, setSky] = useState<Sky>(() => lastKnownSky() ?? { condition: 'clear', daylight: null })
 
   useEffect(() => {
     let cancelled = false
     const load = () => {
-      currentCondition().then((condition) => {
-        if (!cancelled) setWeather(condition)
+      currentSky().then((next) => {
+        if (!cancelled) setSky(next)
       })
     }
     load()
@@ -118,6 +130,26 @@ export default function DeskScene() {
       window.clearInterval(timer)
     }
   }, [])
+
+  /**
+   * Whether it is dark enough outside to want the lamp on.
+   *
+   * Re-checked on a timer, unlike everything else here, and that is deliberate:
+   * this is the one change a visitor can see the cause of. The windows dim
+   * continuously on their own, so a lamp coming on partway through dusk reads as
+   * the room answering the sky rather than as something happening at random.
+   *
+   * Coarse on purpose. It is a boolean that flips twice a day, tracking a fade
+   * that takes ninety minutes.
+   */
+  const [dark, setDark] = useState(false)
+  useEffect(() => {
+    const check = () => setDark(nightAmountAt(new Date(), TIME_ZONE, sky.daylight) > LAMP_AT)
+    check()
+    const timer = window.setInterval(check, LAMP_CHECK_MS)
+    return () => window.clearInterval(timer)
+    // Re-armed when the real sunset lands, which moves where the threshold sits.
+  }, [sky.daylight])
 
   /**
    * The room's state for this visit, rolled once and then left alone.
@@ -136,21 +168,27 @@ export default function DeskScene() {
     return {
       // The environment is still real. Only the room's occupancy is rolled.
       lighting: 'auto',
-      weather,
+      weather: sky.condition,
+      daylight: sky.daylight,
       // `present` and not `typing`: there is no typing pose yet, and a missing
       // tag falls back to playing the whole sheet — which would cycle the empty
       // chair and flicker the person in and out.
       presence: activity.presence,
-      monitor: activity.content,
-      // The lamp goes off on the way out, unless someone has said otherwise. An
-      // override holds for the visit rather than expiring on the next roll.
-      // Follows the roll's own occupancy, not the presence computed above.
-      // Keyed to the latter, switching the monitor off turned the room lights
-      // off too — one derived value quietly driving another.
-      roomLight: lightOverride ?? (activity.presence === 'present' ? 'on' : 'off'),
+      // Power. What is playing is `screen`, and the roll decides which.
+      monitor: 'on',
+      screen: activity.screen,
+      // Dark out and somebody home. Presence alone left the lamp burning
+      // through a bright afternoon; darkness alone would leave it burning all
+      // night in an empty room, which is not what anyone does on the way out.
+      //
+      // An override holds for the visit rather than expiring on the next roll,
+      // and follows the roll's own occupancy rather than anything computed from
+      // it — keyed to the latter, switching the monitor off turned the room
+      // lights off too, one derived value quietly driving another.
+      roomLight: lightOverride ?? (activity.presence === 'present' && dark ? 'on' : 'off'),
       clock,
     }
-  }, [activity, weather, lightOverride, clock])
+  }, [activity, sky, dark, lightOverride, clock])
 
   useEffect(() => {
     const canvas = canvasRef.current

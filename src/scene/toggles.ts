@@ -19,12 +19,40 @@ export const WEATHER_CONDITIONS = ['clear', 'overcast', 'fog', 'rain', 'snow'] a
 
 export type Weather = (typeof WEATHER_CONDITIONS)[number];
 
+/**
+ * Sunrise and sunset as decimal hours in the room's own zone.
+ *
+ * Environment rather than a toggle, the same as weather: measured outside and
+ * handed in. Null while nothing has been fetched, or when the fetch failed —
+ * the scene falls back to a fixed curve, which is what it used before.
+ */
+export type Daylight = { sunrise: number; sunset: number };
+
 export type ToggleValues = {
   presence: 'present' | 'typing' | 'away' | 'empty';
   weather: Weather;
+  /** Real sunrise and sunset, when they are known. Null falls back to a curve. */
+  daylight: Daylight | null;
   lighting: 'auto' | 'day' | 'night';
   roomLight: 'on' | 'off';
-  monitor: 'on' | 'game' | 'idle' | 'off';
+  /**
+   * Power only. What is on the screen is `screen`, below.
+   *
+   * These were one field once — on/game/idle/off — which meant everything that
+   * wanted to know whether there was power had to list the lit states by name,
+   * and adding a scene meant finding all of them.
+   */
+  monitor: 'on' | 'off';
+  /**
+   * Which tag plays while the monitor is lit: a scene from `SCREEN_TAGS`, or a
+   * screensaver from `SCREENSAVER_TAGS`.
+   *
+   * A string rather than a union, deliberately. The scene draws whichever tag it
+   * is handed and has no view on which are scenes and which are screensavers —
+   * that distinction is about whether anyone is at the desk, which is host
+   * policy. An undrawn tag falls back rather than throwing.
+   */
+  screen: string;
   clock: '12-hour' | '24-hour';
 };
 
@@ -67,11 +95,14 @@ export const LIVE_TOGGLES: LiveToggle[] = [
     note: 'auto follows local time',
   },
   { id: 'roomLight', label: 'Room light', options: ['on', 'off'] },
+  { id: 'monitor', label: 'Monitor power', options: ['on', 'off'] },
   {
-    id: 'monitor',
-    label: 'Monitor',
-    options: ['on', 'game', 'idle', 'off'],
-    note: 'game and idle are alternate screen content',
+    id: 'screen',
+    label: 'On screen',
+    // Not exhaustive and cannot be: the scene accepts any tag in the sheet.
+    // These are the ones worth stepping through by hand.
+    options: ['ai-work', 'game', 'cube', 'bounce'],
+    note: 'scenes and screensavers are the same field',
   },
   { id: 'clock', label: 'Clock format', options: ['12-hour', '24-hour'] },
 ];
@@ -88,9 +119,12 @@ export const BLOCKED_TOGGLES: BlockedToggle[] = [
 export const DEFAULT_VALUES: ToggleValues = {
   presence: 'typing',
   weather: 'clear',
+  daylight: null,
   lighting: 'auto',
   roomLight: 'on',
   monitor: 'on',
+  // Named here rather than imported from render.ts, which imports this file.
+  screen: 'ai-work',
   clock: '12-hour',
 };
 

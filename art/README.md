@@ -101,18 +101,32 @@ The glass mask itself is derived at runtime by diffing `clear-day` against
 
 ### `screen.aseprite` — 46×26, the monitor
 
-| tag | frames |
-|---|---|
-| `ai-work` | 0–95 |
-| `power-on` | 96–102 |
-| `power-off` | 103–108 |
-| `cube` | 109–140 |
-| `game` | 141–188 |
-| `bounce` | 189–268 |
+| tag | frames | kind |
+|---|---|---|
+| `ai-work` | 0–95 | scene |
+| `power-on` | 96–102 | transition |
+| `power-off` | 103–108 | transition |
+| `cube` | 109–140 | screensaver |
+| `game` | 141–188 | scene |
+| `bounce` | 189–268 | screensaver |
 
 Frame numbers move when a tag grows, and that is safe **only** because nothing
 addresses this sheet by index — `render.ts` asks for tags by name. Keep it that
 way.
+
+**Adding a scene is a tag and one list entry.** `SCREEN_TAGS` in `render.ts`
+holds the scenes and `SCREENSAVER_TAGS` the screensavers; `src/activity.ts`
+picks from one or the other depending on whether anyone is at the desk. Nothing
+downstream cares which kind it got — `MonitorPhase` is power only, and the tag
+travels beside it. It was not always: the phase used to be
+`'on' | 'game' | 'idle' | 'off'`, so a third scene meant editing a union type, a
+lookup table and every expression that asked whether the screen was lit by
+listing the lit states out loud.
+
+The runtime falls back to the first scene if it is handed a tag this sheet does
+not have, rather than throwing the way a missing slice does. Screen content is
+the one part of the contract a host chooses at runtime, so a name that has not
+been drawn yet should show the wrong picture rather than take the page down.
 
 **At 46×26 the panel carries shape, not detail.** About 1200 pixels. Two
 screensaver attempts failed identically here — Matrix rain, then a starfield —
@@ -126,12 +140,10 @@ a glitch. Colours used: plate `32,32,32`, collapsing band `120,128,145`, the lin
 `225,232,245`, 45 ms a frame. The last off frame matches the dark plate in
 `room.png` exactly, so there is no pop at the hand-off.
 
-`cube` and `bounce` are interchangeable — `SCREENSAVER_TAGS` in
-`render.ts` lists them and the mount picks one per visit, so a third is a tag
-plus one entry. Per visit, not per idle: swapping while someone is watching
-reads as a glitch. Both are named for what they show — a tag called
-`screensaver` sitting next to `bounce` reads as the category rather than a
-peer, and the category is what the list is for.
+`cube` and `bounce` are interchangeable, and one is picked per visit rather than
+per idle: swapping while somebody is watching reads as a glitch. Both are named
+for what they show — a tag called `screensaver` sitting next to `bounce` reads
+as the category rather than a peer, and the category is what the list is for.
 
 `bounce` is exact the same way. A 6×6 shape travels 40px across and 20px down,
 so at 1px/frame the periods are 80 and 40 — LCM 80, and frame 80 is frame 0.

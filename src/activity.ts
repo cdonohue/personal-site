@@ -1,4 +1,4 @@
-import { zonedParts } from './scene/render'
+import { SCREENSAVER_TAGS, zonedParts } from './scene/render'
 
 /**
  * What the room is doing: whether anyone is at the desk, and what is on screen.
@@ -20,34 +20,48 @@ import { zonedParts } from './scene/render'
  */
 export const TIME_ZONE = 'America/Chicago'
 
+/** Weekdays, nine to five, in the room's zone. Inside this, the desk is manned. */
+const WORK_START = 9
+const WORK_END = 17
+
 /**
- * How likely someone is at the desk, by hour.
+ * How likely someone is at the desk **outside** working hours.
  *
- * Occupancy is a fiction and always was — nine-to-five weekdays was an invented
- * rule, not telemetry, and no desk empties at 17:00 sharp. What is real here is
- * the environment: the hour, the light and the weather all still describe the
- * world. This only decides whether the chair is full, which nothing outside the
- * page could confirm anyway.
+ * Inside them it is not a probability at all: the desk is occupied, full stop.
+ * This curve only covers evenings, nights and weekends, which is why every
+ * value on it is small. It is a room somebody might wander back into, not a
+ * second working day.
  *
- * Weighted rather than a coin toss so the room stays plausible against its own
- * lighting. Someone can be at the desk at 3am; it is just rare.
+ * Weighted by hour rather than flat so it stays plausible against its own
+ * lighting. Someone can be at the desk at 3am; it is just rare. The bulge in the
+ * evening is where an off-hours visitor is most likely to find anyone, and the
+ * daytime figure is really about weekends.
  */
 export const PRESENCE_CURVE: [hour: number, chance: number][] = [
-  [0, 0.05],
-  [3, 0.08],
-  [6, 0.2],
-  [9, 0.85],
-  [13, 0.8],
-  [17, 0.7],
-  [19, 0.55],
-  [21, 0.35],
-  [23, 0.2],
-  [24, 0.05],
+  [0, 0.03],
+  [6, 0.05],
+  [9, 0.18],
+  [17, 0.2],
+  [19, 0.25],
+  [22, 0.12],
+  [24, 0.03],
 ]
 
-/** Chance of the work screen rather than the game, while someone is there. */
+/**
+ * Which scenes count as work and which as not, and how the two are weighted.
+ *
+ * Split into two lists rather than one weighted table so a new scene is one
+ * entry in whichever it belongs to. `SCREEN_TAGS` in `render.ts` is the full
+ * set, and these have to be drawn from it.
+ */
+const WORK = ['ai-work']
+const PLAY = ['game']
+
+/** Chance of a work screen rather than a game, while someone is there. */
 const WORKING_CHANCE = 0.75
 const WORKING_CHANCE_OFF_HOURS = 0.25
+
+const pick = <T>(from: readonly T[]): T => from[Math.floor(Math.random() * from.length)]
 
 /**
  * Chance the desk is already up when you arrive.
@@ -77,9 +91,8 @@ export const presenceChanceAt = (hour: number): number => {
   return PRESENCE_CURVE[PRESENCE_CURVE.length - 1][1]
 }
 
-/** Weekdays, nine to five, in the room's zone — now only a weighting, not a rule. */
-const isWorkHours = (at: { hour: number; weekday: number }) =>
-  at.weekday !== 0 && at.weekday !== 6 && at.hour >= 9 && at.hour < 17
+export const isWorkHours = (at: { hour: number; weekday: number }) =>
+  at.weekday !== 0 && at.weekday !== 6 && at.hour >= WORK_START && at.hour < WORK_END
 
 /**
  * What the room is doing: whether anyone is there, and what is on the screen.
@@ -90,7 +103,15 @@ const isWorkHours = (at: { hour: number; weekday: number }) =>
  */
 export type Activity = {
   presence: 'present' | 'away'
-  content: 'on' | 'game' | 'idle'
+  /**
+   * The tag on the monitor: a scene while somebody is there, a screensaver
+   * while they are not.
+   *
+   * One field, because the monitor does not distinguish between them — it plays
+   * whatever tag it is handed. Which kind it gets is the only part that is
+   * policy, and it is decided here.
+   */
+  screen: string
   /**
    * How the room is found, not how it got that way.
    *
@@ -109,13 +130,22 @@ export const roll = (now: Date): Activity => {
   // has no bearing on whether anyone came back to it.
   const posture = Math.random() < STANDING_CHANCE ? 'standing' : 'seated'
 
-  // Two states, and only two. Someone at the desk is working or playing;
-  // an empty room runs a screensaver. The screen is never simply off — the only
-  // thing that darkens it is the plug coming out of the wall, which is a
-  // visitor's doing rather than the schedule's.
-  if (Math.random() < presenceChanceAt(hour)) {
-    const working = Math.random() < (isWorkHours(at) ? WORKING_CHANCE : WORKING_CHANCE_OFF_HOURS)
-    return { presence: 'present', content: working ? 'on' : 'game', posture }
+  // Working hours are a guarantee rather than a weighting. Outside them the
+  // curve takes over, and every value on it is small.
+  const working = isWorkHours(at)
+  if (working || Math.random() < presenceChanceAt(hour)) {
+    // Being at the desk during working hours does not oblige anyone to be
+    // working. A game at two on a Tuesday is a better joke than a rule; it is
+    // just less likely than the alternative.
+    const chance = working ? WORKING_CHANCE : WORKING_CHANCE_OFF_HOURS
+    return { presence: 'present', screen: pick(Math.random() < chance ? WORK : PLAY), posture }
   }
-  return { presence: 'away', content: 'idle', posture }
+
+  // An empty room runs a screensaver, and which one varies between visits
+  // rather than within one — switching while somebody is watching reads as a
+  // glitch, which is also why the whole roll happens once.
+  //
+  // The screen is never simply off. The only thing that darkens it is the plug
+  // coming out of the wall, which is a visitor's doing rather than a schedule's.
+  return { presence: 'away', screen: pick(SCREENSAVER_TAGS), posture }
 }
