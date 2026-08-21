@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
+import type { Posture } from '../scene/render'
 import { PLAY_TAGS, SCREENSAVER_TAGS, WORK_TAGS } from '../scene/render'
 import { OUTFITS, type Outfit } from '../scene/outfits'
 import { DEFAULT_VALUES, LIVE_TOGGLES, type ToggleValues } from '../scene/toggles'
@@ -66,6 +67,7 @@ export default function DevPanel() {
 
   const [values, setValues] = useState<ToggleValues>({ ...DEFAULT_VALUES, presence: 'present' })
   const [outfit, setOutfit] = useState<Outfit>(OUTFITS[0])
+  const [posture, setPostureState] = useState<Posture>('seated')
   const [rolled, setRolled] = useState<Activity | null>(null)
   const [copied, setCopied] = useState(false)
   const [failed, setFailed] = useState<string | null>(null)
@@ -105,6 +107,7 @@ export default function DevPanel() {
 
   useEffect(() => sceneRef.current?.set(values), [values])
   useEffect(() => sceneRef.current?.setOutfit(outfit), [outfit])
+  useEffect(() => sceneRef.current?.setPosture(posture), [posture])
 
   const source = useMemo(() => asSource(outfit), [outfit])
 
@@ -134,8 +137,17 @@ export default function DevPanel() {
           {failed && <p className="mt-2 text-sm text-red-400">{failed}</p>}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <button className={button} onClick={() => sceneRef.current?.toggleDesk()}>
-              raise / lower desk
+            <button
+              className={button}
+              onClick={() => {
+                // Performs the change, sequence and all. Kept alongside the
+                // posture control because watching it happen and arriving in it
+                // are two different things to be able to check.
+                sceneRef.current?.toggleDesk()
+                setPostureState((current) => (current === 'seated' ? 'standing' : 'seated'))
+              }}
+            >
+              play the stand / sit
             </button>
             <button className={button} onClick={() => sceneRef.current?.toggleCable()}>
               unplug / plug in
@@ -151,6 +163,7 @@ export default function DevPanel() {
                   screen: next.screen,
                 }))
                 setOutfit(next.outfit)
+                setPostureState(next.posture)
               }}
             >
               roll the schedule
@@ -159,7 +172,6 @@ export default function DevPanel() {
           {rolled && (
             <p className="mt-2 text-xs opacity-60">
               rolled: {rolled.presence} · {rolled.screen} · {rolled.posture} · {rolled.outfit.name}
-              {rolled.posture === 'standing' && ' — desk starts up only on a reload'}
             </p>
           )}
         </div>
@@ -186,6 +198,18 @@ export default function DevPanel() {
                   </select>
                 </label>
               ))}
+
+              <label className="flex flex-col gap-1">
+                <span className={label}>Posture</span>
+                <select
+                  className={field}
+                  value={posture}
+                  onChange={(event) => setPostureState(event.target.value as Posture)}
+                >
+                  <option value="seated">seated</option>
+                  <option value="standing">standing</option>
+                </select>
+              </label>
 
               <label className="col-span-2 flex flex-col gap-1">
                 <span className={label}>on screen</span>

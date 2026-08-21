@@ -64,6 +64,19 @@ export type DeskRoom = {
    * never calls this; live editing is the only reason it exists.
    */
   setOutfit(outfit: Outfit): void;
+  /**
+   * Put the room straight into a posture, the way a page load does.
+   *
+   * The counterpart to `toggleDesk`, which performs the change: this one simply
+   * is it, with no sequence and no travel.
+   *
+   * Not a `ToggleValues` field, deliberately. `set()` runs on every weather
+   * refresh, every dusk check and every click of the light switch, so a posture
+   * living in there would re-assert itself on all of them and quietly undo a
+   * visitor's desk toggle. A setting that survives being set is a different
+   * thing from one that has to be re-applied.
+   */
+  setPosture(to: Posture): void;
   start(): void;
   stop(): void;
 };
@@ -356,13 +369,20 @@ export const createDeskRoom = async (
     deskRaised = to === 'standing';
   };
 
-  if (options.posture === 'standing') {
-    settleInto('standing');
-    // And the desk is put there rather than sent there. settleInto only moves
-    // the spring's target, which is right for a toggle and wrong for an
-    // arrival: the room would open at sitting height and rise on its own.
-    desk = DESK_RAISED;
-  }
+  /**
+   * Put the room in a posture rather than sending it there.
+   *
+   * settleInto only moves the spring's target, which is right for a toggle and
+   * wrong for an arrival: the room would open at sitting height and rise on its
+   * own. This lands the desk on the frame it is called.
+   */
+  const arriveAt = (to: Posture) => {
+    settleInto(to);
+    desk = to === 'standing' ? DESK_RAISED : 0;
+    deskVelocity = 0;
+  };
+
+  if (options.posture === 'standing') arriveAt('standing');
 
   /**
    * The plug. Eased so it drops rather than teleporting, and quickly — it is
@@ -592,6 +612,9 @@ export const createDeskRoom = async (
     },
     setOutfit(next) {
       assets.dressCharacter(next);
+    },
+    setPosture(to) {
+      arriveAt(to);
     },
     start() {
       if (handle) return;
