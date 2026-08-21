@@ -391,8 +391,6 @@ export const SCREENSAVER_TAGS = [
   'ribbons',
   'orbit',
   'radar',
-  'gears',
-  'skyline',
   'comet',
   'hypno',
 ] as const;
