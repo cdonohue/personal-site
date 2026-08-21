@@ -330,45 +330,59 @@ to the seated pose, so an undrawn state reads as somebody who does not do that
 yet rather than as a flicker. Draw the pose and tag it before using those
 states.
 
-#### The colours are keys
+#### Indexed, and the palette is the contract
 
-Every recolourable part carries its own value, and `src/scene/outfits.ts` maps
-those to whatever the outfit says. **These nine are a contract.** Change one
-here and it must change there on the same commit, or that part silently stops
-being recoloured — the remap never matches and the drawn colour ships instead.
+Like `digits.aseprite`, and for a sharper reason: **entries 1–9 are the keys
+`src/scene/outfits.ts` recolours by**, and three of them sit one unit from a
+neighbour. In RGB those pairs are three indistinguishable greys and a stray
+brush stroke merges two roles into one; as palette slots they cannot be
+confused.
 
-| part | key | note |
-|---|---|---|
-| hat top | `239,239,239` | |
-| hat edge | `170,170,170` | |
-| hat strap | `52,52,52` | one off the shoes, deliberately |
-| shirt fill | `223,223,223` | |
-| shirt shade | `154,154,154` | |
-| pants fill | `32,32,32` | |
-| pants shade | `33,33,33` | one off the fill, deliberately |
-| shoe fill | `53,53,53` | |
-| shoe shade | `54,54,54` | one off the fill, deliberately |
+| # | part | value | |
+|---|---|---|---|
+| 0 | transparent | — | |
+| 1 | hat top | `239,239,239` | |
+| 2 | hat edge | `170,170,170` | |
+| 3 | hat strap | `52,52,52` | one off the shoes |
+| 4 | shirt fill | `223,223,223` | |
+| 5 | shirt shade | `154,154,154` | |
+| 6 | pants fill | `32,32,32` | |
+| 7 | pants shade | `33,33,33` | one off the fill |
+| 8 | shoe fill | `53,53,53` | |
+| 9 | shoe shade | `54,54,54` | one off the fill |
+| 10 | skin | `255,223,186` | |
+| 11 | bald head | `255,238,219` | under the cap — see below |
+| 12 | startle marks | `240,240,240` | |
 
-Skin `255,223,186`, its highlight `255,238,219` and the startle marks
-`240,240,240` are **not** in that list. They are not clothing, and nothing
-should be able to tint them by accident.
+Entries 1–9 are in the same order as `KEYS` in `outfits.ts` on purpose: reading
+the two side by side is the check that they still agree. **Change one and it
+must change in both on the same commit**, or that part silently stops being
+recoloured — the remap never matches and the drawn colour ships instead.
 
-**Three of the keys sit one unit from a neighbour, and that is the point.** The
-strap and the shoes were the same colour, and the export flattens the layers, so
-nothing downstream could tell them apart. The pants and shoes had no shade at
-all, which does not matter while the trousers are near black and matters
-entirely the moment an outfit makes them light. One unit is invisible on any
-display, so the base art still looks exactly as drawn and doubles as the default
-outfit — verified byte-identical.
+10, 11 and 12 are deliberately outside that range. Skin and startle marks are
+not clothing, and nothing should be able to tint them by accident.
 
-The cost is three pairs of near-identical greys in the palette. **Converting
-this sprite to Indexed would fix that**, the way `digits.aseprite` already is:
-the pairs become labelled entries that cannot be merged by a stray brush stroke.
-Worth doing before the next repaint.
+**The one-unit gaps are the load-bearing part.** The strap and the shoes were
+the same colour, and the export flattens the layers, so nothing downstream could
+tell them apart. The pants and shoes had no shade at all, which does not matter
+while the trousers are near black and matters entirely the moment an outfit
+makes them light. One unit is invisible on any display, which is what lets the
+base art look exactly as drawn *and* serve as the default outfit — verified
+byte-identical.
+
+**Do not convert this sprite with Aseprite's own RGB → Indexed command.** It
+finds the nearest entry through an RGB map that buckets five bits to a channel,
+which folds 52, 53 and 54 into one. The conversion was done by mapping every
+pixel by hand and repainting the cels afterwards.
 
 Shade pixels replace outermost fill pixels rather than adding to the silhouette.
 The hip block and shoes are wide enough for a full outline; the legs are 3px and
 would be mostly outline, so they carry a shade on the outer side only.
+
+**Entry 11 draws nothing today and is meant to.** It is the bald head, and the
+cap covers it on all 23 frames — zero pixels of it reach the export. It is there
+for a hatless pose, so drawing one is a matter of hiding the `hat` layer rather
+than inventing a scalp.
 
 ### `chair.aseprite` — 40×86, the chair
 
