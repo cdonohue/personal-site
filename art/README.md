@@ -110,6 +110,15 @@ runtime plays it end to end.
 | `screen-game` | 48 | 3360 | scene |
 | `screen-cube` | 32 | 2880 | screensaver |
 | `screen-bounce` | 80 | 7200 | screensaver |
+| `screen-aquarium` | 58 | 5220 | screensaver |
+| `screen-fireworks` | 48 | 4320 | screensaver |
+| `screen-ribbons` | 48 | 3840 | screensaver |
+| `screen-orbit` | 48 | 4320 | screensaver |
+| `screen-radar` | 48 | 3600 | screensaver |
+| `screen-gears` | 48 | 3840 | screensaver |
+| `screen-skyline` | 46 | 4600 | screensaver |
+| `screen-comet` | 48 | 3600 | screensaver |
+| `screen-hypno` | 48 | 3600 | screensaver |
 | `screen-power` | 13 | 585 | transitions, tagged `power-on` / `power-off` |
 
 These were one 269-frame sheet until the width forced the issue. An Aseprite
@@ -183,10 +192,21 @@ a glitch. Colours used: plate `32,32,32`, collapsing band `120,128,145`, the lin
 `225,232,245`, 45 ms a frame. The last off frame matches the dark plate in
 `room.png` exactly, so there is no pop at the hand-off.
 
-`cube` and `bounce` are interchangeable, and one is picked per visit rather than
-per idle: swapping while somebody is watching reads as a glitch. Both are named
-for what they show — a tag called `screensaver` sitting next to `bounce` reads
-as the category rather than a peer, and the category is what the list is for.
+All screensavers are interchangeable, and one is picked per visit rather than
+per idle: swapping while somebody is watching reads as a glitch. Each is named
+for what it shows — a tag called `screensaver` sitting next to `bounce` reads as
+the category rather than a peer, and the category is what the list is for.
+
+The nine-screen expansion takes its cue from early graphical screensaver packs:
+limited palettes, unapologetically synthetic motion, and one readable subject
+per loop. It borrows that grammar rather than any specific module. At 46×26,
+the aquarium, fireworks, ribbons, orbit, radar, gears, skyline, comet and hypno
+loops each have to read as a silhouette before their motion does any work.
+
+`aquarium` closes on 58 frames. Every fish crosses a 58-pixel wrapped path;
+the bubbles use a 29-frame rise, exactly half that period, and reset above the
+panel. A frame count that divides neither path restarts the scene mid-motion and
+produces a visible jump even though the individual movements look correct.
 
 `bounce` is exact the same way. A 6×6 shape travels 40px across and 20px down,
 so at 1px/frame the periods are 80 and 40 — LCM 80, and frame 80 is frame 0.

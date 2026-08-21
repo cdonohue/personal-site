@@ -383,7 +383,19 @@ export const nightAmountFor = (
  * Listed here rather than chosen here: the scene draws whichever it is handed,
  * and the caller decides, so adding a third is a tag and one entry.
  */
-export const SCREENSAVER_TAGS = ['cube', 'bounce'] as const;
+export const SCREENSAVER_TAGS = [
+  'cube',
+  'bounce',
+  'aquarium',
+  'fireworks',
+  'ribbons',
+  'orbit',
+  'radar',
+  'gears',
+  'skyline',
+  'comet',
+  'hypno',
+] as const;
 
 /**
  * What plays while somebody is at the desk, split by what it depicts.
