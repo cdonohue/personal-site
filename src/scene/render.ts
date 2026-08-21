@@ -1,6 +1,7 @@
 import { Sheet, loadImage, loadSheet } from './aseprite';
 import { Glow } from './glow';
 import { WEATHER_CONDITIONS, type Daylight, type ToggleValues, type Weather } from './toggles';
+import { OUTFITS, recolour, type Outfit } from './outfits';
 
 /**
  * How the sky moves, in pixels per second. Motion comes from scrolling one
@@ -544,8 +545,16 @@ export const loadScreen = async (basePath: string, tag: string): Promise<Sheet |
  * `screens` is which screen sheets to fetch now. Only what will actually be
  * shown, so the cost of the twelfth screen falls on whoever is looking at it.
  * Anything named later is fetched then; see `loadScreen`.
+ *
+ * `outfit` repaints the character as it is decoded. Once, at load — the sheet
+ * the runtime draws from is already the right colour, so nothing downstream
+ * knows an outfit exists.
  */
-export const loadAssets = async (basePath = '/art', screens: string[] = []): Promise<Assets> => {
+export const loadAssets = async (
+  basePath = '/art',
+  screens: string[] = [],
+  outfit: Outfit = OUTFITS[0],
+): Promise<Assets> => {
   const skyNames = WEATHER_CONDITIONS.flatMap((weather) => [`${weather}-day`, `${weather}-night`]);
   // Deduplicated, and always with a fallback in it: the draw needs something to
   // reach for when it is handed a name that has not been drawn.
@@ -570,7 +579,7 @@ export const loadAssets = async (basePath = '/art', screens: string[] = []): Pro
     loadSheet(`${basePath}/digits`),
     loadSheet(`${basePath}/switch`),
     loadSheet(`${basePath}/weather`),
-    loadSheet(`${basePath}/character`),
+    loadSheet(`${basePath}/character`, (image) => recolour(image, outfit)),
     loadSheet(`${basePath}/chair`),
     loadImage(`${basePath}/room.dark.png`),
     loadImage(`${basePath}/room.legs-inner.png`),

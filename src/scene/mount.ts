@@ -15,6 +15,7 @@ import {
   washFor,
 } from './render';
 import type { Assets, MonitorPhase, Posture } from './render';
+import type { Outfit } from './outfits';
 import { DEFAULT_VALUES, type ToggleValues } from './toggles';
 
 /**
@@ -65,6 +66,13 @@ export type DeskRoomOptions = {
   basePath?: string;
   /** Initial values, merged over the defaults. */
   values?: Partial<ToggleValues>;
+  /**
+   * What the figure is wearing. Defaults to the drawing as exported.
+   *
+   * Applied while the sheet is decoded rather than per frame, so it costs one
+   * pass over 79,000 pixels at load and nothing at all thereafter.
+   */
+  outfit?: Outfit;
   /**
    * How the desk is found on arrival. Defaults to seated.
    *
@@ -233,7 +241,7 @@ export const createDeskRoom = async (
   // Only the screen this visit will show. Anything a host names later is
   // fetched then, rather than every screen being shipped to everyone.
   const initialScreen = options.values?.screen ?? DEFAULT_VALUES.screen;
-  const assets: Assets = await loadAssets(basePath, [initialScreen]);
+  const assets: Assets = await loadAssets(basePath, [initialScreen], options.outfit);
 
   /** Already in flight, so repeated `set` calls cannot stack requests. */
   const fetching = new Set<string>();

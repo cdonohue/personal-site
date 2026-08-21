@@ -1,4 +1,5 @@
 import { PLAY_TAGS, SCREENSAVER_TAGS, WORK_TAGS, zonedParts } from './scene/render'
+import { outfitFor, type Outfit } from './scene/outfits'
 
 /**
  * What the room is doing: whether anyone is at the desk, and what is on screen.
@@ -110,6 +111,15 @@ export type Activity = {
    * an empty room to explain why the desk is high.
    */
   posture: 'seated' | 'standing'
+  /**
+   * What they are wearing.
+   *
+   * Derived from the date rather than rolled, which is the whole difference:
+   * one outfit a day, the same for everybody looking on that day, and a reload
+   * cannot change it. The other three fields here are chance; this one is a
+   * calendar.
+   */
+  outfit: Outfit
 }
 
 export const roll = (now: Date): Activity => {
@@ -120,6 +130,8 @@ export const roll = (now: Date): Activity => {
   // has no bearing on whether anyone came back to it.
   const posture = Math.random() < STANDING_CHANCE ? 'standing' : 'seated'
 
+  const outfit = outfitFor(now, TIME_ZONE)
+
   // Working hours are a guarantee rather than a weighting. Outside them the
   // curve takes over, and every value on it is small.
   const working = isWorkHours(at)
@@ -129,7 +141,7 @@ export const roll = (now: Date): Activity => {
     // just less likely than the alternative.
     const chance = working ? WORKING_CHANCE : WORKING_CHANCE_OFF_HOURS
     const screen = pick(Math.random() < chance ? WORK_TAGS : PLAY_TAGS)
-    return { presence: 'present', screen, posture }
+    return { presence: 'present', screen, posture, outfit }
   }
 
   // An empty room runs a screensaver, and which one varies between visits
@@ -138,5 +150,5 @@ export const roll = (now: Date): Activity => {
   //
   // The screen is never simply off. The only thing that darkens it is the plug
   // coming out of the wall, which is a visitor's doing rather than a schedule's.
-  return { presence: 'away', screen: pick(SCREENSAVER_TAGS), posture }
+  return { presence: 'away', screen: pick(SCREENSAVER_TAGS), posture, outfit }
 }

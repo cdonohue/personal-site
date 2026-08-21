@@ -33,13 +33,19 @@ export type Frame = { rect: Rect; duration: number };
 
 export type Tag = { name: string; from: number; to: number };
 
+/**
+ * What a sheet draws from. A canvas as well as an image, because the character
+ * is recoloured at load and the result of that is a canvas.
+ */
+export type SheetImage = HTMLImageElement | HTMLCanvasElement;
+
 export class Sheet {
-  readonly image: HTMLImageElement;
+  readonly image: SheetImage;
   readonly frames: Frame[];
   readonly tags: Tag[];
   readonly slices: Map<string, Rect>;
 
-  constructor(image: HTMLImageElement, sheet: RawSheet) {
+  constructor(image: SheetImage, sheet: RawSheet) {
     this.image = image;
 
     const raw = Array.isArray(sheet.frames) ? sheet.frames : Object.values(sheet.frames);
@@ -146,9 +152,18 @@ export const loadImage = (url: string): Promise<HTMLImageElement> =>
     image.src = url;
   });
 
-/** Load `<base>.png` + `<base>.json` as a Sheet. */
-export const loadSheet = async (base: string): Promise<Sheet> => {
+/**
+ * Load `<base>.png` + `<base>.json` as a Sheet.
+ *
+ * `transform` runs on the decoded image before the Sheet is built, for sheets
+ * that are repainted rather than drawn as exported. Doing it here rather than
+ * afterwards means nothing ever holds a Sheet whose pixels are about to change.
+ */
+export const loadSheet = async (
+  base: string,
+  transform?: (image: HTMLImageElement) => SheetImage,
+): Promise<Sheet> => {
   const [image, response] = await Promise.all([loadImage(`${base}.png`), fetch(`${base}.json`)]);
   if (!response.ok) throw new Error(`Failed to load sheet data: ${base}.json`);
-  return new Sheet(image, (await response.json()) as RawSheet);
+  return new Sheet(transform ? transform(image) : image, (await response.json()) as RawSheet);
 };

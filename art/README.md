@@ -330,6 +330,46 @@ to the seated pose, so an undrawn state reads as somebody who does not do that
 yet rather than as a flicker. Draw the pose and tag it before using those
 states.
 
+#### The colours are keys
+
+Every recolourable part carries its own value, and `src/scene/outfits.ts` maps
+those to whatever the outfit says. **These nine are a contract.** Change one
+here and it must change there on the same commit, or that part silently stops
+being recoloured — the remap never matches and the drawn colour ships instead.
+
+| part | key | note |
+|---|---|---|
+| hat top | `239,239,239` | |
+| hat edge | `170,170,170` | |
+| hat strap | `52,52,52` | one off the shoes, deliberately |
+| shirt fill | `223,223,223` | |
+| shirt shade | `154,154,154` | |
+| pants fill | `32,32,32` | |
+| pants shade | `33,33,33` | one off the fill, deliberately |
+| shoe fill | `53,53,53` | |
+| shoe shade | `54,54,54` | one off the fill, deliberately |
+
+Skin `255,223,186`, its highlight `255,238,219` and the startle marks
+`240,240,240` are **not** in that list. They are not clothing, and nothing
+should be able to tint them by accident.
+
+**Three of the keys sit one unit from a neighbour, and that is the point.** The
+strap and the shoes were the same colour, and the export flattens the layers, so
+nothing downstream could tell them apart. The pants and shoes had no shade at
+all, which does not matter while the trousers are near black and matters
+entirely the moment an outfit makes them light. One unit is invisible on any
+display, so the base art still looks exactly as drawn and doubles as the default
+outfit — verified byte-identical.
+
+The cost is three pairs of near-identical greys in the palette. **Converting
+this sprite to Indexed would fix that**, the way `digits.aseprite` already is:
+the pairs become labelled entries that cannot be merged by a stray brush stroke.
+Worth doing before the next repaint.
+
+Shade pixels replace outermost fill pixels rather than adding to the silhouette.
+The hip block and shoes are wide enough for a full outline; the legs are 3px and
+would be mostly outline, so they carry a shade on the outer side only.
+
 ### `chair.aseprite` — 40×86, the chair
 
 | tag | frames | ms | what |
