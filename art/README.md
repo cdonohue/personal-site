@@ -190,10 +190,14 @@ a glitch. Colours used: plate `32,32,32`, collapsing band `120,128,145`, the lin
 `225,232,245`, 45 ms a frame. The last off frame matches the dark plate in
 `room.png` exactly, so there is no pop at the hand-off.
 
-All screensavers are interchangeable, and one is picked per visit rather than
-per idle: swapping while somebody is watching reads as a glitch. Each is named
-for what it shows — a tag called `screensaver` sitting next to `bounce` reads as
-the category rather than a peer, and the category is what the list is for.
+All screensavers are interchangeable. An empty-room visit starts on one random
+choice and stays there unless the visitor clicks the monitor; each click advances
+through `SCREENSAVER_TAGS` in order and wraps at the end. The full set is
+preloaded only for those visits, so cycling never flashes the fallback work
+screen and occupied-room visits do not pay for art they cannot browse. Each is
+named for what it shows — a tag called `screensaver` sitting next to `bounce`
+reads as the category rather than a peer, and the category is what the list is
+for.
 
 The seven-screen expansion takes its cue from early graphical screensaver packs:
 limited palettes, unapologetically synthetic motion, and one readable subject
