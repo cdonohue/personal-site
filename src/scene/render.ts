@@ -1,7 +1,8 @@
 import { Sheet, loadImage, loadSheet } from './aseprite';
+import type { Frame } from './aseprite';
 import { Glow } from './glow';
 import { WEATHER_CONDITIONS, type Daylight, type ToggleValues, type Weather } from './toggles';
-import { OUTFITS, recolour, type Outfit } from './outfits';
+import { OUTFITS, inkStencil, recolour, type Outfit } from './outfits';
 
 /**
  * How the sky moves, in pixels per second. Motion comes from scrolling one
@@ -489,6 +490,61 @@ export const STARTLE_TAG: Record<Posture, string> = {
  */
 export const CHAIR_SHOVE_TAG = 'shove';
 
+/**
+ * Where a shirt logo sits, and how the runtime finds it on any frame.
+ *
+ * The shirt back above the waist translates rigidly with the torso, so one
+ * drawing works on every pose: the only thing that changes between frames is
+ * how far down the body is. `torsoTop` is measured per frame at load, which
+ * tracks that exactly and needs no table kept in step with the art.
+ *
+ * 14 wide because that is the clean run of shirt back on both poses, and 14
+ * tall to sit centred in the 22 rows standing has spare.
+ *
+ * **Seated it is very nearly invisible.** The chair back covers 86% of the
+ * shirt, leaving two rows at the shoulders. A logo is a standing feature, and
+ * with the desk up about a third of the time that is roughly one visit in
+ * three — absent on the others rather than wrong.
+ */
+const LOGO_LEFT = 13;
+/** Rows below the first row of shirt, which puts it mid-back standing. */
+const LOGO_TOP_OFFSET = 4;
+
+/** The shirt fill as drawn, used to find the torso before any recolouring. */
+const SHIRT_KEY: [number, number, number] = [223, 223, 223];
+
+/**
+ * The first row of shirt on each frame, or null where there is no shirt.
+ *
+ * Measured from the sheet as exported, before an outfit touches it: after the
+ * recolour the shirt is whatever colour was chosen, and matching that would
+ * move the anchor whenever somebody picked a shirt the same shade as something
+ * else. `away` has no shirt at all, so a logo switches itself off when nobody
+ * is there rather than needing to be told.
+ */
+const measureTorso = (
+  image: HTMLImageElement | HTMLCanvasElement,
+  frames: Frame[],
+): (number | null)[] => {
+  const canvas = scratch(image.width, image.height);
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return frames.map(() => null);
+  context.imageSmoothingEnabled = false;
+  context.drawImage(image, 0, 0);
+  const { data, width } = context.getImageData(0, 0, image.width, image.height);
+  const [r, g, b] = SHIRT_KEY;
+
+  return frames.map(({ rect }) => {
+    for (let y = rect.y; y < rect.y + rect.h; y += 1) {
+      for (let x = rect.x; x < rect.x + rect.w; x += 1) {
+        const i = (y * width + x) * 4;
+        if (data[i + 3] > 0 && data[i] === r && data[i + 1] === g && data[i + 2] === b) return y;
+      }
+    }
+    return null;
+  });
+};
+
 export type Assets = {
   /** Only used for its slices — the drawn room comes from `skies`. */
   room: Sheet;
@@ -551,6 +607,10 @@ export type Assets = {
   switchPlate: Sheet;
   dark: HTMLImageElement;
   digitGlow: Glow | null;
+  /** The current outfit's shirt logo, already inked. Null when it has none. */
+  logo: HTMLCanvasElement | null;
+  /** First row of shirt per character frame — see measureTorso. */
+  torsoTop: (number | null)[];
   /**
    * Repaint the character for a different outfit, in place.
    *
@@ -584,6 +644,24 @@ export const loadScreen = async (basePath: string, tag: string): Promise<Sheet |
 };
 
 /**
+ * Fetch a logo stencil, or null if it is not there.
+ *
+ * A missing logo costs a plain shirt rather than a broken page, for the same
+ * reason a missing screen costs the wrong picture: this is a name an outfit
+ * chose, and outfits are edited far more often than the art is.
+ */
+export const loadLogo = async (
+  basePath: string,
+  art: string,
+): Promise<HTMLImageElement | null> => {
+  try {
+    return await loadImage(`${basePath}/logo-${art}.png`);
+  } catch {
+    return null;
+  }
+};
+
+/**
  * `basePath` is where the exported PNG and JSON are served from. It is a
  * parameter rather than a constant because a host site almost certainly serves
  * them somewhere other than /art.
@@ -606,6 +684,10 @@ export const loadAssets = async (
   // later. Recolouring the recoloured copy would stack one outfit on the next.
   let characterSource: HTMLImageElement | null = null;
   let characterCanvas: HTMLCanvasElement | null = null;
+  // The stencil as drawn, kept unlinked so a change of ink does not have to
+  // refetch it — and so re-inking never compounds on the last colour.
+  let logoSource: HTMLImageElement | null = null;
+  let logoArt: string | null = null;
   // Deduplicated, and always with a fallback in it: the draw needs something to
   // reach for when it is handed a name that has not been drawn.
   const wanted = [...new Set([FALLBACK_SCREEN_TAG, ...screens])];
@@ -642,11 +724,15 @@ export const loadAssets = async (
     loadImage(`${basePath}/room.desk-top.png`),
     ...skyNames.map((sky) => loadImage(`${basePath}/room.${sky}.png`)),
     ...wanted.map((tag) => loadScreen(basePath, tag)),
+    outfit.shirt.logo ? loadLogo(basePath, outfit.shirt.logo.art) : Promise.resolve(null),
   ]);
   const skyImages = rest.slice(0, skyNames.length) as HTMLImageElement[];
-  const screenSheets = rest.slice(skyNames.length) as (Sheet | null)[];
+  const screenSheets = rest.slice(skyNames.length, skyNames.length + wanted.length) as (Sheet | null)[];
+  logoSource = rest[rest.length - 1] as HTMLImageElement | null;
+  logoArt = outfit.shirt.logo?.art ?? null;
   const skies = Object.fromEntries(skyNames.map((sky, index) => [sky, skyImages[index]]));
-  return {
+
+  const assets: Assets = {
     room,
     character,
     chair,
@@ -667,10 +753,36 @@ export const loadAssets = async (
     switchPlate,
     dark,
     digitGlow: DIGIT_GLOW ? Glow.build(digits.image, digits.frames) : null,
+    logo:
+      logoSource && outfit.shirt.logo ? inkStencil(logoSource, outfit.shirt.logo.ink) : null,
+    torsoTop: characterSource ? measureTorso(characterSource, character.frames) : [],
     dressCharacter(next) {
       if (characterSource && characterCanvas) recolour(characterSource, next, characterCanvas);
+
+      const wantedLogo = next.shirt.logo;
+      if (!wantedLogo) {
+        assets.logo = null;
+        return;
+      }
+      // Same drawing, different colour: re-ink what is already here. A
+      // different drawing has to be fetched, and lands when it lands — the
+      // shirt simply has no logo until then, which beats printing the old one
+      // in the new colour.
+      if (wantedLogo.art === logoArt && logoSource) {
+        assets.logo = inkStencil(logoSource, wantedLogo.ink);
+        return;
+      }
+      assets.logo = null;
+      loadLogo(basePath, wantedLogo.art).then((image) => {
+        if (!image) return;
+        logoSource = image;
+        logoArt = wantedLogo.art;
+        assets.logo = inkStencil(image, wantedLogo.ink);
+      });
     },
   };
+
+  return assets;
 };
 
 /** Offscreen scratch for clipping the sky to the glass. Reused every frame. */
@@ -931,7 +1043,7 @@ const drawCharacter = (
     'presence' | 'posture' | 'reducedMotion' | 'characterOneShot' | 'chairOneShot'
   > & { elapsed: number; wash: number; chairShift: number },
 ) => {
-  const { room, character, chair } = assets;
+  const { room, character, chair, logo, torsoTop } = assets;
   const at = room.slice('character');
   const {
     presence,
@@ -971,10 +1083,21 @@ const drawCharacter = (
       ? chair.frameOnce(reducedMotion ? 0 : chairOneShot.elapsed, chairOneShot.tag)
       : 0;
 
-  // Both figures go through the same path, and the chair goes second so its
-  // back still covers the seated body the way the layer did.
+  // Where the shirt starts on this frame, which is what the logo hangs off.
+  // Null on a frame with no shirt, so `away` needs no special case.
+  const shirtTop = torsoTop[frame] ?? null;
+
+  // Person, then logo, then chair. The logo goes inside this pass rather than
+  // after it for two reasons: it has to dim with the room like the rest of the
+  // shirt, and the chair has to be able to cover it — which seated it almost
+  // entirely does.
   const paint = (target: CanvasRenderingContext2D) => {
     character.draw(target, frame, at.x, at.y);
+    if (logo && shirtTop !== null) {
+      // Both are rows and columns within the frame, so they need the slice's
+      // own origin added to land in scene space.
+      target.drawImage(logo, at.x + LOGO_LEFT, at.y + shirtTop + LOGO_TOP_OFFSET);
+    }
     chair.draw(target, chairFrame, chairX, at.y);
   };
 

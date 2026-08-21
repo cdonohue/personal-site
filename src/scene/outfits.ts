@@ -17,7 +17,15 @@
 export type Outfit = {
   name: string;
   hat: { top: string; edge: string; strap: string };
-  shirt: { fill: string; shade: string };
+  /**
+   * `logo` names a stencil in `art/logo-<art>.png` and the colour to print it
+   * in. Optional, and most outfits will not have one.
+   *
+   * The ink is per outfit rather than baked into the drawing for the obvious
+   * reason: a fixed-colour logo disappears the day you make a shirt that
+   * colour. One drawing therefore works on light and dark shirts both.
+   */
+  shirt: { fill: string; shade: string; logo?: { art: string; ink: string } };
   pants: { fill: string; shade: string };
   shoes: { fill: string; shade: string };
 };
@@ -172,6 +180,34 @@ export const outfitFor = (date: Date, timeZone?: string): Outfit => {
   if (order[0] === previous[n - 1]) [order[0], order[1]] = [order[1], order[0]];
 
   return OUTFITS[order[position]];
+};
+
+/**
+ * Print a stencil in one colour.
+ *
+ * The logo art is treated as a mask: alpha is the shape and everything opaque
+ * becomes the ink, so it can be drawn in whatever colour is convenient and
+ * never needs a key. At the size this lands — fourteen pixels across — a second
+ * colour would not survive anyway, so the simplification costs nothing real.
+ */
+export const inkStencil = (
+  source: HTMLImageElement | HTMLCanvasElement,
+  colour: string,
+): HTMLCanvasElement => {
+  const canvas = document.createElement('canvas');
+  canvas.width = source.width;
+  canvas.height = source.height;
+  const context = canvas.getContext('2d');
+  if (!context) return canvas;
+
+  context.imageSmoothingEnabled = false;
+  context.drawImage(source, 0, 0);
+  // source-in keeps the fill inside the drawn pixels, so the transparent rest
+  // stays transparent — the same trick the night wash uses on the character.
+  context.globalCompositeOperation = 'source-in';
+  context.fillStyle = colour;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  return canvas;
 };
 
 /**

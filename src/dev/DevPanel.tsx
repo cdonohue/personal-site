@@ -55,7 +55,9 @@ const asSource = (outfit: Outfit): string =>
     `  {`,
     `    name: '${outfit.name}',`,
     `    hat: { top: '${outfit.hat.top}', edge: '${outfit.hat.edge}', strap: '${outfit.hat.strap}' },`,
-    `    shirt: { fill: '${outfit.shirt.fill}', shade: '${outfit.shirt.shade}' },`,
+    outfit.shirt.logo
+      ? `    shirt: { fill: '${outfit.shirt.fill}', shade: '${outfit.shirt.shade}', logo: { art: '${outfit.shirt.logo.art}', ink: '${outfit.shirt.logo.ink}' } },`
+      : `    shirt: { fill: '${outfit.shirt.fill}', shade: '${outfit.shirt.shade}' },`,
     `    pants: { fill: '${outfit.pants.fill}', shade: '${outfit.pants.shade}' },`,
     `    shoes: { fill: '${outfit.shoes.fill}', shade: '${outfit.shoes.shade}' },`,
     `  },`,
@@ -292,6 +294,78 @@ export default function DevPanel() {
                 </label>
               ))}
             </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-x-3 gap-y-2">
+              <label className="col-span-2 flex flex-col gap-1">
+                <span className={label}>shirt logo — art/logo-NAME.png</span>
+                <input
+                  className={field}
+                  placeholder="none"
+                  value={outfit.shirt.logo?.art ?? ''}
+                  onChange={(event) => {
+                    const art = event.target.value.trim()
+                    setOutfit((current) => ({
+                      ...current,
+                      shirt: {
+                        fill: current.shirt.fill,
+                        shade: current.shirt.shade,
+                        // Dropping the field entirely rather than keeping an
+                        // empty name, so the pasted source stays clean.
+                        ...(art ? { logo: { art, ink: current.shirt.logo?.ink ?? '#1a0e09' } } : {}),
+                      },
+                    }))
+                  }}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className={label}>ink</span>
+                <span className="flex items-center gap-1">
+                  <input
+                    type="color"
+                    className="h-7 w-7 rounded border border-white/15 bg-transparent"
+                    value={outfit.shirt.logo?.ink ?? '#1a0e09'}
+                    disabled={!outfit.shirt.logo}
+                    onChange={(event) =>
+                      setOutfit((current) =>
+                        current.shirt.logo
+                          ? {
+                              ...current,
+                              shirt: {
+                                ...current.shirt,
+                                logo: { ...current.shirt.logo, ink: event.target.value },
+                              },
+                            }
+                          : current,
+                      )
+                    }
+                  />
+                  <input
+                    className="w-full rounded border border-white/15 bg-black/30 px-1 py-0.5 font-mono text-xs"
+                    value={outfit.shirt.logo?.ink ?? ''}
+                    placeholder="—"
+                    disabled={!outfit.shirt.logo}
+                    onChange={(event) =>
+                      setOutfit((current) =>
+                        current.shirt.logo
+                          ? {
+                              ...current,
+                              shirt: {
+                                ...current.shirt,
+                                logo: { ...current.shirt.logo, ink: event.target.value },
+                              },
+                            }
+                          : current,
+                      )
+                    }
+                  />
+                </span>
+              </label>
+            </div>
+
+            <p className="mt-2 text-xs opacity-50">
+              A logo is 14x14, alpha is the shape, and the ink colours it. Only really visible
+              standing — the chair hides 86% of the shirt.
+            </p>
 
             <div className="mt-3 flex items-center gap-2">
               <button className={button} onClick={copy}>

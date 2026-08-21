@@ -384,6 +384,46 @@ cap covers it on all 23 frames — zero pixels of it reach the export. It is the
 for a hatless pose, so drawing one is a matter of hiding the `hat` layer rather
 than inventing a scalp.
 
+### `logo-*.aseprite` — 14×14, shirt logos
+
+A stencil, not a drawing. **Alpha is the shape and the colour is ignored** —
+the outfit supplies the ink, so one file works on a light shirt and a dark one.
+Draw it in whatever is convenient.
+
+**It has to be an `.aseprite`, even though only the PNG is read.** The plugin
+finds art by globbing `*.aseprite` and only emits the outputs derived from
+those names, so a hand-authored PNG dropped into `art/` is served in dev by the
+middleware and then silently missing from the build — the one failure mode that
+looks like everything working.
+
+An outfit opts in by naming the file without its prefix:
+
+```ts
+shirt: { fill: '#c96f43', shade: '#8c4a2f', logo: { art: 'monogram', ink: '#1a0e09' } }
+```
+
+The runtime finds the spot by measuring the first row of shirt on each frame,
+so **one drawing covers every pose** and it keeps working if the character is
+redrawn. `away` has no shirt, so a logo switches itself off when nobody is
+there without being told. A name with no file costs a plain shirt rather than a
+broken page.
+
+**It is a standing feature.** Seated, the chair back covers 86% of the shirt —
+40 pixels visible against 252 hidden — leaving two rows at the shoulders and a
+sliver either side of the seat. With the desk up about a third of the time,
+that is roughly one visit in three.
+
+14×14 is what fits: the clean run of shirt back is 14 wide on both poses, and
+standing has 22 rows spare. At that size, with one ink, expect a glyph or a
+two-letter monogram. A wordmark will not survive — the same limit that killed
+the Matrix-rain and starfield screensavers, where many small independent
+elements resolve to noise.
+
+`logo-monogram` is a placeholder to check the plumbing against. No outfit
+references it; delete it once there are real ones. Its exported `.json` goes
+unread — the runtime loads the PNG as a plain image, since a one-frame stencil
+has no frames or tags worth parsing.
+
 ### `chair.aseprite` — 40×86, the chair
 
 | tag | frames | ms | what |
