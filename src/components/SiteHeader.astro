@@ -1,5 +1,6 @@
 ---
 import { navigation, siteName } from '../content'
+import Link from './Link.astro'
 
 /**
  * The masthead, shared by every page.
@@ -38,14 +39,14 @@ const isCurrent = (to: string, end?: boolean) => {
 
 <header data-role="masthead" class="mb-12 sm:flex sm:items-baseline sm:justify-between">
   <h1 data-role="site-name" class="mb-8 sm:mb-0">
-    <a href="/">{siteName}</a>
+    <Link href="/">{siteName}</Link>
   </h1>
   <nav class="flex gap-8">
     {
       navigation.map(({ label, to, end }) => (
-        <a href={to} aria-current={isCurrent(to, end) ? 'page' : undefined}>
+        <Link href={to} aria-current={isCurrent(to, end) ? 'page' : undefined}>
           {label}
-        </a>
+        </Link>
       ))
     }
   </nav>

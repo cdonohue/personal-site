@@ -115,3 +115,8 @@ directions.
 Colours come from the scene rather than being invented, so the page and the
 illustration read as one thing. Every text colour clears 4.5:1 on its own
 background in both schemes.
+
+Every anchor goes through `src/components/Link.astro`, which decides for itself
+whether it leaves the site and opens a new tab if it does. That is a property of
+the component rather than a convention to remember — it was a convention until
+now, and had already been missed once.

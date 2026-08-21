@@ -1,0 +1,45 @@
+---
+/**
+ * A link that decides for itself whether it leaves the site.
+ *
+ * Every anchor on the site goes through this, so "external links open in a new
+ * tab" is a property of the component rather than a convention someone has to
+ * remember. It was a convention until now, and it had already been missed once:
+ * the Experience page set target and rel by hand while the home page's one
+ * outbound link did not.
+ *
+ * `rel` carries `noopener` for the security reason — without it the opened page
+ * can reach back through `window.opener`. Modern browsers imply it for
+ * `target="_blank"`, but old ones do not and it costs nothing to be explicit.
+ * `noreferrer` rides along, which also hides where the traffic came from; drop
+ * it if you would rather the companies you link to see the referral.
+ */
+interface Props {
+  href: string;
+  class?: string;
+  [key: string]: unknown;
+}
+
+const { href, ...rest } = Astro.props;
+
+/**
+ * External means another origin, not merely another scheme.
+ *
+ * `mailto:` and `tel:` are handed to a mail client or a phone, so a new tab
+ * would leave an empty one behind. Protocol-relative `//host` counts, since it
+ * is an absolute URL wearing a shorthand.
+ */
+const isExternal = /^(https?:)?\/\//i.test(href);
+---
+
+{
+  isExternal ? (
+    <a href={href} target="_blank" rel="noopener noreferrer" {...rest}>
+      <slot />
+    </a>
+  ) : (
+    <a href={href} {...rest}>
+      <slot />
+    </a>
+  )
+}
