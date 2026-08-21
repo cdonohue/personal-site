@@ -107,6 +107,38 @@ const COLON_LIT_FRAME = 10;
 const COLON_DIM_FRAME = 11;
 const DIGIT_BLANK_FRAME = 12;
 
+/**
+ * The highest the desktop can physically go, in scene pixels.
+ *
+ * Set by the art, not by taste. The inner post can slide 17px out of the middle
+ * sleeve and the sleeve 7px out of the fixed one, and each joint keeps 3px of
+ * overlap so it still reads as a column: 14 + 4. Past about 20 the joints run
+ * out of overlap and the leg visibly comes apart, so this is a hard clamp
+ * rather than a suggestion.
+ */
+export const DESK_MAX = 18;
+
+/**
+ * Where the desk comes to rest when raised.
+ *
+ * Deliberately short of the maximum, and by a measured amount rather than a
+ * guess. The spring's natural peak from here is 17.5, which clears the 18px
+ * ceiling: the clamp stays a safety net instead of becoming the behaviour. At
+ * 15 the arc peaked at 18.8 and was chopped off mid-bounce, which reads as the
+ * desk hitting something rather than as a spring settling.
+ */
+export const DESK_RAISED = 14;
+
+/**
+ * The middle sleeve's share of the maximum travel.
+ *
+ * The stages have different strokes, so moving them at the same rate would run
+ * the sleeve out of room while the post still had 10px left, and the column
+ * would visibly come apart. Proportional to stroke means both joints move for
+ * the whole journey and both arrive at their limit together.
+ */
+const LEGS_MID_SHARE = 4 / 18;
+
 /** switch.aseprite frames are states, not a timeline. */
 const SWITCH_OFF_FRAME = 0;
 const SWITCH_ON_FRAME = 1;
@@ -275,9 +307,17 @@ export type Assets = {
   /** Only used for its slices — the drawn room comes from `skies`. */
   room: Sheet;
   character: Sheet;
-  /** Redrawn over the character: the desk lip, and what rests on the desk. */
-  deskFront: HTMLImageElement;
-  deskItems: HTMLImageElement;
+  /**
+   * The desk, in the four pieces it has to be drawn in.
+   *
+   * It is no longer part of the room plate, because it moves. The order below
+   * is the order they must be composited: the two sliding leg sections, then
+   * the fixed sleeve that covers them, then the desktop and everything on it.
+   */
+  deskLegsInner: HTMLImageElement;
+  deskLegsMid: HTMLImageElement;
+  deskLegsFixed: HTMLImageElement;
+  deskTop: HTMLImageElement;
   /** One tileable frame per condition, scrolled and clipped to the glass. */
   weather: Sheet;
   /**
@@ -311,8 +351,10 @@ export const loadAssets = async (basePath = '/art'): Promise<Assets> => {
     weather,
     character,
     dark,
-    deskFront,
-    deskItems,
+    deskLegsInner,
+    deskLegsMid,
+    deskLegsFixed,
+    deskTop,
     ...skyImages
   ] = await Promise.all([
     loadSheet(`${basePath}/room`),
@@ -322,16 +364,20 @@ export const loadAssets = async (basePath = '/art'): Promise<Assets> => {
     loadSheet(`${basePath}/weather`),
     loadSheet(`${basePath}/character`),
     loadImage(`${basePath}/room.dark.png`),
-    loadImage(`${basePath}/room.desk-front.png`),
-    loadImage(`${basePath}/room.desk-items.png`),
+    loadImage(`${basePath}/room.legs-inner.png`),
+    loadImage(`${basePath}/room.legs-mid.png`),
+    loadImage(`${basePath}/room.legs-fixed.png`),
+    loadImage(`${basePath}/room.desk-top.png`),
     ...skyNames.map((sky) => loadImage(`${basePath}/room.${sky}.png`)),
   ]);
   const skies = Object.fromEntries(skyNames.map((sky, index) => [sky, skyImages[index]]));
   return {
     room,
     character,
-    deskFront,
-    deskItems,
+    deskLegsInner,
+    deskLegsMid,
+    deskLegsFixed,
+    deskTop,
     weather,
     glass: buildGlassMask(skies['clear-day'], skies['clear-night']),
     skies,
@@ -476,6 +522,11 @@ export type SceneState = {
   now: Date;
   /** Zone the room keeps. Omitted, the scene runs on the viewer's own clock. */
   timeZone?: string;
+  /**
+   * How far the desk has risen, 0 to DESK_TRAVEL. Eased by the caller, so this
+   * is a real number mid-journey rather than one of two settled heights.
+   */
+  deskOffset?: number;
   /** Which screensaver the idle screen plays. Falls back to the first. */
   screensaverTag?: string;
   /** Freezes the monitor loop and holds the colon lit. */
@@ -581,10 +632,9 @@ const drawCharacter = (
 };
 
 export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, state: SceneState) => {
-  // character, deskFront and deskItems are not pulled out here: the character
-  // is drawn last by drawCharacter, and once it moved in front of the desk the
-  // lip and desk-top items no longer needed redrawing over it.
+  // The character is not pulled out here: it is drawn last by drawCharacter.
   const { room, skies, screen, digits, switchPlate, dark, digitGlow } = assets;
+  const { deskLegsInner, deskLegsMid, deskLegsFixed, deskTop } = assets;
   const {
     elapsed,
     now,
@@ -598,6 +648,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     presence,
     timeZone,
     screensaverTag,
+    deskOffset = 0,
   } = state;
 
   context.imageSmoothingEnabled = false;
@@ -618,6 +669,30 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   // Moving sky goes straight on top of the static one, still behind everything
   // in the room, and clipped so it never reaches the mic arm or the desk.
   drawSky(context, assets, weather, elapsed, nightAmount);
+
+  /**
+   * The desk, on top of the sky so it occludes the window.
+   *
+   * That occlusion used to come from flattening the desk into the room plate,
+   * which is exactly what stopped it moving: the glass mask is derived by
+   * diffing the day and night plates, so a desk baked into both was invisible
+   * to the mask and could never be anywhere else. Drawn here instead, the mask
+   * describes the whole window and the desk covers whatever part of it the desk
+   * happens to be in front of.
+   *
+   * Order matters and is not adjustable: the sliding sections first, then the
+   * fixed sleeve that hides where they emerge, then the desktop over both.
+   */
+  //
+  // Rounded per piece rather than once: at a fractional offset the post and the
+  // desktop must land on the same row or a seam opens between them.
+  const deskRise = Math.round(deskOffset);
+  const midRise = Math.round(deskOffset * LEGS_MID_SHARE);
+
+  context.drawImage(deskLegsInner, 0, -deskRise);
+  context.drawImage(deskLegsMid, 0, -midRise);
+  context.drawImage(deskLegsFixed, 0, 0);
+  context.drawImage(deskTop, 0, -deskRise);
 
   // The switch is a wall object, so it belongs under the wash and dims with
   // everything else. Only the screens are emissive.
@@ -643,19 +718,21 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
       ? screensaverTag
       : MONITOR_TAG[monitor.phase];
   if (tag) {
+    // Rides the desk, so the content has to move with the bezel around it.
     const at = room.slice('monitor-screen');
     // Content loops off the scene clock; the power transitions are one-shots
     // timed from the toggle and held on their last frame.
     const looping = monitor.phase === 'on' || monitor.phase === 'game' || monitor.phase === 'idle';
     const frame = looping ? screen.frameAt(elapsed, tag) : screen.frameOnce(monitor.elapsed, tag);
-    screen.draw(context, frame, at.x, at.y);
+    screen.draw(context, frame, at.x, at.y - deskRise);
   }
 
+  // Rides the desk too.
   const clock = room.slice('clock-screen');
   const placed = clockGlyphs(now, reducedMotion, hour24, timeZone).map((glyph, index) => ({
     glyph,
     x: clock.x + CLOCK_PADDING_X + index * GLYPH_ADVANCE,
-    y: clock.y + CLOCK_PADDING_Y,
+    y: clock.y + CLOCK_PADDING_Y - deskRise,
   }));
 
   if (digitGlow) placed.forEach(({ glyph, x, y }) => digitGlow.draw(context, glyph, x, y));

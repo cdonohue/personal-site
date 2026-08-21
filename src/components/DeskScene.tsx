@@ -32,6 +32,15 @@ const SCENE_H = 108
 const MIN_TARGET_PX = 44
 
 /**
+ * How often the hit targets resample the desk's eased height.
+ *
+ * Coarse on purpose. This only moves a hit box, and re-rendering React sixty
+ * times a second to follow an eighteen pixel slide would be absurd; the canvas
+ * is doing the actual animation.
+ */
+const DESK_SAMPLE_MS = 80
+
+/**
  * How far each row is inset at the corners, outermost first, in scene pixels.
  *
  * A CSS border-radius is the wrong tool here: it draws a smooth antialiased
@@ -79,6 +88,8 @@ export default function DeskScene() {
   const sceneRef = useRef<DeskRoom | null>(null)
 
   const [slices, setSlices] = useState<Map<string, Rect> | null>(null)
+  /** Mirrors the scene's eased desk height, so hit targets stay under the finger. */
+  const [deskOffset, setDeskOffset] = useState(0)
   const [scale, setScale] = useState(0)
   const [failed, setFailed] = useState(false)
 
@@ -155,7 +166,7 @@ export default function DeskScene() {
         sceneRef.current = created
         setSlices(
           new Map(
-            ['light-switch', 'monitor-screen', 'clock-screen']
+            ['light-switch', 'monitor-screen', 'clock-screen', 'desk-controls']
               .map((name) => [name, created.slice(name)] as const)
               .filter((entry): entry is [string, Rect] => Boolean(entry[1])),
           ),
@@ -179,6 +190,15 @@ export default function DeskScene() {
   useEffect(() => {
     sceneRef.current?.set(values)
   }, [values])
+
+  // Follow the desk while it travels, then stop.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const current = sceneRef.current?.deskOffset() ?? 0
+      setDeskOffset((previous) => (Math.abs(previous - current) < 0.01 ? previous : current))
+    }, DESK_SAMPLE_MS)
+    return () => window.clearInterval(timer)
+  }, [])
 
   // Track the column width; the scene fills it.
   useEffect(() => {
@@ -216,14 +236,18 @@ export default function DeskScene() {
 
   if (failed) return null
 
-  const hitBox = (slice: Rect) => {
+  /** Slices that ride the desk, so their hit targets have to ride it too. */
+  const RIDES_THE_DESK = new Set(['monitor-screen', 'clock-screen', 'desk-controls'])
+
+  const hitBox = (slice: Rect, rides: boolean) => {
+    const lift = rides ? Math.round(deskOffset) : 0
     const width = Math.max(slice.w * scale, MIN_TARGET_PX)
     const height = Math.max(slice.h * scale, MIN_TARGET_PX)
     return {
       width,
       height,
       left: (slice.x + slice.w / 2) * scale - width / 2,
-      top: (slice.y + slice.h / 2) * scale - height / 2,
+      top: (slice.y - lift + slice.h / 2) * scale - height / 2,
     }
   }
 
@@ -237,6 +261,11 @@ export default function DeskScene() {
       slice: 'monitor-screen',
       label: 'Turn the monitor on or off',
       onClick: toggleMonitor,
+    },
+    {
+      slice: 'desk-controls',
+      label: 'Raise or lower the desk',
+      onClick: () => sceneRef.current?.toggleDesk(),
     },
     {
       slice: 'clock-screen',
@@ -272,7 +301,7 @@ export default function DeskScene() {
                 key={slice}
                 type="button"
                 onClick={onClick}
-                style={hitBox(bounds)}
+                style={hitBox(bounds, RIDES_THE_DESK.has(slice))}
                 className="absolute cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
               >
                 <span className="sr-only">{label}</span>

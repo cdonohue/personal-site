@@ -1,5 +1,7 @@
 import type { Rect } from './aseprite';
 import {
+  DESK_MAX,
+  DESK_RAISED,
   SCREENSAVER_TAGS,
   SCENE_HEIGHT,
   SCENE_WIDTH,
@@ -30,8 +32,16 @@ export type DeskRoom = {
   /**
    * Bounds of a named slice, in scene pixels. Hosts need these to place their
    * own hit targets over the switch, clock and monitor.
+   *
+   * Slices are static, but some of them ride the desk. `deskOffset` says how
+   * far that is right now, so a host can shift a hit target to match rather
+   * than leaving the button behind when the desk goes up.
    */
   slice(name: string): Rect | undefined;
+  /** How far the desk has currently risen, in scene pixels. */
+  deskOffset(): number;
+  /** Raise or lower the desk. It travels rather than jumping. */
+  toggleDesk(): void;
   start(): void;
   stop(): void;
 };
@@ -60,6 +70,50 @@ export type DeskRoomOptions = {
 
 /** How quickly the wash and the night level chase their targets. */
 const EASING = 0.18;
+
+/**
+ * The desk's spring, tuned against the pixel grid rather than by feel.
+ *
+ * Slack on purpose. A stiffer spring reached full height in 0.15s, which is
+ * snappy-toggle timing and reads as a panel sliding rather than as furniture
+ * being driven up. This takes 0.32s to the top and about a second to stop
+ * moving, which is still far quicker than a real desk but heavy enough to
+ * suggest one.
+ *
+ * Lowering both constants together does not achieve this: stiffness drives the
+ * rise and damping only governs the tail, so slackening both stretches the
+ * settle while leaving the climb just as abrupt. Stiffness had to come down
+ * five-fold and damping only half.
+ *
+ * Damping governs the bounce and barely touches the climb, which is why it is
+ * the knob for this: 0.12 overshot by 3px and rocked back through two rows,
+ * which was more than furniture should do. At 0.15 it lifts 2px past its rest
+ * and settles straight down through one row.
+ *
+ * Tuned together with DESK_RAISED so the arc finishes without touching the
+ * ceiling: from a rest of 14 it peaks at 15.76 against an 18px limit, so the
+ * clamp fires on no frames at all.
+ */
+const DESK_STIFFNESS = 0.02;
+
+/**
+ * Damping differs by direction, because the two journeys are not the same
+ * event.
+ *
+ * Going up, the desk is driven to a height and settles there, so a little
+ * overshoot reads as a motor arriving: 2px past its rest and back through one
+ * row.
+ *
+ * Coming down it is returning to its stop, and there is nothing below to bounce
+ * off. Shared damping made it accelerate the whole way, undershoot to -0.45 and
+ * sit clamped against the floor for fifteen frames — it hit the bottom flat.
+ * Critical damping for this stiffness is 2 * sqrt(0.02), about 0.28 — the point
+ * where overshoot disappears. This sits just past it, overdamped on purpose, so
+ * the arrival is unmistakably slow rather than merely not-bouncing: the last
+ * pixel takes thirteen frames where the first took one.
+ */
+const DESK_DAMPING_UP = 0.15;
+const DESK_DAMPING_DOWN = 0.31;
 
 export const createDeskRoom = async (
   canvas: HTMLCanvasElement,
@@ -103,6 +157,21 @@ export const createDeskRoom = async (
     since: 0,
   };
 
+  /**
+   * The desk is sprung rather than eased.
+   *
+   * Everything else here chases its target exponentially, which decelerates
+   * smoothly and never arrives from the far side. A desk that overshoots and
+   * settles reads as something with mass being driven into place, which is most
+   * of the point of a sit/stand desk.
+   *
+   * Position and velocity, integrated per frame, clamped to what the leg can
+   * physically do. Reduced motion skips to the resting height.
+   */
+  let deskRaised = false;
+  let desk = 0;
+  let deskVelocity = 0;
+
   let handle = 0;
   let startedAt = 0;
 
@@ -113,6 +182,23 @@ export const createDeskRoom = async (
     night = reducedMotion ? nightTarget : night + (nightTarget - night) * EASING;
     const washTarget = washFor(values.roomLight === 'on', night);
     wash = reducedMotion ? washTarget : wash + (washTarget - wash) * EASING;
+
+    const deskTarget = deskRaised ? DESK_RAISED : 0;
+    if (reducedMotion) {
+      desk = deskTarget;
+      deskVelocity = 0;
+    } else {
+      const damping = deskRaised ? DESK_DAMPING_UP : DESK_DAMPING_DOWN;
+      deskVelocity += (deskTarget - desk) * DESK_STIFFNESS - deskVelocity * damping;
+      desk = Math.max(0, Math.min(DESK_MAX, desk + deskVelocity));
+      // A spring never quite arrives, so it has to be told when it is close
+      // enough. Both terms matter: position alone would snap it mid-bounce, on
+      // the frame it passes through its own target at speed.
+      if (Math.abs(deskTarget - desk) < 0.05 && Math.abs(deskVelocity) < 0.05) {
+        desk = deskTarget;
+        deskVelocity = 0;
+      }
+    }
 
     // idle and game are powered states too — they only swap content, so
     // switching between them must not replay the power transition.
@@ -154,6 +240,7 @@ export const createDeskRoom = async (
       nightAmount: night,
       weather: values.weather,
       presence: values.presence,
+      deskOffset: desk,
     });
 
     handle = window.requestAnimationFrame(step);
@@ -170,6 +257,12 @@ export const createDeskRoom = async (
     },
     slice(name) {
       return assets.room.slices.get(name);
+    },
+    deskOffset() {
+      return desk;
+    },
+    toggleDesk() {
+      deskRaised = !deskRaised;
     },
     start() {
       if (handle) return;
