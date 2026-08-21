@@ -42,6 +42,16 @@ export type DeskRoom = {
   deskOffset(): number;
   /** Raise or lower the desk. It travels rather than jumping. */
   toggleDesk(): void;
+  /**
+   * Pull the plug out of the wall, or push it back in.
+   *
+   * Cuts the monitor's power while it is out, whatever the schedule wants, and
+   * the monitor plays its own power-off as it goes — the desk is fed from that
+   * outlet, so this is the mains going rather than a setting changing.
+   */
+  toggleCable(): void;
+  /** True while the plug is out. */
+  cableUnplugged(): boolean;
   start(): void;
   stop(): void;
 };
@@ -94,6 +104,9 @@ const EASING = 0.18;
  * ceiling: from a rest of 14 it peaks at 15.76 against an 18px limit, so the
  * clamp fires on no frames at all.
  */
+/** The plug drops rather than travels, so this is far brisker than the desk. */
+const CABLE_FALL_EASING = 0.22;
+
 const DESK_STIFFNESS = 0.02;
 
 /**
@@ -172,6 +185,13 @@ export const createDeskRoom = async (
   let desk = 0;
   let deskVelocity = 0;
 
+  /**
+   * The plug. Eased so it drops rather than teleporting, and quickly — it is
+   * falling, not travelling.
+   */
+  let cablePlugged = true;
+  let cableFall = 0;
+
   let handle = 0;
   let startedAt = 0;
 
@@ -182,6 +202,10 @@ export const createDeskRoom = async (
     night = reducedMotion ? nightTarget : night + (nightTarget - night) * EASING;
     const washTarget = washFor(values.roomLight === 'on', night);
     wash = reducedMotion ? washTarget : wash + (washTarget - wash) * EASING;
+
+    const fallTarget = cablePlugged ? 0 : 1;
+    cableFall = reducedMotion ? fallTarget : cableFall + (fallTarget - cableFall) * CABLE_FALL_EASING;
+    if (Math.abs(fallTarget - cableFall) < 0.01) cableFall = fallTarget;
 
     const deskTarget = deskRaised ? DESK_RAISED : 0;
     if (reducedMotion) {
@@ -202,7 +226,10 @@ export const createDeskRoom = async (
 
     // idle and game are powered states too — they only swap content, so
     // switching between them must not replay the power transition.
-    const wantOn = values.monitor !== 'off';
+    //
+    // An unplugged cable beats the schedule outright: the desk is fed from that
+    // outlet, so there is no power to be on with.
+    const wantOn = values.monitor !== 'off' && cablePlugged;
     if (wantOn && (monitor.phase === 'off' || monitor.phase === 'turning-off')) {
       monitor.phase = 'turning-on';
       monitor.since = time;
@@ -241,6 +268,7 @@ export const createDeskRoom = async (
       weather: values.weather,
       presence: values.presence,
       deskOffset: desk,
+      cableFall,
     });
 
     handle = window.requestAnimationFrame(step);
@@ -263,6 +291,12 @@ export const createDeskRoom = async (
     },
     toggleDesk() {
       deskRaised = !deskRaised;
+    },
+    toggleCable() {
+      cablePlugged = !cablePlugged;
+    },
+    cableUnplugged() {
+      return !cablePlugged;
     },
     start() {
       if (handle) return;

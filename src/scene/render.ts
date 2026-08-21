@@ -139,6 +139,41 @@ export const DESK_RAISED = 14;
  */
 const LEGS_MID_SHARE = 4 / 18;
 
+/**
+ * The desk's power cable, drawn rather than exported.
+ *
+ * It runs from the plug along the floor and stops at the foot of the near desk
+ * leg, where the leg covers its end — the rest of the run is understood to go
+ * up inside the column, as it does on a real desk.
+ *
+ * Drawn rather than exported because the plug end moves: it drops to the floor
+ * when pulled, and a sprite would need a frame for every point of that fall.
+ *
+ * Earlier versions carried it all the way up to the desk underside, first as a
+ * hanging curve and then as a coil. Both had the same problem — a cable
+ * crossing open wall is a strong diagonal in the middle of the frame, and it
+ * competed with the desk rather than supporting it. Stopping at the leg says
+ * the same thing and shows less.
+ */
+const CABLE_FROM = { x: 11, y: 89 };
+
+/**
+ * Where the plug ends up once it is pulled. Straight down onto the floor and a
+ * little clear of the wall, as a plug on a stiff cable does.
+ */
+const CABLE_FALLEN = { x: 14, y: 95 };
+
+/** The row the run lies on, one above the floor line at y96. */
+const CABLE_FLOOR = 95;
+
+/**
+ * Where it disappears. The leg's foot spans x46–53, so ending inside that
+ * covers the end rather than leaving it stopping in open floor.
+ */
+const CABLE_END = 48;
+
+const CABLE_COLOUR = '#3a3a3e';
+
 /** switch.aseprite frames are states, not a timeline. */
 const SWITCH_OFF_FRAME = 0;
 const SWITCH_ON_FRAME = 1;
@@ -527,6 +562,8 @@ export type SceneState = {
    * is a real number mid-journey rather than one of two settled heights.
    */
   deskOffset?: number;
+  /** 0 plugged in, 1 lying on the floor. Eased by the caller, so the plug falls. */
+  cableFall?: number;
   /** Which screensaver the idle screen plays. Falls back to the first. */
   screensaverTag?: string;
   /** Freezes the monitor loop and holds the colon lit. */
@@ -631,6 +668,56 @@ const drawCharacter = (
   context.drawImage(characterBuffer, 0, 0);
 };
 
+/**
+ * The cable, stepped onto whole pixels.
+ *
+ * Drawn before the legs so the near one covers where the run ends.
+ *
+ * Stepped by hand rather than stroked, because a stroked path is antialiased
+ * and would put grey fringes on the one line in the scene that has to look
+ * drawn.
+ */
+const drawCable = (context: CanvasRenderingContext2D, fall: number) => {
+  const from = {
+    x: CABLE_FROM.x + (CABLE_FALLEN.x - CABLE_FROM.x) * fall,
+    y: CABLE_FROM.y + (CABLE_FALLEN.y - CABLE_FROM.y) * fall,
+  };
+
+  const points: [number, number][] = [];
+  const push = (x: number, y: number) => {
+    const px = Math.round(x);
+    const py = Math.round(y);
+    const last = points[points.length - 1];
+    if (!last || last[0] !== px || last[1] !== py) points.push([px, py]);
+  };
+
+  // Down from the plug onto the floor.
+  for (let i = 0; i <= 40; i += 1) {
+    const t = i / 40;
+    const u = 1 - t;
+    push(
+      u * u * from.x + 2 * u * t * 14 + t * t * 18,
+      u * u * from.y + 2 * u * t * CABLE_FLOOR + t * t * CABLE_FLOOR,
+    );
+  }
+
+  // Flat along the floor to the leg. It stays on the ground the whole way: a
+  // wave here lifted it back off the floor mid-run, which reads as a cable
+  // caught on something rather than one lying where it fell.
+  for (let x = 18; x <= CABLE_END; x += 1) push(x, CABLE_FLOOR);
+
+  context.fillStyle = CABLE_COLOUR;
+
+  /**
+   * The plug: a stub at the free end. Without it the cable merely starts lower
+   * when unplugged, far too quiet a signal for something that has just killed
+   * the monitor.
+   */
+  context.fillRect(Math.round(from.x), Math.round(from.y) - 1, 2, 3);
+
+  for (const [x, y] of points) context.fillRect(x, y, 1, 1);
+};
+
 export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, state: SceneState) => {
   // The character is not pulled out here: it is drawn last by drawCharacter.
   const { room, skies, screen, digits, switchPlate, dark, digitGlow } = assets;
@@ -649,6 +736,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     timeZone,
     screensaverTag,
     deskOffset = 0,
+    cableFall = 0,
   } = state;
 
   context.imageSmoothingEnabled = false;
@@ -688,6 +776,10 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   // desktop must land on the same row or a seam opens between them.
   const deskRise = Math.round(deskOffset);
   const midRise = Math.round(deskOffset * LEGS_MID_SHARE);
+
+  // The cable runs against the wall, so it goes behind the legs. Drawn after
+  // them it visibly cut across the near leg on its way to the desk.
+  drawCable(context, cableFall);
 
   context.drawImage(deskLegsInner, 0, -deskRise);
   context.drawImage(deskLegsMid, 0, -midRise);

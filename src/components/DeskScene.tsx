@@ -166,7 +166,7 @@ export default function DeskScene() {
         sceneRef.current = created
         setSlices(
           new Map(
-            ['light-switch', 'monitor-screen', 'clock-screen', 'desk-controls']
+            ['light-switch', 'monitor-screen', 'clock-screen', 'desk-controls', 'power-outlet']
               .map((name) => [name, created.slice(name)] as const)
               .filter((entry): entry is [string, Rect] => Boolean(entry[1])),
           ),
@@ -266,6 +266,11 @@ export default function DeskScene() {
       slice: 'desk-controls',
       label: 'Raise or lower the desk',
       onClick: () => sceneRef.current?.toggleDesk(),
+    },
+    {
+      slice: 'power-outlet',
+      label: 'Unplug the desk, or plug it back in',
+      onClick: () => sceneRef.current?.toggleCable(),
     },
     {
       slice: 'clock-screen',
