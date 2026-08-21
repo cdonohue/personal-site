@@ -8,11 +8,13 @@
  * the Experience page set target and rel by hand while the home page's one
  * outbound link did not.
  *
- * `rel` carries `noopener` for the security reason — without it the opened page
- * can reach back through `window.opener`. Modern browsers imply it for
- * `target="_blank"`, but old ones do not and it costs nothing to be explicit.
- * `noreferrer` rides along, which also hides where the traffic came from; drop
- * it if you would rather the companies you link to see the referral.
+ * `rel` is `noopener` and only `noopener`. Without it the opened page can reach
+ * back through `window.opener`; browsers imply it for `target="_blank"` now,
+ * but saying it costs nothing and covers the old ones.
+ *
+ * Deliberately not `noreferrer`, which the usual copy-paste pairs it with. That
+ * one hides where the traffic came from, and the whole point of these links is
+ * that somebody arrived from here.
  */
 interface Props {
   href: string;
@@ -34,7 +36,7 @@ const isExternal = /^(https?:)?\/\//i.test(href);
 
 {
   isExternal ? (
-    <a href={href} target="_blank" rel="noopener noreferrer" {...rest}>
+    <a href={href} target="_blank" rel="noopener" {...rest}>
       <slot />
     </a>
   ) : (
