@@ -410,6 +410,40 @@ export const PRESENCE_TAG: Record<ToggleValues['presence'], string> = {
 };
 
 /**
+ * Which tag the character should play, and whether it plays once.
+ *
+ * Split out and given a plain predicate instead of a Sheet so it can be
+ * exercised without a canvas. It is worth that: the fallback chain here has
+ * been wrong twice, and both times the symptom was the whole sheet playing —
+ * idle, the empty chair, the startle and both transitions in a loop — which
+ * reads as the scene being broken rather than as a pose being missing.
+ *
+ * Candidates are tried in order and the first the sheet actually has wins.
+ * Falling back to `PRESENCE_TAG[presence]` is what went wrong before: for a
+ * presence whose pose is undrawn that is the same missing name again, so the
+ * chain never terminated anywhere real. The seated idle is the one pose that
+ * must exist, so it anchors the end.
+ *
+ * `undefined` means even that is gone, which is a sheet worth noticing.
+ */
+export const characterTag = (
+  has: (tag: string) => boolean,
+  presence: ToggleValues['presence'],
+  posture: Posture,
+  oneShot?: string,
+): { tag: string | undefined; once: boolean } => {
+  if (oneShot && has(oneShot)) return { tag: oneShot, once: true };
+  // Standing is only a pose for somebody who is here. Away is the empty chair
+  // whichever way the desk is, so posture must not override it.
+  const wanted = posture === 'standing' && presence === 'present' ? STANDING_TAG : undefined;
+  const candidates = [wanted, PRESENCE_TAG[presence], PRESENCE_TAG.present];
+  return {
+    tag: candidates.find((candidate): candidate is string => Boolean(candidate) && has(candidate!)),
+    once: false,
+  };
+};
+
+/**
  * Whether the occupant is in the chair or on their feet.
  *
  * A second axis rather than two more presence values, because it is orthogonal
@@ -910,29 +944,19 @@ const drawCharacter = (
     chairOneShot,
   } = state;
 
-  // Standing is only a pose for somebody who is here. Away is the empty chair
-  // whichever way the desk is, so posture must not override it.
-  const wanted =
-    posture === 'standing' && presence === 'present' ? STANDING_TAG : PRESENCE_TAG[presence];
-  // Tags are optional on this sheet. It is the one most likely to be mid-edit,
-  // and a single-frame chair with no poses yet should still render rather than
-  // throw — unlike the screen, where a missing tag really is a mistake.
-  //
-  // Falling back to the seated tag rather than to the whole sheet, because the
-  // whole sheet cycles idle, away and the startle and flickers the person in
-  // and out. Undrawn posture art should read as somebody who does not stand up
-  // yet, which is a missing feature; a flicker reads as a broken one.
-  const settled = character.hasTag(wanted) ? wanted : PRESENCE_TAG[presence];
-  const requested = oneShot?.tag ?? settled;
-  const playingOnce = Boolean(oneShot) && character.hasTag(requested);
-  const tag = character.hasTag(requested) ? requested : settled;
+  const { tag, once } = characterTag(
+    (name) => character.hasTag(name),
+    presence,
+    posture,
+    oneShot?.tag,
+  );
   // A reaction runs on its own clock, so it starts at the tag's first frame
   // rather than wherever the scene clock happens to be.
-  const clock = reducedMotion ? 0 : playingOnce ? (oneShot?.elapsed ?? 0) : elapsed;
+  const clock = reducedMotion ? 0 : once ? (oneShot?.elapsed ?? 0) : elapsed;
   // A reaction plays once and holds its last frame; presence loops.
-  const frame = !character.hasTag(tag)
+  const frame = !tag
     ? character.frameAt(clock)
-    : playingOnce
+    : once
       ? character.frameOnce(clock, tag)
       : character.frameAt(clock, tag);
 

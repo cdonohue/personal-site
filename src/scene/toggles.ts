@@ -80,7 +80,7 @@ export const LIVE_TOGGLES: LiveToggle[] = [
     id: 'presence',
     label: 'Presence',
     options: ['present', 'typing', 'away', 'empty'],
-    note: 'away leaves the chair, empty pushes it in',
+    note: 'typing and empty are undrawn — both fall back to the seated pose',
   },
   {
     id: 'weather',
@@ -100,7 +100,9 @@ export const LIVE_TOGGLES: LiveToggle[] = [
 ];
 
 export const DEFAULT_VALUES: ToggleValues = {
-  presence: 'typing',
+  // 'present', not 'typing': there is no typing pose, and a default nobody has
+  // drawn is a default that has to be overridden to work.
+  presence: 'present',
   weather: 'clear',
   daylight: null,
   lighting: 'auto',
