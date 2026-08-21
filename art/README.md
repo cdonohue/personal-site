@@ -183,7 +183,7 @@ been drawn yet should show the wrong picture rather than take the page down.
 Matrix-rain and starfield attempts failed identically because many small,
 independent elements resolve to noise at this size. The wireframe cube works
 because it is one continuous form; the later Matrix pass works by reducing the
-rain to seven readable columns with bright heads and short fading trails.
+rain to eleven readable columns with bright heads and short fading trails.
 
 Power on/off is a CRT collapse: the picture squeezes vertically to a bright
 one-pixel line, the line shrinks to a stub, the stub goes out. No white flash at
@@ -213,7 +213,7 @@ the panel rather than changing shape to meet its bounds. Radius 47 carries that
 aspect through the four corners; each ring continues to radius 50 so it is fully
 clipped before wrapping back to the centre.
 
-`matrix` uses seven two-pixel-wide columns instead of a field of single-pixel
+`matrix` uses eleven two-pixel-wide columns instead of a field of single-pixel
 marks. Each bright head pulls a twelve-pixel fading trail; one- and two-pixel
 fall speeds both divide the 40-frame path, and every trail is fully outside the
 panel at its wrap point.
