@@ -130,6 +130,21 @@ export const DESK_MAX = 18;
 export const DESK_RAISED = 14;
 
 /**
+ * How far right the chair travels to leave the shot, in scene pixels.
+ *
+ * Measured, not chosen. The chair's left edge sits at x78, and the scene is
+ * 192 wide, so 114 is the exact distance at which its last column clears the
+ * frame. Anything less leaves a sliver of armrest parked on the edge, which
+ * reads as a clipping bug rather than as a chair that has been pushed away.
+ *
+ * It is a long way, and knowingly so: it crosses the right leg, the power box
+ * and the lower half of the right window on the way out. All three are behind
+ * it, so the occlusion is free — the cost is time, which is why the travel is
+ * the longest single beat in the sequence.
+ */
+export const CHAIR_EXIT = 114;
+
+/**
  * The middle sleeve's share of the maximum travel.
  *
  * The stages have different strokes, so moving them at the same rate would run
@@ -344,7 +359,7 @@ export const nightAmountFor = (
  */
 export const SCREENSAVER_TAGS = ['cube', 'bounce'] as const;
 
-/** Which character tag each presence state plays. */
+/** Which character tag each presence state plays, seated. */
 export const PRESENCE_TAG: Record<ToggleValues['presence'], string> = {
   present: 'idle',
   typing: 'type',
@@ -352,10 +367,54 @@ export const PRESENCE_TAG: Record<ToggleValues['presence'], string> = {
   empty: 'empty',
 };
 
+/**
+ * Whether the occupant is in the chair or on their feet.
+ *
+ * A second axis rather than two more presence values, because it is orthogonal
+ * to all four of them and folding it in would double a table that is already a
+ * lookup. It only reads `standing` while somebody is here: the transitions that
+ * reach it are gated on presence, so an empty room never gets there.
+ */
+export type Posture = 'seated' | 'standing';
+
+/** The standing idle pose. */
+export const STANDING_TAG = 'standing';
+
+/**
+ * The two transitions, keyed by the posture they arrive at.
+ *
+ * Separate animations rather than one played backwards. Standing up is a push
+ * off the seat and sitting down is a controlled drop, and the reversed frames
+ * of either read as the other run in rewind.
+ */
+export const POSTURE_TAG: Record<Posture, string> = {
+  standing: 'stand-up',
+  seated: 'sit-down',
+};
+
+/**
+ * The chair's own reaction to being pushed off.
+ *
+ * Only on the way out. Going back it is being pulled into place by hand, which
+ * is a controlled movement with nothing to react to.
+ */
+export const CHAIR_SHOVE_TAG = 'shove';
+
 export type Assets = {
   /** Only used for its slices — the drawn room comes from `skies`. */
   room: Sheet;
   character: Sheet;
+  /**
+   * The chair, which used to be a layer inside `character.aseprite`.
+   *
+   * It is its own sprite because it moves independently of its occupant: they
+   * stand, and it gets pushed out of the frame. One drawing, positioned by the
+   * runtime, which is the same reason the desk left the room plate.
+   *
+   * Still drawn over the person, as the layer was, so the seat back covers
+   * their lower half exactly as before.
+   */
+  chair: Sheet;
   /**
    * The desk, in the four pieces it has to be drawn in.
    *
@@ -399,6 +458,7 @@ export const loadAssets = async (basePath = '/art'): Promise<Assets> => {
     switchPlate,
     weather,
     character,
+    chair,
     dark,
     deskLegsInner,
     deskLegsMid,
@@ -412,6 +472,7 @@ export const loadAssets = async (basePath = '/art'): Promise<Assets> => {
     loadSheet(`${basePath}/switch`),
     loadSheet(`${basePath}/weather`),
     loadSheet(`${basePath}/character`),
+    loadSheet(`${basePath}/chair`),
     loadImage(`${basePath}/room.dark.png`),
     loadImage(`${basePath}/room.legs-inner.png`),
     loadImage(`${basePath}/room.legs-mid.png`),
@@ -423,6 +484,7 @@ export const loadAssets = async (basePath = '/art'): Promise<Assets> => {
   return {
     room,
     character,
+    chair,
     deskLegsInner,
     deskLegsMid,
     deskLegsFixed,
@@ -579,6 +641,14 @@ export type SceneState = {
   /** 0 plugged in, 1 lying on the floor. Eased by the caller, so the plug falls. */
   cableFall?: number;
   /**
+   * How far right the chair has been pushed, in scene pixels from its seat.
+   *
+   * Pixels rather than 0-to-1 because the distance is a property of the room —
+   * how far it is from the seat to out of shot — and the scene is the only
+   * thing that knows the room's width. CHAIR_EXIT is that distance.
+   */
+  chairShift?: number;
+  /**
    * Whether the desk has mains power.
    *
    * Separate from the monitor's phase, which lags behind it while the screen
@@ -595,6 +665,10 @@ export type SceneState = {
    * every reaction.
    */
   characterOneShot?: { tag: string; elapsed: number };
+  /** As above, for the chair: its shove-off reaction has its own clock. */
+  chairOneShot?: { tag: string; elapsed: number };
+  /** In the chair or on their feet. Defaults to seated. */
+  posture?: Posture;
   /** Which screensaver the idle screen plays. Falls back to the first. */
   screensaverTag?: string;
   /** Freezes the monitor loop and holds the colon lit. */
@@ -658,32 +732,70 @@ export const clockGlyphs = (
 const drawCharacter = (
   context: CanvasRenderingContext2D,
   assets: Assets,
-  presence: ToggleValues['presence'],
-  elapsed: number,
-  reducedMotion: boolean,
-  wash: number,
-  oneShot?: { tag: string; elapsed: number },
+  state: Pick<
+    SceneState,
+    'presence' | 'posture' | 'reducedMotion' | 'characterOneShot' | 'chairOneShot'
+  > & { elapsed: number; wash: number; chairShift: number },
 ) => {
-  const { room, character } = assets;
+  const { room, character, chair } = assets;
   const at = room.slice('character');
+  const {
+    presence,
+    posture = 'seated',
+    elapsed,
+    reducedMotion,
+    wash,
+    chairShift,
+    characterOneShot: oneShot,
+    chairOneShot,
+  } = state;
 
+  // Standing is only a pose for somebody who is here. Away is the empty chair
+  // whichever way the desk is, so posture must not override it.
+  const wanted =
+    posture === 'standing' && presence === 'present' ? STANDING_TAG : PRESENCE_TAG[presence];
   // Tags are optional on this sheet. It is the one most likely to be mid-edit,
   // and a single-frame chair with no poses yet should still render rather than
-  // throw — unlike the screen, where a missing tag really is a mistake. Without
-  // the wanted tag the whole sheet plays instead.
-  const tag = oneShot?.tag ?? PRESENCE_TAG[presence];
+  // throw — unlike the screen, where a missing tag really is a mistake.
+  //
+  // Falling back to the seated tag rather than to the whole sheet, because the
+  // whole sheet cycles idle, away and the startle and flickers the person in
+  // and out. Undrawn posture art should read as somebody who does not stand up
+  // yet, which is a missing feature; a flicker reads as a broken one.
+  const settled = character.hasTag(wanted) ? wanted : PRESENCE_TAG[presence];
+  const requested = oneShot?.tag ?? settled;
+  const playingOnce = Boolean(oneShot) && character.hasTag(requested);
+  const tag = character.hasTag(requested) ? requested : settled;
   // A reaction runs on its own clock, so it starts at the tag's first frame
   // rather than wherever the scene clock happens to be.
-  const clock = oneShot ? oneShot.elapsed : elapsed;
+  const clock = reducedMotion ? 0 : playingOnce ? (oneShot?.elapsed ?? 0) : elapsed;
   // A reaction plays once and holds its last frame; presence loops.
   const frame = !character.hasTag(tag)
-    ? character.frameAt(reducedMotion ? 0 : clock)
-    : oneShot
-      ? character.frameOnce(reducedMotion ? 0 : clock, tag)
-      : character.frameAt(reducedMotion ? 0 : clock, tag);
+    ? character.frameAt(clock)
+    : playingOnce
+      ? character.frameOnce(clock, tag)
+      : character.frameAt(clock, tag);
+
+  // Whole pixels. The chair travels on an eased float, and drawing it at a
+  // fraction makes the canvas resample a sprite whose whole point is that it is
+  // not resampled.
+  const chairX = at.x + Math.round(chairShift);
+  // The chair is one drawing until it has poses of its own, so a missing tag
+  // is the normal case here rather than a half-finished one.
+  const chairFrame =
+    chairOneShot && chair.hasTag(chairOneShot.tag)
+      ? chair.frameOnce(reducedMotion ? 0 : chairOneShot.elapsed, chairOneShot.tag)
+      : 0;
+
+  // Both figures go through the same path, and the chair goes second so its
+  // back still covers the seated body the way the layer did.
+  const paint = (target: CanvasRenderingContext2D) => {
+    character.draw(target, frame, at.x, at.y);
+    chair.draw(target, chairFrame, chairX, at.y);
+  };
 
   if (wash <= 0.001) {
-    character.draw(context, frame, at.x, at.y);
+    paint(context);
     return;
   }
 
@@ -694,7 +806,9 @@ const drawCharacter = (
   buffer.imageSmoothingEnabled = false;
   buffer.globalCompositeOperation = 'source-over';
   buffer.clearRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
-  character.draw(buffer, frame, at.x, at.y);
+  // One buffer for both, so the wash is applied to the pair rather than twice
+  // over the region where the seat back overlaps the body.
+  paint(buffer);
 
   // source-atop keeps the dimming inside the drawn pixels, so the transparent
   // rest of the buffer stays transparent.
@@ -775,8 +889,11 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     screensaverTag,
     deskOffset = 0,
     cableFall = 0,
+    chairShift = 0,
+    posture = 'seated',
     powered = true,
     characterOneShot,
+    chairOneShot,
   } = state;
 
   context.imageSmoothingEnabled = false;
@@ -887,5 +1004,14 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     context.fillRect(POWER_LED.x, POWER_LED.y - deskRise, 1, 1);
   }
 
-  drawCharacter(context, assets, presence, elapsed, reducedMotion, wash, characterOneShot);
+  drawCharacter(context, assets, {
+    presence,
+    posture,
+    elapsed,
+    reducedMotion,
+    wash,
+    chairShift,
+    characterOneShot,
+    chairOneShot,
+  });
 };

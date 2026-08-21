@@ -1,7 +1,7 @@
 # The desk scene
 
-Pixel art for the home page hero. Six Aseprite sprites, exported to PNG + JSON,
-composited on a canvas at runtime by `src/scene/`.
+Pixel art for the home page hero. Seven Aseprite sprites, exported to PNG +
+JSON, composited on a canvas at runtime by `src/scene/`.
 
 The art and the code meet at exactly two places: **slice names** and **tag
 names**. Everything else on either side can change freely. Rename a slice or a
@@ -77,7 +77,7 @@ Slices, which are the contract with `render.ts`:
 | `monitor-screen` | 73,29 | 46×26 |
 | `clock-screen` | 125,54 | 21×7 |
 | `light-switch` | 10,45 | 4×6 |
-| `character` | 76,22 | 40×74 |
+| `character` | 76,16 | 40×80 |
 
 Newly created slices have no colour assigned and are invisible in the GUI even
 though they exist — assign one or you will think the slice failed to save.
@@ -185,36 +185,114 @@ opposite side — because the runtime tiles these.
 
 This sprite is sky only, clipped to the glass at runtime.
 
-### `character.aseprite` — 40×74
+### `character.aseprite` — 40×80, the person
 
-| tag | frame |
-|---|---|
-| `idle` | 0 |
-| `away` | 1 |
+| tag | frames | ms | what |
+|---|---|---|---|
+| `idle` | 0 | — | seated |
+| `away` | 1 | — | empty: no person at all |
+| `surprised` | 2–5 | 175 | the startle when the power goes |
+| `stand-up` | 6–11 | 400 | seated to standing |
+| `standing` | 12 | — | on their feet |
+| `sit-down` | 13–18 | 400 | standing to seated |
 
-Layers: `character`, `hat`, `chair`. The `away` frame is the same chair with the
-person's layers absent.
-
-**The chair cel is linked across both frames**, so editing the chair updates the
-empty chair too. If you rebuild this frame by copying, link the cels afterwards
-(select both in the timeline, Frame ▸ Link Cels) — an unlinked copy drifts
-silently the moment you touch the chair.
+Layers: `character`, `hat`. **The chair is not in this file** — it moves
+independently of its occupant now, so it is its own sprite. `away` is therefore
+a genuinely blank frame rather than a chair with nobody in it.
 
 The height is not arbitrary: **slice y + sprite height must equal 96**, the
-floor line in `room.png`, or the chair does not touch the ground. Currently
-22 + 74 = 96. It was 42 + 54 before the canvas was grown to leave drawing room
-above; at 46 tall the chair floated nine pixels above the floor. Resize the
-canvas from the top and move the slice up by the same amount.
+floor line in `room.png`, or the figure does not touch the ground. Currently
+16 + 80 = 96. It has been grown from the top twice — 42 + 54 originally, then
+22 + 74 for room above the head, then this for a standing one. Resize the canvas
+from the top and move the slice up by the same amount, or everything floats.
 
-The chair is in *front* of the desk, between the camera and everything else, so
-it draws last and covers the desk lip and the lower monitor. An earlier version
-put the figure behind the desk, where the bezel and keyboard left a three-row
-slot and about fifteen pixels of character survived.
+The figure is in *front* of the desk, between the camera and everything else, so
+it draws over the desk lip and the lower monitor. An earlier version put it
+behind the desk, where the bezel and keyboard left a three-row slot and about
+fifteen pixels of character survived.
+
+**Standing is the seated pose raised by exactly the desk's travel**, 14px. That
+is not a choice: a sit-stand desk is set so your eye-to-screen distance does not
+change, so the body and the desktop have to move together or the arms stop
+meeting the desk. If `DESK_RAISED` in `render.ts` changes, this art changes with
+it.
+
+Raised whole it gives a 22px torso over 34px of leg, which reads as somebody on
+stilts, so **the torso opens up at the waist in proportion to the rise** — six
+pixels at full height, nothing at all seated. Doing it in the seated drawing
+instead was the obvious move and the wrong one: the trousers would slide down
+into the five-row band that actually shows between the backrest and the seat,
+changing the pose you look at most for something only visible standing. Zero at
+rest is also what keeps the last frame of `sit-down` identical to `idle`.
+
+Below the waist the body is a straight column one pixel proud of the legs on
+each side, meeting trousers already that width. Repeating the waist row instead
+carries the shirt's full 18px down over legs half that, and the figure comes out
+barrel-shaped.
+
+**The seated shins and the standing legs are different shapes.** Seated they are
+threaded between the chair's own parts and stop at the star base; five-pixel
+legs land flush against the gas cylinder on both sides and the three shapes
+merge into one slab that reads as a plinth. Standing there is no chair to work
+around, so they are wider, further apart, and have shoes. The seated pair exist
+almost entirely so the standing ones have something to grow out of — without
+them the legs simply appear, six pixels into the rise, which was the one
+obvious tell in the sequence.
+
+**`stand-up`'s last frame and `standing` must be the same drawing.** `frameOnce`
+holds on a one-shot's final frame and the runtime swaps to `standing` the
+instant the move completes, so any difference between them is a pop on a frame
+nobody asked for. The same goes for `sit-down`'s last frame and `idle`.
+
+The transitions are timed rather than eased, and the timing is the part worth
+keeping: anticipation is the longest frame in the stand, the two rise frames are
+the shortest, and the overshoot gets a beat of its own instead of being smoothed
+through. Squash and stretch is the hat moving a pixel ahead of the body on the
+way up and a pixel behind on the way down — actually scaling thirty pixels of
+drawing resamples it into mush.
 
 `PRESENCE_TAG` in `render.ts` maps presence states to tag names, and includes
-`type` and `empty` which **do not exist in the sheet yet**. A missing tag falls
-back to playing the whole sheet, which cycles idle and away and flickers the
-person in and out. Draw the pose and tag it before using those states.
+`type` and `empty` which **do not exist in the sheet**. A missing tag falls back
+to the seated pose, so an undrawn state reads as somebody who does not do that
+yet rather than as a flicker. Draw the pose and tag it before using those
+states.
+
+### `chair.aseprite` — 40×80, the chair
+
+| tag | frames | ms | what |
+|---|---|---|---|
+| *(none)* | 0 | — | at the desk, and what draws whenever nothing else applies |
+| `shove` | 1–7 | 630 | pushed out of shot |
+
+Drawn at the same slice as the person, at a horizontal offset the runtime owns,
+and **after** them — so the seat back covers the seated body exactly as the
+layer did when this was part of `character.aseprite`.
+
+It travels `CHAIR_EXIT` = 114px, which is measured rather than chosen: the
+chair's left edge is at x78 and the scene is 192 wide, so 114 is the exact
+distance at which its last column clears the frame. Anything less parks a sliver
+of armrest on the edge and reads as a clipping bug.
+
+**The lean in `shove` runs *with* the direction of travel, then crosses back.**
+A hand on the backrest applies force well above the centre of mass, and castors
+give the floor almost nothing to push back with, so the top tips the way it is
+going. The base only runs out from under the top when the push is low down or
+the floor is dragging, which is not what standing out of a chair does. Once the
+shove is over the only force left is the castors slowing it, which acts at the
+floor and leans it the other way — so it passes through upright rather than
+settling there, and coasts slightly back-leant.
+
+That second half is not decoration. Leaning only at the start left the chair
+frozen upright for the last 420ms of a 630ms roll, which is most of the shot.
+
+Amplitude is capped by the sprite rather than by taste. The armrests reach x2
+and x37 of a 40px canvas, and at 5 the shear pushes them off both edges; 4 is
+the most that survives. If it ever needs to lean harder, the canvas has to grow
+and the runtime needs an inset to draw it at, because the chair is positioned
+from the 40-wide `character` slice.
+
+Frame 0 must stay the upright chair: the runtime falls back to index 0 whenever
+there is no reaction playing, without consulting a tag.
 
 ### `switch.aseprite` — 4×6, 2 frames
 
@@ -228,6 +306,12 @@ Frame 0 off, frame 1 on.
 frame silently grows to cover the new ones. This cost three separate debugging
 sessions on `screen.aseprite`. Snapshot tag ranges before appending and restore
 them after.
+
+**Cel bounds clip without saying so.** A cel is only as big as what was drawn in
+it, and anything painted outside that rectangle is discarded with no error and
+no warning. This is how the startle marks above the head first vanished. When a
+pose needs to reach past what the frame it came from covered, build the cel at
+full canvas size.
 
 **Runtime values live in `src/scene/render.ts`, not here.** Rain parallax passes,
 fog and snow layering, the dawn/dusk curve, the lighting wash, glyph spacing —

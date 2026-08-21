@@ -1,7 +1,10 @@
 import type { Rect } from './aseprite';
 import {
+  CHAIR_EXIT,
+  CHAIR_SHOVE_TAG,
   DESK_MAX,
   DESK_RAISED,
+  POSTURE_TAG,
   SCREENSAVER_TAGS,
   SCENE_HEIGHT,
   SCENE_WIDTH,
@@ -10,7 +13,7 @@ import {
   nightAmountFor,
   washFor,
 } from './render';
-import type { Assets, MonitorPhase } from './render';
+import type { Assets, MonitorPhase, Posture } from './render';
 import { DEFAULT_VALUES, type ToggleValues } from './toggles';
 
 /**
@@ -146,6 +149,72 @@ const DESK_STIFFNESS = 0.02;
 const DESK_DAMPING_UP = 0.15;
 const DESK_DAMPING_DOWN = 0.31;
 
+/**
+ * Standing up and sitting down, scored in milliseconds from the click.
+ *
+ * The two are not mirrors, and cannot be. Going up the person leaves the chair
+ * before it can be pushed anywhere, so they move first. Coming down the chair
+ * has to arrive before there is anything to sit on, so they move last. Written
+ * as two scores rather than one played backwards for exactly that reason.
+ *
+ * The overlap is what keeps this under a second. Run end to end the beats come
+ * to about 1.4s, which is a long time to wait on a control you click
+ * repeatedly; started while the one before is still running they come to 800
+ * and 920, and nothing reads as rushed because no single beat was shortened.
+ *
+ * `for` is only given where the runtime owns the duration. The person's beats
+ * are as long as their tag, which is the animation's business rather than the
+ * schedule's.
+ */
+const STAND_PLAN = {
+  /** Push-off starts immediately: it is what the click is acknowledging. */
+  person: { at: 0 },
+  /** Shoved back at the moment of push-off, once the anticipation dip is done. */
+  chair: { at: 150, for: 630 },
+  /**
+   * Almost at once, so the desk and the person arrive together.
+   *
+   * The control is on the desk. Pressing it starts the motor, and standing up
+   * is what you do while it runs — the desk is not waiting to see whether you
+   * meant it. Held back to 260 it finished a full 200ms after the person did,
+   * and for that whole stretch they stood at a desk still down around their
+   * waist. The 60 is only so the anticipation dip registers first.
+   */
+  desk: 60,
+} as const;
+
+const SIT_PLAN = {
+  chair: { at: 0, for: 630 },
+  /**
+   * As the chair comes to rest rather than after it. At 540 it is two pixels
+   * from home and coasting, which is when a person would already be committing
+   * to sit rather than standing and waiting for it to park.
+   */
+  person: { at: 540 },
+  /** Held until the sit begins, for the same reason the rise is not. */
+  desk: 520,
+} as const;
+
+/**
+ * How long a transition runs when its tag has not been drawn yet.
+ *
+ * Only reached before the art lands. Long enough to hold the schedule's shape
+ * so the timing can be tuned against a person who pops rather than moves.
+ */
+const POSTURE_FALLBACK_MS = 290;
+
+/**
+ * The chair's travel curve: full speed at the start, coasting to a stop.
+ *
+ * A shove, not a slide. Something pushed hard is fastest the instant it leaves
+ * your hand and loses speed to the carpet from there, so the acceleration is
+ * not animated at all — it happens inside the frame where the push lands. An
+ * ease that starts from nothing would read as the chair deciding to leave.
+ */
+const shove = (p: number) => p * (2 - p);
+
+const clamp01 = (value: number) => (value < 0 ? 0 : value > 1 ? 1 : value);
+
 export const createDeskRoom = async (
   canvas: HTMLCanvasElement,
   options: DeskRoomOptions = {},
@@ -204,6 +273,48 @@ export const createDeskRoom = async (
   let deskVelocity = 0;
 
   /**
+   * Where the occupant is, and the move currently taking them there.
+   *
+   * `posture` only changes when a move finishes, so everything mid-transition
+   * reads the move rather than the posture — which is what keeps the person on
+   * their feet for the whole descent instead of snapping into a chair that has
+   * not arrived yet.
+   *
+   * A click during a move is remembered rather than obeyed. Reversing halfway
+   * means running two scores that are not mirrors from a shared clock, and the
+   * chair and the person disagree about where they are in it; letting the
+   * gesture finish and then playing the other one costs up to 900ms and is
+   * always a complete movement. Only the last click is kept, so mashing the
+   * control cannot build a queue.
+   */
+  let posture: Posture = 'seated';
+  let move: { to: Posture; since: number } | null = null;
+  let pending: Posture | null = null;
+  let chairShift = 0;
+
+  /** A transition's beat for the person is as long as its tag, once drawn. */
+  const postureDuration = (to: Posture) => {
+    const tag = POSTURE_TAG[to];
+    return assets.character.hasTag(tag) ? assets.character.tagDuration(tag) : POSTURE_FALLBACK_MS;
+  };
+
+  const planFor = (to: Posture) => (to === 'standing' ? STAND_PLAN : SIT_PLAN);
+
+  const planTotal = (to: Posture) => {
+    const plan = planFor(to);
+    return Math.max(plan.person.at + postureDuration(to), plan.chair.at + plan.chair.for);
+  };
+
+  /** Snap everything to the settled end of a posture, with no travel. */
+  const settleInto = (to: Posture) => {
+    posture = to;
+    move = null;
+    pending = null;
+    chairShift = to === 'standing' ? CHAIR_EXIT : 0;
+    deskRaised = to === 'standing';
+  };
+
+  /**
    * The plug. Eased so it drops rather than teleporting, and quickly — it is
    * falling, not travelling.
    */
@@ -246,6 +357,42 @@ export const createDeskRoom = async (
     const fallTarget = cablePlugged ? 0 : 1;
     cableFall = reducedMotion ? fallTarget : cableFall + (fallTarget - cableFall) * CABLE_FALL_EASING;
     if (Math.abs(fallTarget - cableFall) < 0.01) cableFall = fallTarget;
+
+    // The stand/sit score, read before the desk spring because one of its beats
+    // is what sets the spring's target.
+    let postureOneShot: { tag: string; elapsed: number } | undefined;
+    let chairReaction: { tag: string; elapsed: number } | undefined;
+
+    if (move) {
+      const plan = planFor(move.to);
+      const total = planTotal(move.to);
+      const inMove = time - move.since;
+
+      if (inMove >= plan.desk) deskRaised = move.to === 'standing';
+
+      const travel = clamp01((inMove - plan.chair.at) / plan.chair.for);
+      chairShift =
+        move.to === 'standing' ? CHAIR_EXIT * shove(travel) : CHAIR_EXIT * (1 - shove(travel));
+
+      // Held for the rest of the move rather than released when the tag runs
+      // out. frameOnce stops on its last frame, and `posture` does not flip
+      // until the whole move does, so letting go early would drop them straight
+      // back into the pose they just left.
+      const inPerson = inMove - plan.person.at;
+      if (inPerson >= 0) postureOneShot = { tag: POSTURE_TAG[move.to], elapsed: inPerson };
+
+      const inChair = inMove - plan.chair.at;
+      if (move.to === 'standing' && inChair >= 0) {
+        chairReaction = { tag: CHAIR_SHOVE_TAG, elapsed: inChair };
+      }
+
+      if (inMove >= total) {
+        const arrived = move.to;
+        const next = pending;
+        settleInto(arrived);
+        if (next && next !== arrived) move = { to: next, since: time };
+      }
+    }
 
     const deskTarget = deskRaised ? DESK_RAISED : 0;
     if (reducedMotion) {
@@ -307,15 +454,24 @@ export const createDeskRoom = async (
       nightAmount: night,
       weather: values.weather,
       presence: values.presence,
+      posture,
       deskOffset: desk,
       cableFall,
+      chairShift,
       powered: cablePlugged,
+      chairOneShot: chairReaction,
+      // A transition outranks the startle. They cannot both be true of the same
+      // body, and the startle is already gated to fire only from a settled
+      // seat, so this only decides what happens if one is somehow in flight
+      // when the other begins.
+      //
       // `noticing` has no pose of its own: they have not looked up yet, so
       // presence still decides what the chair looks like.
       characterOneShot:
-        reaction?.phase === 'surprised'
+        postureOneShot ??
+        (reaction?.phase === 'surprised'
           ? { tag: 'surprised', elapsed: time - reaction.since }
-          : undefined,
+          : undefined),
     });
 
     handle = window.requestAnimationFrame(step);
@@ -337,14 +493,45 @@ export const createDeskRoom = async (
       return desk;
     },
     toggleDesk() {
-      deskRaised = !deskRaised;
+      // Nobody here to stand up, so the desk simply travels, as it did before
+      // there was anyone to consider. An empty chair rolling itself out of shot
+      // is a poltergeist rather than a feature.
+      if (values.presence !== 'present') {
+        deskRaised = !deskRaised;
+        return;
+      }
+
+      const target: Posture = (move?.to ?? posture) === 'standing' ? 'seated' : 'standing';
+
+      if (reducedMotion) {
+        settleInto(target);
+        return;
+      }
+
+      // Remembered, not obeyed — see the note on `pending`.
+      if (move) {
+        pending = target;
+        return;
+      }
+      if (target === posture) return;
+      move = { to: target, since: performance.now() };
     },
     toggleCable() {
       cablePlugged = !cablePlugged;
-      // Startle only on the way out, only with somebody there, and not on top
-      // of a reaction already running — otherwise working the outlet back and
-      // forth machine-guns it.
-      if (!cablePlugged && values.presence === 'present' && !reaction) {
+      // Startle only on the way out, only with somebody there, only from a
+      // settled seat, and not on top of a reaction already running — otherwise
+      // working the outlet back and forth machine-guns it.
+      //
+      // The posture gate is not fussiness: the pose is drawn seated, so playing
+      // it mid-stand or while on their feet would drop them back into a chair
+      // that is halfway across the room.
+      if (
+        !cablePlugged &&
+        values.presence === 'present' &&
+        !reaction &&
+        !move &&
+        posture === 'seated'
+      ) {
         reaction = { phase: 'noticing', since: performance.now() };
       }
     },
