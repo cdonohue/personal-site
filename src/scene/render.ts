@@ -586,6 +586,15 @@ export type SceneState = {
    * power box — goes the instant the plug does.
    */
   powered?: boolean;
+  /**
+   * A one-shot to play instead of what `presence` implies, with its own clock.
+   *
+   * Presence is a lookup: a state with no time in it. A reaction is a moment
+   * timed from when it started, so the caller names the tag and says how far in
+   * we are, rather than a presence value being invented for every frame of
+   * every reaction.
+   */
+  characterOneShot?: { tag: string; elapsed: number };
   /** Which screensaver the idle screen plays. Falls back to the first. */
   screensaverTag?: string;
   /** Freezes the monitor loop and holds the colon lit. */
@@ -653,6 +662,7 @@ const drawCharacter = (
   elapsed: number,
   reducedMotion: boolean,
   wash: number,
+  oneShot?: { tag: string; elapsed: number },
 ) => {
   const { room, character } = assets;
   const at = room.slice('character');
@@ -661,10 +671,16 @@ const drawCharacter = (
   // and a single-frame chair with no poses yet should still render rather than
   // throw — unlike the screen, where a missing tag really is a mistake. Without
   // the wanted tag the whole sheet plays instead.
-  const tag = PRESENCE_TAG[presence];
-  const frame = character.hasTag(tag)
-    ? character.frameAt(reducedMotion ? 0 : elapsed, tag)
-    : character.frameAt(reducedMotion ? 0 : elapsed);
+  const tag = oneShot?.tag ?? PRESENCE_TAG[presence];
+  // A reaction runs on its own clock, so it starts at the tag's first frame
+  // rather than wherever the scene clock happens to be.
+  const clock = oneShot ? oneShot.elapsed : elapsed;
+  // A reaction plays once and holds its last frame; presence loops.
+  const frame = !character.hasTag(tag)
+    ? character.frameAt(reducedMotion ? 0 : clock)
+    : oneShot
+      ? character.frameOnce(reducedMotion ? 0 : clock, tag)
+      : character.frameAt(reducedMotion ? 0 : clock, tag);
 
   if (wash <= 0.001) {
     character.draw(context, frame, at.x, at.y);
@@ -760,6 +776,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     deskOffset = 0,
     cableFall = 0,
     powered = true,
+    characterOneShot,
   } = state;
 
   context.imageSmoothingEnabled = false;
@@ -870,5 +887,5 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     context.fillRect(POWER_LED.x, POWER_LED.y - deskRise, 1, 1);
   }
 
-  drawCharacter(context, assets, presence, elapsed, reducedMotion, wash);
+  drawCharacter(context, assets, presence, elapsed, reducedMotion, wash, characterOneShot);
 };

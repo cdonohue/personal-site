@@ -107,6 +107,24 @@ const EASING = 0.18;
 /** The plug drops rather than travels, so this is far brisker than the desk. */
 const CABLE_FALL_EASING = 0.22;
 
+/**
+ * The pause between the power going and the person noticing.
+ *
+ * Without it the reaction starts on the same frame the screen dies, which reads
+ * as a machine responding to an event rather than a person registering one.
+ */
+const REACTION_DELAY = 320;
+
+/**
+ * Floor on how long a reaction is held.
+ *
+ * Low, because the tag now carries its own timing — four frames of hop across
+ * 270ms. It was 700 while the tag was a single held pose, which with real
+ * frames would freeze the landing for another 430ms and put the robotic
+ * stiffness straight back.
+ */
+const REACTION_MIN = 120;
+
 const DESK_STIFFNESS = 0.02;
 
 /**
@@ -192,6 +210,15 @@ export const createDeskRoom = async (
   let cablePlugged = true;
   let cableFall = 0;
 
+  /**
+   * The startle when the power goes.
+   *
+   * Only fires if somebody is at the desk to be startled — pulling the plug on
+   * an empty room just kills the screen quietly. It runs on its own clock
+   * rather than the scene's, so it always starts at the tag's first frame.
+   */
+  let reaction: { phase: 'noticing' | 'surprised'; since: number } | null = null;
+
   let handle = 0;
   let startedAt = 0;
 
@@ -202,6 +229,19 @@ export const createDeskRoom = async (
     night = reducedMotion ? nightTarget : night + (nightTarget - night) * EASING;
     const washTarget = washFor(values.roomLight === 'on', night);
     wash = reducedMotion ? washTarget : wash + (washTarget - wash) * EASING;
+
+    if (reaction) {
+      const inPhase = time - reaction.since;
+      if (reaction.phase === 'noticing' && inPhase >= REACTION_DELAY) {
+        reaction = { phase: 'surprised', since: time };
+      } else if (reaction.phase === 'surprised') {
+        const hold = Math.max(
+          assets.character.hasTag('surprised') ? assets.character.tagDuration('surprised') : 0,
+          REACTION_MIN,
+        );
+        if (inPhase >= hold) reaction = null;
+      }
+    }
 
     const fallTarget = cablePlugged ? 0 : 1;
     cableFall = reducedMotion ? fallTarget : cableFall + (fallTarget - cableFall) * CABLE_FALL_EASING;
@@ -270,6 +310,12 @@ export const createDeskRoom = async (
       deskOffset: desk,
       cableFall,
       powered: cablePlugged,
+      // `noticing` has no pose of its own: they have not looked up yet, so
+      // presence still decides what the chair looks like.
+      characterOneShot:
+        reaction?.phase === 'surprised'
+          ? { tag: 'surprised', elapsed: time - reaction.since }
+          : undefined,
     });
 
     handle = window.requestAnimationFrame(step);
@@ -295,6 +341,12 @@ export const createDeskRoom = async (
     },
     toggleCable() {
       cablePlugged = !cablePlugged;
+      // Startle only on the way out, only with somebody there, and not on top
+      // of a reaction already running — otherwise working the outlet back and
+      // forth machine-guns it.
+      if (!cablePlugged && values.presence === 'present' && !reaction) {
+        reaction = { phase: 'noticing', since: performance.now() };
+      }
     },
     cableUnplugged() {
       return !cablePlugged;

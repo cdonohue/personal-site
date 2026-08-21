@@ -16,6 +16,42 @@
     "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 74 },
     "sourceSize": { "w": 40, "h": 74 },
     "duration": 220
+   },
+   {
+    "filename": "character 2.aseprite",
+    "frame": { "x": 80, "y": 0, "w": 40, "h": 74 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 74 },
+    "sourceSize": { "w": 40, "h": 74 },
+    "duration": 35
+   },
+   {
+    "filename": "character 3.aseprite",
+    "frame": { "x": 120, "y": 0, "w": 40, "h": 74 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 74 },
+    "sourceSize": { "w": 40, "h": 74 },
+    "duration": 60
+   },
+   {
+    "filename": "character 4.aseprite",
+    "frame": { "x": 160, "y": 0, "w": 40, "h": 74 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 74 },
+    "sourceSize": { "w": 40, "h": 74 },
+    "duration": 40
+   },
+   {
+    "filename": "character 5.aseprite",
+    "frame": { "x": 200, "y": 0, "w": 40, "h": 74 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 40, "h": 74 },
+    "sourceSize": { "w": 40, "h": 74 },
+    "duration": 40
    }
  ],
  "meta": {
@@ -23,11 +59,12 @@
   "version": "1.3.18.1-arm64",
   "image": "character.png",
   "format": "RGBA8888",
-  "size": { "w": 80, "h": 74 },
+  "size": { "w": 240, "h": 74 },
   "scale": "1",
   "frameTags": [
    { "name": "idle", "from": 0, "to": 0, "direction": "forward", "color": "#000000ff" },
-   { "name": "away", "from": 1, "to": 1, "direction": "forward", "color": "#000000ff" }
+   { "name": "away", "from": 1, "to": 1, "direction": "forward", "color": "#000000ff" },
+   { "name": "surprised", "from": 2, "to": 5, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "character", "opacity": 255, "blendMode": "normal" },
