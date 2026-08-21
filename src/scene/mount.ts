@@ -10,6 +10,7 @@ import {
   STARTLE_TAG,
   drawScene,
   loadAssets,
+  loadScreen,
   nightAmountFor,
   washFor,
 } from './render';
@@ -228,7 +229,30 @@ export const createDeskRoom = async (
   canvas: HTMLCanvasElement,
   options: DeskRoomOptions = {},
 ): Promise<DeskRoom> => {
-  const assets: Assets = await loadAssets(options.basePath);
+  const basePath = options.basePath ?? '/art';
+  // Only the screen this visit will show. Anything a host names later is
+  // fetched then, rather than every screen being shipped to everyone.
+  const initialScreen = options.values?.screen ?? DEFAULT_VALUES.screen;
+  const assets: Assets = await loadAssets(basePath, [initialScreen]);
+
+  /** Already in flight, so repeated `set` calls cannot stack requests. */
+  const fetching = new Set<string>();
+
+  /**
+   * Make sure the named screen is on its way.
+   *
+   * The draw falls back to the first scene until it lands, which is a wrong
+   * picture for a moment rather than a blank monitor. A host that wants no gap
+   * at all should name the screen at construction, where it is awaited.
+   */
+  const wantScreen = (tag: string) => {
+    if (assets.screens.has(tag) || fetching.has(tag)) return;
+    fetching.add(tag);
+    loadScreen(basePath, tag).then((sheet) => {
+      fetching.delete(tag);
+      if (sheet) assets.screens.set(tag, sheet);
+    });
+  };
 
   const reducedMotion =
     options.reducedMotion ?? window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -451,11 +475,11 @@ export const createDeskRoom = async (
     const inPhase = time - monitor.since;
     if (reducedMotion) {
       monitor.phase = wantOn ? 'lit' : 'off';
-    } else if (monitor.phase === 'turning-on' && inPhase >= assets.screen.tagDuration('power-on')) {
+    } else if (monitor.phase === 'turning-on' && inPhase >= assets.power.tagDuration('power-on')) {
       monitor.phase = 'lit';
     } else if (
       monitor.phase === 'turning-off' &&
-      inPhase >= assets.screen.tagDuration('power-off')
+      inPhase >= assets.power.tagDuration('power-off')
     ) {
       monitor.phase = 'off';
     }
@@ -501,6 +525,7 @@ export const createDeskRoom = async (
     height: SCENE_HEIGHT,
     set(next) {
       values = { ...values, ...next };
+      wantScreen(values.screen);
     },
     get() {
       return values;

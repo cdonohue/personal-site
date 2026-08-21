@@ -386,9 +386,9 @@ export const SCREENSAVER_TAGS = ['cube', 'bounce'] as const;
 /**
  * What plays while somebody is at the desk, split by what it depicts.
  *
- * Three lists and no fourth place to remember. Adding a screen is a tag in
- * `screen.aseprite` and one entry in whichever of these it belongs to; nothing
- * else in the codebase names a screen.
+ * Three lists and no fourth place to remember. Adding a screen is a file at
+ * `art/screen-<name>.aseprite` and one entry in whichever of these it belongs
+ * to; nothing else in the codebase names a screen.
  *
  * The split is here rather than in `activity.ts` because it describes the art —
  * whether a drawing shows work or not is a fact about the drawing. *When* each
@@ -491,23 +491,68 @@ export type Assets = {
   glass: HTMLCanvasElement;
   /** Full room renders keyed `<weather>-day` / `<weather>-night`. */
   skies: Record<string, HTMLImageElement>;
-  screen: Sheet;
+  /**
+   * The CRT collapse, shared by every screen. Two tags, because the pair only
+   * makes sense together: the last frame of `power-off` is the exact colour of
+   * the dark plate in room.png, and `power-on` is that read backwards.
+   */
+  power: Sheet;
+  /**
+   * The screens that have been fetched, keyed by tag.
+   *
+   * A map rather than one sheet because each screen is now its own file. That
+   * was forced rather than chosen: one sheet is a single row of frames, so its
+   * width is the sum of everything on it, and at six screens it stood at
+   * 12,374px against a limit usually quoted as 16,384. Two more would not have
+   * fitted.
+   *
+   * Splitting them bought two things beyond the ceiling. Appending frames can
+   * no longer extend a neighbouring tag, because there are no neighbours. And
+   * only the screen actually playing is fetched, so adding a twelfth stops
+   * taxing every visitor who is never going to see it.
+   */
+  screens: Map<string, Sheet>;
   digits: Sheet;
   switchPlate: Sheet;
   dark: HTMLImageElement;
   digitGlow: Glow | null;
 };
 
+/** Where a screen's own sheet lives. One file per tag, named after it. */
+export const screenPath = (basePath: string, tag: string) => `${basePath}/screen-${tag}`;
+
+/**
+ * Fetch one screen, or null if it is not there.
+ *
+ * Null rather than a throw, for the same reason the draw falls back: a screen
+ * name is the one part of the art contract chosen at runtime, so a tag nobody
+ * has drawn yet should cost the wrong picture rather than the page.
+ */
+export const loadScreen = async (basePath: string, tag: string): Promise<Sheet | null> => {
+  try {
+    return await loadSheet(screenPath(basePath, tag));
+  } catch {
+    return null;
+  }
+};
+
 /**
  * `basePath` is where the exported PNG and JSON are served from. It is a
  * parameter rather than a constant because a host site almost certainly serves
  * them somewhere other than /art.
+ *
+ * `screens` is which screen sheets to fetch now. Only what will actually be
+ * shown, so the cost of the twelfth screen falls on whoever is looking at it.
+ * Anything named later is fetched then; see `loadScreen`.
  */
-export const loadAssets = async (basePath = '/art'): Promise<Assets> => {
+export const loadAssets = async (basePath = '/art', screens: string[] = []): Promise<Assets> => {
   const skyNames = WEATHER_CONDITIONS.flatMap((weather) => [`${weather}-day`, `${weather}-night`]);
+  // Deduplicated, and always with a fallback in it: the draw needs something to
+  // reach for when it is handed a name that has not been drawn.
+  const wanted = [...new Set([FALLBACK_SCREEN_TAG, ...screens])];
   const [
     room,
-    screen,
+    power,
     digits,
     switchPlate,
     weather,
@@ -518,10 +563,10 @@ export const loadAssets = async (basePath = '/art'): Promise<Assets> => {
     deskLegsMid,
     deskLegsFixed,
     deskTop,
-    ...skyImages
+    ...rest
   ] = await Promise.all([
     loadSheet(`${basePath}/room`),
-    loadSheet(`${basePath}/screen`),
+    loadSheet(`${basePath}/screen-power`),
     loadSheet(`${basePath}/digits`),
     loadSheet(`${basePath}/switch`),
     loadSheet(`${basePath}/weather`),
@@ -533,7 +578,10 @@ export const loadAssets = async (basePath = '/art'): Promise<Assets> => {
     loadImage(`${basePath}/room.legs-fixed.png`),
     loadImage(`${basePath}/room.desk-top.png`),
     ...skyNames.map((sky) => loadImage(`${basePath}/room.${sky}.png`)),
+    ...wanted.map((tag) => loadScreen(basePath, tag)),
   ]);
+  const skyImages = rest.slice(0, skyNames.length) as HTMLImageElement[];
+  const screenSheets = rest.slice(skyNames.length) as (Sheet | null)[];
   const skies = Object.fromEntries(skyNames.map((sky, index) => [sky, skyImages[index]]));
   return {
     room,
@@ -546,7 +594,12 @@ export const loadAssets = async (basePath = '/art'): Promise<Assets> => {
     weather,
     glass: buildGlassMask(skies['clear-day'], skies['clear-night']),
     skies,
-    screen,
+    power,
+    screens: new Map(
+      wanted
+        .map((tag, index) => [tag, screenSheets[index]] as const)
+        .filter((entry): entry is [string, Sheet] => entry[1] !== null),
+    ),
     digits,
     switchPlate,
     dark,
@@ -947,7 +1000,7 @@ const drawCable = (context: CanvasRenderingContext2D, fall: number) => {
 
 export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, state: SceneState) => {
   // The character is not pulled out here: it is drawn last by drawCharacter.
-  const { room, skies, screen, digits, switchPlate, dark, digitGlow } = assets;
+  const { room, skies, power, screens, digits, switchPlate, dark, digitGlow } = assets;
   const { deskLegsInner, deskLegsMid, deskLegsFixed, deskTop } = assets;
   const {
     elapsed,
@@ -1038,23 +1091,23 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   // at this slice, so drawing nothing reveals a blank screen. The power frames
   // end on that same colour, so the hand-off does not pop.
   //
-  // Lit is the only phase whose tag comes from outside, and the fallback is a
-  // real one rather than a throw: this sheet's tags are looked up by name and
-  // `tag()` throws on a miss, so a caller naming a scene that has not been drawn
-  // yet would take the page down rather than show the wrong screen.
-  const looping = monitor.phase === 'lit';
-  const tag = looping
-    ? screen.hasTag(screenTag)
-      ? screenTag
-      : FALLBACK_SCREEN_TAG
-    : MONITOR_TAG[monitor.phase];
-  if (tag) {
-    // Rides the desk, so the content has to move with the bezel around it.
-    const at = room.slice('monitor-screen');
-    // Content loops off the scene clock; the power transitions are one-shots
-    // timed from the toggle and held on their last frame.
-    const frame = looping ? screen.frameAt(elapsed, tag) : screen.frameOnce(monitor.elapsed, tag);
-    screen.draw(context, frame, at.x, at.y - deskRise);
+  // Rides the desk, so the content has to move with the bezel around it.
+  const screenAt = room.slice('monitor-screen');
+  if (monitor.phase === 'lit') {
+    // A screen is a whole file now, so there is no tag to ask for — the sheet
+    // is the screen and it plays end to end. Falling back rather than throwing:
+    // a screen name is the one piece of the art contract a host picks at
+    // runtime, so one that has not been drawn should cost the wrong picture
+    // rather than the page. It can also simply not have arrived yet.
+    const sheet = screens.get(screenTag) ?? screens.get(FALLBACK_SCREEN_TAG);
+    if (sheet) sheet.draw(context, sheet.frameAt(elapsed), screenAt.x, screenAt.y - deskRise);
+  } else {
+    // The transitions are one-shots timed from the toggle and held on their
+    // last frame, and they share one sheet, so these are still tags.
+    const tag = MONITOR_TAG[monitor.phase];
+    if (tag) {
+      power.draw(context, power.frameOnce(monitor.elapsed, tag), screenAt.x, screenAt.y - deskRise);
+    }
   }
 
   // Rides the desk too.

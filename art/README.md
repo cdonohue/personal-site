@@ -74,7 +74,7 @@ Slices, which are the contract with `render.ts`:
 
 | slice | x,y | size | what uses it |
 |---|---|---|---|
-| `monitor-screen` | 73,29 | 46×26 | where `screen.aseprite` is composited |
+| `monitor-screen` | 73,29 | 46×26 | where the `screen-*` sheets are composited |
 | `clock-screen` | 125,54 | 21×7 | where the digits go |
 | `light-switch` | 10,45 | 4×6 | drawn, and a hit target |
 | `desk-controls` | 140,68 | 19×5 | hit target only; rides the desk |
@@ -99,22 +99,46 @@ Masking at runtime put the sky over them.
 The glass mask itself is derived at runtime by diffing `clear-day` against
 `clear-night` — no authored asset, so it cannot go stale when the window moves.
 
-### `screen.aseprite` — 46×26, the monitor
+### `screen-*.aseprite` — 46×26, the monitor
 
-| tag | frames | kind |
-|---|---|---|
-| `ai-work` | 0–95 | scene |
-| `power-on` | 96–102 | transition |
-| `power-off` | 103–108 | transition |
-| `cube` | 109–140 | screensaver |
-| `game` | 141–188 | scene |
-| `bounce` | 189–268 | screensaver |
+**One file per screen, named after it.** No tags: the file is the name, and the
+runtime plays it end to end.
 
-Frame numbers move when a tag grows, and that is safe **only** because nothing
-addresses this sheet by index — `render.ts` asks for tags by name. Keep it that
-way.
+| file | frames | ms | kind |
+|---|---|---|---|
+| `screen-ai-work` | 96 | 9600 | scene |
+| `screen-game` | 48 | 3360 | scene |
+| `screen-cube` | 32 | 2880 | screensaver |
+| `screen-bounce` | 80 | 7200 | screensaver |
+| `screen-power` | 13 | 585 | transitions, tagged `power-on` / `power-off` |
 
-**Adding a screen is a tag here and one entry in one list.** `render.ts` holds
+These were one 269-frame sheet until the width forced the issue. An Aseprite
+sheet exported this way is **a single row**, so its width is the sum of
+everything on it: six screens came to 12,374px against a limit usually quoted as
+16,384, leaving room for about one more. Two more would not have fitted.
+
+Splitting bought three things beyond the ceiling:
+
+- **Appending frames can no longer extend a neighbouring tag**, because there
+  are no neighbours. That trap cost three separate debugging sessions on the
+  old sheet. It still applies to `screen-power`, which holds two.
+- **Only the screen playing is fetched.** The monitor used to cost every visitor
+  85 KB of all six; it is now 16–34 KB, and the twelfth screen will not be paid
+  for by people who never see it.
+- Saving one screen stops re-exporting the other 173 frames.
+
+`screen-power` keeps its two tags because the pair only makes sense together:
+the last frame of `power-off` is the exact colour of the dark plate in
+`room.png`, and `power-on` is that read backwards.
+
+**Each file carries only the layers it draws with.** `screen-ai-work` has `bg`,
+`chat` and `browser`; the rest are one flat `bg`. Carving them out of the
+combined sheet took every layer along, so each screensaver arrived holding two
+empty ones — which export identically, are invisible in the PNG, and are
+therefore a standing invitation to paint into the wrong layer. A new screen
+wants whatever it needs and nothing else.
+
+**Adding a screen is a file here and one entry in one list.** `render.ts` holds
 three, and no fourth place names a screen:
 
 | list | when it plays |
@@ -135,6 +159,12 @@ lookup table and every expression that asked whether the screen was lit by
 listing the lit states out loud. And the scene names briefly lived in two
 places, `SCREEN_TAGS` here and a work/play split in the schedule, which would
 have drifted the first time one was edited without the other.
+
+The runtime falls back to the first scene if it is handed a name with no file,
+rather than throwing the way a missing slice does. A screen name is the one part
+of this contract chosen at runtime, so one that has not been drawn should cost
+the wrong picture rather than the page — and the same path covers a screen that
+simply has not finished loading.
 
 The runtime falls back to the first scene if it is handed a tag this sheet does
 not have, rather than throwing the way a missing slice does. Screen content is
@@ -166,9 +196,9 @@ seconds, which is the one thing a bouncing logo should almost never do. Offset,
 the turns land on 0/40 and 10/30/50/70, never coincide, and it near-misses
 forever. Six bounces a loop and six colours, so the colour cycle closes too.
 
-**The sheet is a single row**, so frames are capped by texture width — browsers
-give out around 16384px, which at 46px a frame is about 356 frames. It is at
-269, so roughly 87 frames of headroom.
+**Each sheet is still a single row**, so one screen is capped at about 356
+frames — browsers give out around 16384px, and a frame is 46 wide. The largest
+here is `ai-work` at 96, so the ceiling is now per screen and nowhere near.
 
 The game loop is exact rather than tuned: ground repeats over 96 px scrolled 2
 px/frame, hills over 48 px at half speed, a 4-pose runner — all dividing 48
@@ -351,8 +381,10 @@ Frame 0 off, frame 1 on.
 
 **Appending frames extends the last tag.** Any tag ending on what was the final
 frame silently grows to cover the new ones. This cost three separate debugging
-sessions on `screen.aseprite`. Snapshot tag ranges before appending and restore
-them after.
+sessions on the old combined screen sheet. Snapshot tag ranges before appending
+and restore them after. Splitting the screens into one file each removed the
+trap for them; it still applies to every sheet that holds more than one tag —
+`character.aseprite`, `chair.aseprite` and `screen-power.aseprite`.
 
 **Cel bounds clip without saying so.** A cel is only as big as what was drawn in
 it, and anything painted outside that rectangle is discarded with no error and
