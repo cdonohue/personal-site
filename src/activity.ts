@@ -1,4 +1,4 @@
-import { SCREENSAVER_TAGS, zonedParts } from './scene/render'
+import { PLAY_TAGS, SCREENSAVER_TAGS, WORK_TAGS, zonedParts } from './scene/render'
 
 /**
  * What the room is doing: whether anyone is at the desk, and what is on screen.
@@ -46,16 +46,6 @@ export const PRESENCE_CURVE: [hour: number, chance: number][] = [
   [22, 0.12],
   [24, 0.03],
 ]
-
-/**
- * Which scenes count as work and which as not, and how the two are weighted.
- *
- * Split into two lists rather than one weighted table so a new scene is one
- * entry in whichever it belongs to. `SCREEN_TAGS` in `render.ts` is the full
- * set, and these have to be drawn from it.
- */
-const WORK = ['ai-work']
-const PLAY = ['game']
 
 /** Chance of a work screen rather than a game, while someone is there. */
 const WORKING_CHANCE = 0.75
@@ -138,7 +128,8 @@ export const roll = (now: Date): Activity => {
     // working. A game at two on a Tuesday is a better joke than a rule; it is
     // just less likely than the alternative.
     const chance = working ? WORKING_CHANCE : WORKING_CHANCE_OFF_HOURS
-    return { presence: 'present', screen: pick(Math.random() < chance ? WORK : PLAY), posture }
+    const screen = pick(Math.random() < chance ? WORK_TAGS : PLAY_TAGS)
+    return { presence: 'present', screen, posture }
   }
 
   // An empty room runs a screensaver, and which one varies between visits

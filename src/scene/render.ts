@@ -383,6 +383,23 @@ export const nightAmountFor = (
  */
 export const SCREENSAVER_TAGS = ['cube', 'bounce'] as const;
 
+/**
+ * What plays while somebody is at the desk, split by what it depicts.
+ *
+ * Three lists and no fourth place to remember. Adding a screen is a tag in
+ * `screen.aseprite` and one entry in whichever of these it belongs to; nothing
+ * else in the codebase names a screen.
+ *
+ * The split is here rather than in `activity.ts` because it describes the art —
+ * whether a drawing shows work or not is a fact about the drawing. *When* each
+ * gets used is the schedule's business, and that stays out there.
+ */
+export const WORK_TAGS = ['ai-work'] as const;
+export const PLAY_TAGS = ['game'] as const;
+
+/** Every scene, for callers that do not care which kind it is. */
+export const SCREEN_TAGS = [...WORK_TAGS, ...PLAY_TAGS];
+
 /** Which character tag each presence state plays, seated. */
 export const PRESENCE_TAG: Record<ToggleValues['presence'], string> = {
   present: 'idle',
@@ -674,14 +691,8 @@ export const MONITOR_TAG: Record<MonitorPhase, string | null> = {
   'turning-off': 'power-off',
 };
 
-/**
- * What the monitor can be showing while somebody is at the desk.
- *
- * A list rather than a type, for the same reason SCREENSAVER_TAGS is one: a new
- * scene should be a tag in the sheet and an entry here, and nothing else. The
- * caller picks; the scene draws whichever it is handed.
- */
-export const SCREEN_TAGS = ['ai-work', 'game'] as const;
+/** What a lit screen falls back to when handed a tag the sheet does not have. */
+const FALLBACK_SCREEN_TAG = WORK_TAGS[0];
 
 export type SceneState = {
   /** Milliseconds into the monitor animation. */
@@ -950,7 +961,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     weather,
     presence,
     timeZone,
-    screenTag = SCREEN_TAGS[0],
+    screenTag = FALLBACK_SCREEN_TAG,
     deskOffset = 0,
     cableFall = 0,
     chairShift = 0,
@@ -1035,7 +1046,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   const tag = looping
     ? screen.hasTag(screenTag)
       ? screenTag
-      : SCREEN_TAGS[0]
+      : FALLBACK_SCREEN_TAG
     : MONITOR_TAG[monitor.phase];
   if (tag) {
     // Rides the desk, so the content has to move with the bezel around it.

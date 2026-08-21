@@ -114,14 +114,27 @@ Frame numbers move when a tag grows, and that is safe **only** because nothing
 addresses this sheet by index — `render.ts` asks for tags by name. Keep it that
 way.
 
-**Adding a scene is a tag and one list entry.** `SCREEN_TAGS` in `render.ts`
-holds the scenes and `SCREENSAVER_TAGS` the screensavers; `src/activity.ts`
-picks from one or the other depending on whether anyone is at the desk. Nothing
-downstream cares which kind it got — `MonitorPhase` is power only, and the tag
-travels beside it. It was not always: the phase used to be
-`'on' | 'game' | 'idle' | 'off'`, so a third scene meant editing a union type, a
+**Adding a screen is a tag here and one entry in one list.** `render.ts` holds
+three, and no fourth place names a screen:
+
+| list | when it plays |
+|---|---|
+| `WORK_TAGS` | somebody at the desk, likelier during working hours |
+| `PLAY_TAGS` | somebody at the desk, likelier outside them |
+| `SCREENSAVER_TAGS` | nobody there |
+
+`src/activity.ts` picks from one of the three and hands the name over; nothing
+downstream cares which it got, because `MonitorPhase` is power only and the tag
+travels beside it. The split is in `render.ts` rather than in the schedule
+because whether a drawing shows work is a fact about the drawing. *When* each
+gets used is the schedule's business, and that stays out there.
+
+Two things this replaced, both of which cost more than one edit. The phase used
+to be `'on' | 'game' | 'idle' | 'off'`, so a scene meant editing a union type, a
 lookup table and every expression that asked whether the screen was lit by
-listing the lit states out loud.
+listing the lit states out loud. And the scene names briefly lived in two
+places, `SCREEN_TAGS` here and a work/play split in the schedule, which would
+have drifted the first time one was edited without the other.
 
 The runtime falls back to the first scene if it is handed a tag this sheet does
 not have, rather than throwing the way a missing slice does. Screen content is
