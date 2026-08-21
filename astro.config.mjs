@@ -15,14 +15,110 @@ import { WEATHER_CONDITIONS } from './src/scene/toggles.ts'
  */
 const SKIES = WEATHER_CONDITIONS.flatMap((weather) => [`${weather}-day`, `${weather}-night`])
 
-const weatherVariants = Object.fromEntries(
-  SKIES.map((sky) => [sky, { hide: SKIES.filter((other) => other !== sky), show: [sky] }]),
+/**
+ * The desk comes out of the room plate so it can move.
+ *
+ * It used to be flattened into the ten weather variants, which is why it could
+ * not: the desk crosses the window by 20px, and the glass mask is derived by
+ * diffing clear-day against clear-night — both of which contained it. Move the
+ * desk and the mask was wrong.
+ *
+ * Pulled out, the mask derives from desk-free art and is correct at any height,
+ * and occlusion comes from draw order instead of from flattening.
+ *
+ * The pieces are split by how fast they travel, and the order below is the
+ * order they must be drawn in. `legs-outer` and `legs-base` do not move but
+ * cannot stay in the plate either: they are drawn *over* the sliding sections,
+ * so anything painted before them would come out in front.
+ */
+const DESK_PIECES = {
+  // Bolted to the desktop: travels the full distance.
+  'legs-inner': ['legs-inner'],
+  // The middle sleeve, which has a shorter stroke and so moves proportionally
+  // less. Drawn over legs-inner.
+  'legs-mid': ['legs-mid'],
+  // Fixed to the floor, drawn over both sliding sections.
+  //
+  // `shadow` is deliberately not here. It is fixed too, but it uses an overlay
+  // blend, and a blended layer only composites correctly against the pixels it
+  // was flattened over — pulled out and drawn back with normal alpha it lands a
+  // shade off. It sits on y96 while legs-base ends at y95, so it never overlaps
+  // the sliding sections and has no reason to leave the plate.
+  'legs-fixed': ['legs-outer', 'legs-base'],
+  // The desktop and everything standing on it. Travels with legs-inner.
+  'desk-top': [
+    'clock',
+    'mic',
+    'mac',
+    'surface',
+    'desk-items',
+    'desk-front',
+    'camera',
+    'arm',
+    'screen',
+  ],
+}
+
+/** The pieces that leave the plate, so the plate must hide exactly these. */
+const DESK_LAYERS = Object.values(DESK_PIECES).flat()
+
+/**
+ * Every layer in the DESK group, including `shadow`, which stays in the plate.
+ *
+ * A piece export has to hide this whole set and then show its own, rather than
+ * hiding only the pieces: `shadow` is not a piece, so leaving it out here would
+ * let it ride along in every piece and composite twice.
+ */
+const DESK_GROUP = [...DESK_LAYERS, 'shadow']
+
+/** Everything a desk piece must hide so it exports alone on transparency. */
+const NOT_DESK = ['WEATHER', 'ROOM', 'LIGHTING']
+
+const deskVariants = Object.fromEntries(
+  Object.entries(DESK_PIECES).map(([piece, show]) => [
+    piece,
+    { hide: [...NOT_DESK, ...DESK_GROUP.filter((l) => !show.includes(l))], show },
+  ]),
 )
+
+/**
+ * Every weather condition renders as a day/night pair, and the page crossfades
+ * between the two by how far into night it is.
+ *
+ * Still flattened rather than masked, because the wall occludes the sky
+ * everywhere but the glass. What is no longer in them is the desk.
+ */
+const weatherVariants = Object.fromEntries(
+  SKIES.map((sky) => [
+    sky,
+    { hide: [...SKIES.filter((other) => other !== sky), ...DESK_LAYERS], show: [sky] },
+  ]),
+)
+
+/**
+ * The dev room, which is not a page.
+ *
+ * `src/dev/` sits outside `src/pages/`, so file-based routing cannot find it,
+ * and the route is only injected when the command is `dev`. Both together, on
+ * purpose: a build has neither a file to route nor a route to build, so there
+ * is nothing to tree-shake and nothing to trust. `dist/` should hold exactly
+ * three HTML files, and does.
+ */
+/** @type {import('astro').AstroIntegration} */
+const devRoom = {
+  name: 'dev-room',
+  hooks: {
+    'astro:config:setup': ({ command, injectRoute }) => {
+      if (command !== 'dev') return;
+      injectRoute({ pattern: '/dev', entrypoint: './src/dev/DevRoom.astro' });
+    },
+  },
+};
 
 export default defineConfig({
   // React is here for one component: the scene needs hooks and a ref to a live
   // canvas, so it ships as an island. Every page around it is static HTML.
-  integrations: [react()],
+  integrations: [react(), devRoom],
 
   vite: {
     plugins: [
@@ -40,8 +136,12 @@ export default defineConfig({
         // dark       — lighting mask, faded by the room light and the hour.
         // desk-front — the desk lip, redrawn over anything behind it.
         // desk-items — what rests on the desk.
-        layers: { room: ['dark', 'desk-front', 'desk-items'] },
-        variants: { room: weatherVariants },
+        // dark — the lighting mask, faded by the room light and the hour. The
+        // desk-front and desk-items exports that used to sit here are gone:
+        // nothing drew them once the character moved in front of the desk, and
+        // they are inside the desk-top piece now.
+        layers: { room: ['dark'] },
+        variants: { room: { ...weatherVariants, ...deskVariants } },
       }),
     ],
   },

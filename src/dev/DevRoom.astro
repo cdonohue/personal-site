@@ -1,0 +1,26 @@
+---
+import DevPanel from './DevPanel'
+import '../index.css'
+
+/**
+ * The dev room. Not a page — see `devRoom` in astro.config.mjs.
+ *
+ * Deliberately not using Layout.astro. This is a workbench, not part of the
+ * site, and it should not inherit the column width, the header or the type
+ * scale that the real pages agreed on. Sharing them would mean every change to
+ * the site's chrome could break the tool, and every change to the tool would be
+ * a diff against the site.
+ */
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Desk room — dev</title>
+  </head>
+  <body>
+    <DevPanel client:only="react" />
+  </body>
+</html>

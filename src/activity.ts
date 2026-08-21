@@ -1,4 +1,5 @@
-import { zonedParts } from './scene/render'
+import { PLAY_TAGS, SCREENSAVER_TAGS, WORK_TAGS, zonedParts } from './scene/render'
+import { outfitFor, type Outfit } from './scene/outfits'
 
 /**
  * What the room is doing: whether anyone is at the desk, and what is on screen.
@@ -20,54 +21,52 @@ import { zonedParts } from './scene/render'
  */
 export const TIME_ZONE = 'America/Chicago'
 
+/** Weekdays, nine to five, in the room's zone. Inside this, the desk is manned. */
+const WORK_START = 9
+const WORK_END = 17
+
 /**
- * How likely someone is at the desk, by hour.
+ * How likely someone is at the desk **outside** working hours.
  *
- * Occupancy is a fiction and always was — nine-to-five weekdays was an invented
- * rule, not telemetry, and no desk empties at 17:00 sharp. What is real here is
- * the environment: the hour, the light and the weather all still describe the
- * world. This only decides whether the chair is full, which nothing outside the
- * page could confirm anyway.
+ * Inside them it is not a probability at all: the desk is occupied, full stop.
+ * This curve only covers evenings, nights and weekends, which is why every
+ * value on it is small. It is a room somebody might wander back into, not a
+ * second working day.
  *
- * Weighted rather than a coin toss so the room stays plausible against its own
- * lighting. Someone can be at the desk at 3am; it is just rare.
+ * Weighted by hour rather than flat so it stays plausible against its own
+ * lighting. Someone can be at the desk at 3am; it is just rare. The bulge in the
+ * evening is where an off-hours visitor is most likely to find anyone, and the
+ * daytime figure is really about weekends.
  */
 export const PRESENCE_CURVE: [hour: number, chance: number][] = [
-  [0, 0.05],
-  [3, 0.08],
-  [6, 0.2],
-  [9, 0.85],
-  [13, 0.8],
-  [17, 0.7],
-  [19, 0.55],
-  [21, 0.35],
-  [23, 0.2],
-  [24, 0.05],
+  [0, 0.03],
+  [6, 0.05],
+  [9, 0.18],
+  [17, 0.2],
+  [19, 0.25],
+  [22, 0.12],
+  [24, 0.03],
 ]
 
-/**
- * The room is never handed to a visitor completely dark.
- *
- * An empty chair is fine, and after midnight it is the truth. An empty chair
- * in front of a dead monitor is not: nothing moves, nothing is lit, and the
- * hero reads as broken rather than as quiet. So the guarantee is about the
- * screen, not the chair.
- *
- * This replaced a floor on presence itself, which had to be high enough to
- * avoid that dark state and therefore drowned the hourly curve — 80% occupied
- * at three in the morning, against a dark window. Guaranteeing only the screen
- * lets the curve run honestly at every hour while still never opening on
- * nothing.
- */
-export const LIVE_ON_ARRIVAL = true
-
-/** Chance the screen is left running once the room empties. */
-const LEFT_ON_CHANCE = 0.7
-const LEFT_ON_CHANCE_LATE = 0.25
-
-/** Chance of the work screen rather than the game, while someone is there. */
+/** Chance of a work screen rather than a game, while someone is there. */
 const WORKING_CHANCE = 0.75
 const WORKING_CHANCE_OFF_HOURS = 0.25
+
+const pick = <T>(from: readonly T[]): T => from[Math.floor(Math.random() * from.length)]
+
+/**
+ * Chance the desk is already up when you arrive.
+ *
+ * Rolled independently of whether anyone is there, because the desk keeps its
+ * height either way — it is furniture, not a posture. An empty room at standing
+ * height is somebody who stood up and walked off, which is the commonest way a
+ * sit-stand desk is actually found.
+ *
+ * A third is about what someone with one of these spends standing. Higher and
+ * the seated pose, which is the drawing the page is built around, stops being
+ * the thing you usually see.
+ */
+const STANDING_CHANCE = 0.3
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 
@@ -83,61 +82,73 @@ export const presenceChanceAt = (hour: number): number => {
   return PRESENCE_CURVE[PRESENCE_CURVE.length - 1][1]
 }
 
-/** Weekdays, nine to five, in the room's zone — now only a weighting, not a rule. */
-const isWorkHours = (at: { hour: number; weekday: number }) =>
-  at.weekday !== 0 && at.weekday !== 6 && at.hour >= 9 && at.hour < 17
+export const isWorkHours = (at: { hour: number; weekday: number }) =>
+  at.weekday !== 0 && at.weekday !== 6 && at.hour >= WORK_START && at.hour < WORK_END
 
 /**
- * What the room is doing: whether anyone is there, what is on the screen, and
- * whether the screen is on at all.
+ * What the room is doing: whether anyone is there, and what is on the screen.
  *
- * `content` is what shows *when powered*, kept separate from `powered` so that
- * clicking the monitor off and on again returns to what was already playing
- * rather than re-rolling it.
+ * Nothing here says whether the screen is *on*. It always is, as far as the
+ * schedule is concerned; the only thing that darkens it is the plug leaving the
+ * wall, and that is the scene's business rather than this model's.
  */
 export type Activity = {
   presence: 'present' | 'away'
-  content: 'on' | 'game' | 'idle'
-  powered: boolean
+  /**
+   * The tag on the monitor: a scene while somebody is there, a screensaver
+   * while they are not.
+   *
+   * One field, because the monitor does not distinguish between them — it plays
+   * whatever tag it is handed. Which kind it gets is the only part that is
+   * policy, and it is decided here.
+   */
+  screen: string
+  /**
+   * How the room is found, not how it got that way.
+   *
+   * The scene animates between the two when a visitor works the desk control,
+   * but on arrival it is simply already one or the other — nobody stands up in
+   * an empty room to explain why the desk is high.
+   */
+  posture: 'seated' | 'standing'
+  /**
+   * What they are wearing.
+   *
+   * Derived from the date rather than rolled, which is the whole difference:
+   * one outfit a day, the same for everybody looking on that day, and a reload
+   * cannot change it. The other three fields here are chance; this one is a
+   * calendar.
+   */
+  outfit: Outfit
 }
 
-export const roll = (now: Date, mustBeLit = false): Activity => {
+export const roll = (now: Date): Activity => {
   const at = zonedParts(now, TIME_ZONE)
   const hour = at.hour + at.minute / 60
 
-  // Straight off the curve. Nothing overrides this any more.
-  if (Math.random() < presenceChanceAt(hour)) {
-    const working = Math.random() < (isWorkHours(at) ? WORKING_CHANCE : WORKING_CHANCE_OFF_HOURS)
-    return { presence: 'present', content: working ? 'on' : 'game', powered: true }
+  // Independent of everything below it. The desk is where it was left, which
+  // has no bearing on whether anyone came back to it.
+  const posture = Math.random() < STANDING_CHANCE ? 'standing' : 'seated'
+
+  const outfit = outfitFor(now, TIME_ZONE)
+
+  // Working hours are a guarantee rather than a weighting. Outside them the
+  // curve takes over, and every value on it is small.
+  const working = isWorkHours(at)
+  if (working || Math.random() < presenceChanceAt(hour)) {
+    // Being at the desk during working hours does not oblige anyone to be
+    // working. A game at two on a Tuesday is a better joke than a rule; it is
+    // just less likely than the alternative.
+    const chance = working ? WORKING_CHANCE : WORKING_CHANCE_OFF_HOURS
+    const screen = pick(Math.random() < chance ? WORK_TAGS : PLAY_TAGS)
+    return { presence: 'present', screen, posture, outfit }
   }
 
-  // Empty room: the screensaver, or a screen shut off on the way out — unless
-  // this is the frame the visitor arrives on, which is never allowed to be dark.
-  const late = hour >= 23 || hour < 6
-  const powered = mustBeLit || Math.random() < (late ? LEFT_ON_CHANCE_LATE : LEFT_ON_CHANCE)
-  return { presence: 'away', content: 'idle', powered }
-}
-
-/**
- * The final scene state, once a visitor's monitor toggle is taken into account.
- *
- * Enforces the one rule the roll cannot: nobody sits at a dark screen or watches
- * their own screensaver. The roll never produces that pairing, but a visitor
- * switching the monitor off while someone is at the desk would, so the person
- * gets up instead. Turn it back on and they come back.
- *
- * Separate from `roll` and exported so the invariant can be checked directly
- * rather than by watching the hero and hoping.
- */
-export const sceneStateFor = (
-  activity: Activity,
-  powerOverride: 'on' | 'off' | null,
-): { presence: Activity['presence']; monitor: 'on' | 'game' | 'idle' | 'off' } => {
-  const powered = powerOverride ? powerOverride === 'on' : activity.powered
-  const monitor = powered ? activity.content : 'off'
-  const worthSittingAt = monitor === 'on' || monitor === 'game'
-  return {
-    presence: activity.presence === 'present' && worthSittingAt ? 'present' : 'away',
-    monitor,
-  }
+  // An empty room runs a screensaver, and which one varies between visits
+  // rather than within one — switching while somebody is watching reads as a
+  // glitch, which is also why the whole roll happens once.
+  //
+  // The screen is never simply off. The only thing that darkens it is the plug
+  // coming out of the wall, which is a visitor's doing rather than a schedule's.
+  return { presence: 'away', screen: pick(SCREENSAVER_TAGS), posture, outfit }
 }

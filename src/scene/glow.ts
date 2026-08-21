@@ -12,7 +12,7 @@
  * as light.
  */
 
-import type { Frame } from './aseprite';
+import type { Frame, SheetImage } from './aseprite';
 
 export type GlowOptions = {
   /**
@@ -64,7 +64,7 @@ export class Glow {
    * Precompute glow rings for every frame. Frames must share one size — true
    * for a glyph sheet, and cheaper than packing variable cells.
    */
-  static build(image: HTMLImageElement, frames: Frame[], options: GlowOptions = {}): Glow {
+  static build(image: SheetImage, frames: Frame[], options: GlowOptions = {}): Glow {
     const emissiveFraction = options.emissiveFraction ?? DEFAULTS.emissiveFraction;
     const ringAlphas = options.ringAlphas ?? DEFAULTS.ringAlphas;
     const [cr, cg, cb] = options.color ?? DEFAULTS.color;

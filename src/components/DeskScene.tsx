@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
-import { LIVE_ON_ARRIVAL, TIME_ZONE, roll, sceneStateFor, type Activity } from '../activity'
-import type { ToggleValues, Weather } from '../scene/toggles'
-import { REFRESH_MS, currentCondition, lastKnownCondition } from '../weather'
+import { nightAmountAt } from '../scene/render'
+import { TIME_ZONE, roll, type Activity } from '../activity'
+import type { ToggleValues } from '../scene/toggles'
+import { REFRESH_MS, currentSky, lastKnownSky, type Sky } from '../weather'
 
 /**
  * The pixel desk scene, as the home page hero.
@@ -30,6 +31,26 @@ const SCENE_H = 108
 
 /** Touch targets below this get an invisible margin so small art stays tappable. */
 const MIN_TARGET_PX = 44
+
+/**
+ * How often the hit targets resample the desk's eased height.
+ *
+ * Coarse on purpose. This only moves a hit box, and re-rendering React sixty
+ * times a second to follow an eighteen pixel slide would be absurd; the canvas
+ * is doing the actual animation.
+ */
+const DESK_SAMPLE_MS = 80
+
+/**
+ * How dark it has to be outside before the lamp goes on, and how often that is
+ * checked.
+ *
+ * A third of the way into dusk rather than at full night: nobody sits in a room
+ * until it is pitch dark and only then reaches for the switch. Ten minutes is
+ * far finer than a ninety-minute fade needs, and it is one arithmetic call.
+ */
+const LAMP_AT = 0.35
+const LAMP_CHECK_MS = 10 * 60 * 1000
 
 /**
  * How far each row is inset at the corners, outermost first, in scene pixels.
@@ -79,6 +100,8 @@ export default function DeskScene() {
   const sceneRef = useRef<DeskRoom | null>(null)
 
   const [slices, setSlices] = useState<Map<string, Rect> | null>(null)
+  /** Mirrors the scene's eased desk height, so hit targets stay under the finger. */
+  const [deskOffset, setDeskOffset] = useState(0)
   const [scale, setScale] = useState(0)
   const [failed, setFailed] = useState(false)
 
@@ -86,19 +109,18 @@ export default function DeskScene() {
   // nullable rather than plain booleans so that null means "whatever the room is
   // doing" — a boolean default would have to pick on or off and would then fight
   // the roll.
-  const [powerOverride, setPowerOverride] = useState<Override>(null)
   const [lightOverride, setLightOverride] = useState<Override>(null)
   const [clock, setClock] = useState<ToggleValues['clock']>('12-hour')
 
   // Seeded from the last visit rather than a default, so the sky does not paint
   // clear and then visibly correct itself once the request lands.
-  const [weather, setWeather] = useState<Weather>(() => lastKnownCondition() ?? 'clear')
+  const [sky, setSky] = useState<Sky>(() => lastKnownSky() ?? { condition: 'clear', daylight: null })
 
   useEffect(() => {
     let cancelled = false
     const load = () => {
-      currentCondition().then((condition) => {
-        if (!cancelled) setWeather(condition)
+      currentSky().then((next) => {
+        if (!cancelled) setSky(next)
       })
     }
     load()
@@ -108,6 +130,26 @@ export default function DeskScene() {
       window.clearInterval(timer)
     }
   }, [])
+
+  /**
+   * Whether it is dark enough outside to want the lamp on.
+   *
+   * Re-checked on a timer, unlike everything else here, and that is deliberate:
+   * this is the one change a visitor can see the cause of. The windows dim
+   * continuously on their own, so a lamp coming on partway through dusk reads as
+   * the room answering the sky rather than as something happening at random.
+   *
+   * Coarse on purpose. It is a boolean that flips twice a day, tracking a fade
+   * that takes ninety minutes.
+   */
+  const [dark, setDark] = useState(false)
+  useEffect(() => {
+    const check = () => setDark(nightAmountAt(new Date(), TIME_ZONE, sky.daylight) > LAMP_AT)
+    check()
+    const timer = window.setInterval(check, LAMP_CHECK_MS)
+    return () => window.clearInterval(timer)
+    // Re-armed when the real sunset lands, which moves where the threshold sits.
+  }, [sky.daylight])
 
   /**
    * The room's state for this visit, rolled once and then left alone.
@@ -120,26 +162,33 @@ export default function DeskScene() {
    * A reload is the only thing that rolls again, which is also what makes the
    * variety land — between visits rather than during one.
    */
-  const [activity] = useState<Activity>(() => roll(new Date(), LIVE_ON_ARRIVAL))
+  const [activity] = useState<Activity>(() => roll(new Date()))
 
   const values = useMemo<Partial<ToggleValues>>(() => {
-    const { presence, monitor } = sceneStateFor(activity, powerOverride)
-
     return {
       // The environment is still real. Only the room's occupancy is rolled.
       lighting: 'auto',
-      weather,
+      weather: sky.condition,
+      daylight: sky.daylight,
       // `present` and not `typing`: there is no typing pose yet, and a missing
       // tag falls back to playing the whole sheet — which would cycle the empty
       // chair and flicker the person in and out.
-      presence,
-      monitor,
-      // The lamp goes off on the way out, unless someone has said otherwise. An
-      // override holds for the visit rather than expiring on the next roll.
-      roomLight: lightOverride ?? (presence === 'present' ? 'on' : 'off'),
+      presence: activity.presence,
+      // Power. What is playing is `screen`, and the roll decides which.
+      monitor: 'on',
+      screen: activity.screen,
+      // Dark out and somebody home. Presence alone left the lamp burning
+      // through a bright afternoon; darkness alone would leave it burning all
+      // night in an empty room, which is not what anyone does on the way out.
+      //
+      // An override holds for the visit rather than expiring on the next roll,
+      // and follows the roll's own occupancy rather than anything computed from
+      // it — keyed to the latter, switching the monitor off turned the room
+      // lights off too, one derived value quietly driving another.
+      roomLight: lightOverride ?? (activity.presence === 'present' && dark ? 'on' : 'off'),
       clock,
     }
-  }, [activity, weather, powerOverride, lightOverride, clock])
+  }, [activity, sky, dark, lightOverride, clock])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -148,14 +197,14 @@ export default function DeskScene() {
     let scene: DeskRoom | null = null
     let cancelled = false
 
-    createDeskRoom(canvas, { values, timeZone: TIME_ZONE })
+    createDeskRoom(canvas, { values, timeZone: TIME_ZONE, posture: activity.posture, outfit: activity.outfit })
       .then((created) => {
         if (cancelled) return
         scene = created
         sceneRef.current = created
         setSlices(
           new Map(
-            ['light-switch', 'monitor-screen', 'clock-screen']
+            ['light-switch', 'clock-screen', 'desk-controls', 'power-outlet']
               .map((name) => [name, created.slice(name)] as const)
               .filter((entry): entry is [string, Rect] => Boolean(entry[1])),
           ),
@@ -179,6 +228,15 @@ export default function DeskScene() {
   useEffect(() => {
     sceneRef.current?.set(values)
   }, [values])
+
+  // Follow the desk while it travels, then stop.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const current = sceneRef.current?.deskOffset() ?? 0
+      setDeskOffset((previous) => (Math.abs(previous - current) < 0.01 ? previous : current))
+    }, DESK_SAMPLE_MS)
+    return () => window.clearInterval(timer)
+  }, [])
 
   // Track the column width; the scene fills it.
   useEffect(() => {
@@ -209,21 +267,20 @@ export default function DeskScene() {
     flip(setLightOverride, () => activityRef.current.presence === 'present'),
     [],
   )
-  const toggleMonitor = useCallback(
-    flip(setPowerOverride, () => activityRef.current.powered),
-    [],
-  )
-
   if (failed) return null
 
-  const hitBox = (slice: Rect) => {
+  /** Slices that ride the desk, so their hit targets have to ride it too. */
+  const RIDES_THE_DESK = new Set(['monitor-screen', 'clock-screen', 'desk-controls'])
+
+  const hitBox = (slice: Rect, rides: boolean) => {
+    const lift = rides ? Math.round(deskOffset) : 0
     const width = Math.max(slice.w * scale, MIN_TARGET_PX)
     const height = Math.max(slice.h * scale, MIN_TARGET_PX)
     return {
       width,
       height,
       left: (slice.x + slice.w / 2) * scale - width / 2,
-      top: (slice.y + slice.h / 2) * scale - height / 2,
+      top: (slice.y - lift + slice.h / 2) * scale - height / 2,
     }
   }
 
@@ -234,9 +291,14 @@ export default function DeskScene() {
       onClick: toggleLight,
     },
     {
-      slice: 'monitor-screen',
-      label: 'Turn the monitor on or off',
-      onClick: toggleMonitor,
+      slice: 'desk-controls',
+      label: 'Raise or lower the desk',
+      onClick: () => sceneRef.current?.toggleDesk(),
+    },
+    {
+      slice: 'power-outlet',
+      label: 'Unplug the desk, or plug it back in',
+      onClick: () => sceneRef.current?.toggleCable(),
     },
     {
       slice: 'clock-screen',
@@ -272,7 +334,7 @@ export default function DeskScene() {
                 key={slice}
                 type="button"
                 onClick={onClick}
-                style={hitBox(bounds)}
+                style={hitBox(bounds, RIDES_THE_DESK.has(slice))}
                 className="absolute cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
               >
                 <span className="sr-only">{label}</span>

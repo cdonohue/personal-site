@@ -1,4 +1,4 @@
-import type { Weather } from './scene/toggles'
+import type { Daylight, Weather } from './scene/toggles'
 
 /**
  * What the window looks out on: the real conditions where the room is.
@@ -25,9 +25,24 @@ import type { Weather } from './scene/toggles'
 const LATITUDE = 29.76
 const LONGITUDE = -95.37
 
+/**
+ * The zone the daily times come back in.
+ *
+ * Asking for them in the room's own zone means sunrise arrives as a wall-clock
+ * time that can be used directly, rather than as an instant that has to be
+ * converted back. Everything downstream already thinks in the room's hours.
+ */
+const ZONE = 'America/Chicago'
+
+/**
+ * One request for both. Sunrise and sunset ride along with the weather because
+ * they come from the same endpoint at no extra cost — no key, no second round
+ * trip, and they are cached together so they cannot disagree about the day.
+ */
 const ENDPOINT =
   `https://api.open-meteo.com/v1/forecast` +
-  `?latitude=${LATITUDE}&longitude=${LONGITUDE}&current=weather_code`
+  `?latitude=${LATITUDE}&longitude=${LONGITUDE}&current=weather_code` +
+  `&daily=sunrise,sunset&forecast_days=1&timezone=${encodeURIComponent(ZONE)}`
 
 const CACHE_KEY = 'desk-scene.weather'
 
@@ -58,27 +73,55 @@ export const conditionFor = (code: number): Weather => {
   return 'clear'
 }
 
-type Cached = { condition: Weather; at: number }
+/** What the window shows and how light it is outside, fetched together. */
+export type Sky = { condition: Weather; daylight: Daylight | null }
+
+type Cached = Sky & { at: number }
+
+/**
+ * "2026-08-21T06:52" to 6.87.
+ *
+ * Deliberately string surgery rather than `new Date()`. The API returns these
+ * already in the room's zone and without an offset, so parsing them as dates
+ * would reinterpret them in the *visitor's* zone and land the sunrise wherever
+ * they happen to be standing.
+ */
+const hourOf = (iso: string | undefined): number | null => {
+  const at = /T(\d{2}):(\d{2})/.exec(iso ?? '')
+  if (!at) return null
+  return Number(at[1]) + Number(at[2]) / 60
+}
+
+const daylightFrom = (daily: { sunrise?: string[]; sunset?: string[] } | undefined) => {
+  const sunrise = hourOf(daily?.sunrise?.[0])
+  const sunset = hourOf(daily?.sunset?.[0])
+  // Both or neither. Half a curve is worse than the fixed one it falls back to.
+  return sunrise !== null && sunset !== null ? { sunrise, sunset } : null
+}
 
 const readCache = (): Cached | null => {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Cached
-    return typeof parsed?.at === 'number' && parsed.condition ? parsed : null
+    if (typeof parsed?.at !== 'number' || !parsed.condition) return null
+    // Entries written before sunrise and sunset were fetched are still good for
+    // their weather, so they are kept rather than discarded.
+    return { ...parsed, daylight: parsed.daylight ?? null }
   } catch {
     return null
   }
 }
 
 /**
- * The last condition seen, however old.
+ * The last sky seen, however old.
  *
  * Used to paint something plausible on the first frame instead of defaulting to
  * clear and then visibly correcting itself a moment later. Stale weather from
- * the last visit is a better guess than no weather at all.
+ * the last visit is a better guess than no weather at all, and yesterday's
+ * sunset is within a couple of minutes of today's.
  */
-export const lastKnownCondition = (): Weather | null => readCache()?.condition ?? null
+export const lastKnownSky = (): Sky | null => readCache()
 
 /**
  * The current condition, from cache when it is fresh enough.
@@ -87,9 +130,9 @@ export const lastKnownCondition = (): Weather | null => readCache()?.condition ?
  * should carry on with a clear sky, not fail — so every error path here ends at
  * a usable condition.
  */
-export const currentCondition = async (): Promise<Weather> => {
+export const currentSky = async (): Promise<Sky> => {
   const cached = readCache()
-  if (cached && Date.now() - cached.at < REFRESH_MS) return cached.condition
+  if (cached && Date.now() - cached.at < REFRESH_MS) return cached
 
   try {
     // Bounded, so a hanging request cannot leave the sky stuck for the visit.
@@ -99,23 +142,24 @@ export const currentCondition = async (): Promise<Weather> => {
     clearTimeout(timer)
 
     if (!response.ok) throw new Error(`weather: HTTP ${response.status}`)
-    const body = (await response.json()) as { current?: { weather_code?: number } }
+    const body = (await response.json()) as {
+      current?: { weather_code?: number }
+      daily?: { sunrise?: string[]; sunset?: string[] }
+    }
     const code = body.current?.weather_code
     if (typeof code !== 'number') throw new Error('weather: no weather_code in response')
 
-    const condition = conditionFor(code)
+    const sky: Sky = { condition: conditionFor(code), daylight: daylightFrom(body.daily) }
     try {
-      localStorage.setItem(
-        CACHE_KEY,
-        JSON.stringify({ condition, at: Date.now() } satisfies Cached),
-      )
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ ...sky, at: Date.now() } satisfies Cached))
     } catch {
       // Storage unavailable or full: the sky still works, it just refetches.
     }
-    return condition
+    return sky
   } catch {
     // Stale beats wrong: a condition from an hour ago is closer to the truth
-    // than falling back to clear because the network blipped.
-    return cached?.condition ?? 'clear'
+    // than falling back to clear because the network blipped. With nothing
+    // cached at all the daylight goes null, and the scene uses a fixed curve.
+    return cached ?? { condition: 'clear', daylight: null }
   }
 }
