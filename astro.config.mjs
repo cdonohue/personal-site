@@ -95,10 +95,30 @@ const weatherVariants = Object.fromEntries(
   ]),
 )
 
+/**
+ * The dev room, which is not a page.
+ *
+ * `src/dev/` sits outside `src/pages/`, so file-based routing cannot find it,
+ * and the route is only injected when the command is `dev`. Both together, on
+ * purpose: a build has neither a file to route nor a route to build, so there
+ * is nothing to tree-shake and nothing to trust. `dist/` should hold exactly
+ * three HTML files, and does.
+ */
+/** @type {import('astro').AstroIntegration} */
+const devRoom = {
+  name: 'dev-room',
+  hooks: {
+    'astro:config:setup': ({ command, injectRoute }) => {
+      if (command !== 'dev') return;
+      injectRoute({ pattern: '/dev', entrypoint: './src/dev/DevRoom.astro' });
+    },
+  },
+};
+
 export default defineConfig({
   // React is here for one component: the scene needs hooks and a ref to a live
   // canvas, so it ships as an island. Every page around it is static HTML.
-  integrations: [react()],
+  integrations: [react(), devRoom],
 
   vite: {
     plugins: [

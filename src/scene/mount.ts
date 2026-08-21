@@ -57,6 +57,13 @@ export type DeskRoom = {
   toggleCable(): void;
   /** True while the plug is out. */
   cableUnplugged(): boolean;
+  /**
+   * Change what the figure is wearing, without a reload.
+   *
+   * For the dev customiser. The page picks an outfit once from the date and
+   * never calls this; live editing is the only reason it exists.
+   */
+  setOutfit(outfit: Outfit): void;
   start(): void;
   stop(): void;
 };
@@ -582,6 +589,9 @@ export const createDeskRoom = async (
     },
     cableUnplugged() {
       return !cablePlugged;
+    },
+    setOutfit(next) {
+      assets.dressCharacter(next);
     },
     start() {
       if (handle) return;

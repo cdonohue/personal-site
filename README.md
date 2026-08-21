@@ -18,6 +18,7 @@ there are no rewrite rules to configure and no client-side routing to get wrong.
 art/            Aseprite sources and their exports  (see art/README.md)
 src/scene/      the desk scene, framework-agnostic
 src/pages/      one .astro file per route
+src/dev/        the workbench at /dev — never built  (see below)
 src/activity.ts what the room is doing when you arrive, and how likely it is
 src/content.ts  everything the site says about jobs, tools and links
 src/index.css   the whole design system: tokens, roles, type
@@ -75,6 +76,27 @@ of the desktop, and the plug under the left window. The desk is the involved one
 — the occupant stands, shoves the chair out of shot and the desktop rises, three
 overlapping beats that come to about 800ms. Pulling the plug cuts the monitor,
 the clock and the indicator on the power box, and startles whoever is there.
+
+## The workbench
+
+`npm run dev` also serves **`/dev`**, which is not a page. It holds every scene
+value as a control, buttons for the desk and the plug, and an outfit customiser
+that previews live and prints a block of TypeScript to paste into
+`src/scene/outfits.ts`. The point is reaching states you would otherwise wait
+days for: snow, three in the morning, away-and-standing, the startle.
+
+**It cannot ship.** `src/dev/` sits outside `src/pages/`, so file-based routing
+cannot find it, and the route is only injected when the command is `dev`. Both
+at once on purpose — a build has neither a file to route nor a route to build,
+so there is nothing to tree-shake and nothing to take on trust. `dist/` holds
+three HTML files, and `grep` finds no trace of the panel in it.
+
+The one concession in shipped code is `setOutfit` on `DeskRoom`, so a colour can
+be changed without remounting and losing the desk height mid-fiddle. The site
+picks an outfit once from the date and never calls it.
+
+Nothing in the panel persists. Its output is source to paste, which keeps
+`outfits.ts` the only place an outfit lives.
 
 The art and the code meet at exactly two places: **slice names** and **tag
 names**. `art/README.md` documents that contract and the reasoning behind the

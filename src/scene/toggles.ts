@@ -1,14 +1,14 @@
 /**
- * Every toggle in the scene, live or not.
+ * Every value the scene takes, and what a human may set it to.
  *
- * One list so the toggle bar, the debug grid, and the plan cannot drift apart.
- * `blockedBy` entries are from ASEPRITE_CHECKLIST.md's runtime model and are
- * listed deliberately — a control that cannot be built yet is easy to forget
- * exists, and its interactions are the ones that surprise you later.
+ * `LIVE_TOGGLES` is the list the dev room renders a control from, so adding a
+ * value here is enough to make it adjustable at /dev. It went unread for a long
+ * while after the prototype's toggle bar was dropped, and drifted; it has a
+ * consumer again now.
  *
- * Values are strings rather than booleans because the plan's controls are not
- * all binary: lighting is auto/day/night today, and presence will be
- * present/away/empty once there is a character to show.
+ * Values are strings rather than booleans because they are not all binary:
+ * lighting is auto/day/night, and presence has four states of which two are
+ * still undrawn.
  */
 
 /**
@@ -68,13 +68,13 @@ export type LiveToggle = {
   };
 }[LiveToggleId];
 
-export type BlockedToggle = {
-  id: string;
-  label: string;
-  states: string[];
-  blockedBy: string;
-};
-
+/**
+ * `screen` is deliberately absent. Its options are the three tag lists in
+ * render.ts, which this file cannot import without a cycle, so the dev room
+ * builds that control from them directly. A copy here would be a second list of
+ * screens to keep in step, which is the thing that was just removed everywhere
+ * else.
+ */
 export const LIVE_TOGGLES: LiveToggle[] = [
   {
     id: 'presence',
@@ -96,24 +96,7 @@ export const LIVE_TOGGLES: LiveToggle[] = [
   },
   { id: 'roomLight', label: 'Room light', options: ['on', 'off'] },
   { id: 'monitor', label: 'Monitor power', options: ['on', 'off'] },
-  {
-    id: 'screen',
-    label: 'On screen',
-    // Not exhaustive and cannot be: the scene accepts any tag in the sheet.
-    // These are the ones worth stepping through by hand.
-    options: ['ai-work', 'game', 'cube', 'bounce'],
-    note: 'scenes and screensavers are the same field',
-  },
   { id: 'clock', label: 'Clock format', options: ['12-hour', '24-hour'] },
-];
-
-export const BLOCKED_TOGGLES: BlockedToggle[] = [
-  {
-    id: 'headphonesMode',
-    label: 'Headphones',
-    states: ['hanging', 'worn'],
-    blockedBy: 'headphones are baked into DESK/surface, and worn needs a character',
-  },
 ];
 
 export const DEFAULT_VALUES: ToggleValues = {
@@ -127,36 +110,3 @@ export const DEFAULT_VALUES: ToggleValues = {
   screen: 'ai-work',
   clock: '12-hour',
 };
-
-/**
- * Every combination of the given toggles, holding the rest at `base`.
- *
- * Deliberately not the full product any more: with weather and lighting added
- * that is 5 x 3 x 2 x 2 x 2 = 120 tiles, which is a wall of pictures rather
- * than something you can read. The debug panel slices it instead.
- */
-export const permutations = (
-  ids: LiveToggleId[],
-  base: ToggleValues = DEFAULT_VALUES,
-): ToggleValues[] => {
-  let all: ToggleValues[] = [{ ...base }];
-  for (const id of ids) {
-    const toggle = LIVE_TOGGLES.find((candidate) => candidate.id === id);
-    if (!toggle) continue;
-    all = all.flatMap((values) =>
-      (toggle.options as readonly string[]).map((option) => ({ ...values, [id]: option })),
-    );
-  }
-  return all;
-};
-
-/** e.g. "night · light on · monitor on · 12-hour" */
-export const describe = (values: ToggleValues): string =>
-  [
-    values.presence,
-    values.weather,
-    values.lighting,
-    `light ${values.roomLight}`,
-    `monitor ${values.monitor}`,
-    values.clock,
-  ].join(' · ');

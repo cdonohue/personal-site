@@ -517,6 +517,18 @@ export type Assets = {
   switchPlate: Sheet;
   dark: HTMLImageElement;
   digitGlow: Glow | null;
+  /**
+   * Repaint the character for a different outfit, in place.
+   *
+   * The sheet draws from a canvas, so repainting that canvas is enough — no
+   * sheet is rebuilt and nothing that holds a reference has to hear about it.
+   * Always applied to the untouched image rather than to the last result, or
+   * two outfits in a row would compound into a third.
+   *
+   * Here for the dev customiser. The page itself picks an outfit once and never
+   * changes it, so in the shipped build this is called exactly zero times.
+   */
+  dressCharacter(outfit: Outfit): void;
 };
 
 /** Where a screen's own sheet lives. One file per tag, named after it. */
@@ -556,6 +568,10 @@ export const loadAssets = async (
   outfit: Outfit = OUTFITS[0],
 ): Promise<Assets> => {
   const skyNames = WEATHER_CONDITIONS.flatMap((weather) => [`${weather}-day`, `${weather}-night`]);
+  // The character as exported, kept so a different outfit can be applied to it
+  // later. Recolouring the recoloured copy would stack one outfit on the next.
+  let characterSource: HTMLImageElement | null = null;
+  let characterCanvas: HTMLCanvasElement | null = null;
   // Deduplicated, and always with a fallback in it: the draw needs something to
   // reach for when it is handed a name that has not been drawn.
   const wanted = [...new Set([FALLBACK_SCREEN_TAG, ...screens])];
@@ -579,7 +595,11 @@ export const loadAssets = async (
     loadSheet(`${basePath}/digits`),
     loadSheet(`${basePath}/switch`),
     loadSheet(`${basePath}/weather`),
-    loadSheet(`${basePath}/character`, (image) => recolour(image, outfit)),
+    loadSheet(`${basePath}/character`, (image) => {
+      characterSource = image;
+      characterCanvas = recolour(image, outfit);
+      return characterCanvas;
+    }),
     loadSheet(`${basePath}/chair`),
     loadImage(`${basePath}/room.dark.png`),
     loadImage(`${basePath}/room.legs-inner.png`),
@@ -613,6 +633,9 @@ export const loadAssets = async (
     switchPlate,
     dark,
     digitGlow: DIGIT_GLOW ? Glow.build(digits.image, digits.frames) : null,
+    dressCharacter(next) {
+      if (characterSource && characterCanvas) recolour(characterSource, next, characterCanvas);
+    },
   };
 };
 

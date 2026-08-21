@@ -184,8 +184,13 @@ export const outfitFor = (date: Date, timeZone?: string): Outfit => {
 export const recolour = (
   source: HTMLImageElement | HTMLCanvasElement,
   outfit: Outfit,
+  target?: HTMLCanvasElement,
 ): HTMLCanvasElement => {
-  const canvas = document.createElement('canvas');
+  // Repainting the same canvas rather than making a new one is what lets an
+  // outfit be swapped live: the sheet holds this canvas, so the next frame
+  // picks up the change with nothing rebuilt. Always painted from the pristine
+  // source, never from the last result, or the substitutions compound.
+  const canvas = target ?? document.createElement('canvas');
   canvas.width = source.width;
   canvas.height = source.height;
   const context = canvas.getContext('2d', { willReadFrequently: true });
