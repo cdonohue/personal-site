@@ -4,6 +4,7 @@ import { createDeskRoom, type DeskRoom } from '../scene/mount'
 import { TIME_ZONE, roll, type Activity } from '../activity'
 import type { ToggleValues } from '../scene/toggles'
 import { REFRESH_MS, currentSky, lastKnownSky, type Sky } from '../weather'
+import { chooseTheme, isDark, watchSystem } from '../theme'
 
 /**
  * The pixel desk scene, as the home page hero.
@@ -39,12 +40,12 @@ const MIN_TARGET_PX = 44
  */
 const DESK_SAMPLE_MS = 80
 
-/**
- * The room's lamp follows the page, not the room's own clock.
+/*
+ * The room's lamp and the page's colours are one setting, owned by `theme.ts`.
  *
- * A dark page beside a lit room is the two halves of one frame disagreeing, and
- * the visitor's own setting is a fact where the room's occupancy is a fiction.
- * So the reader wins.
+ * A dark page beside a lit room is the two halves of one frame disagreeing, so
+ * the switch on the wall and the system appearance write the same value and
+ * both the lamp and the stylesheet read it.
  *
  * It replaced a lamp derived from dusk and presence — on when it was dark
  * outside and somebody was home. That read well on its own and cannot coexist
@@ -54,7 +55,6 @@ const DESK_SAMPLE_MS = 80
  *
  * The wash is eased, so a flip fades over about a second rather than cutting.
  */
-const DARK_SCHEME = '(prefers-color-scheme: dark)'
 
 /**
  * How far each row is inset at the corners, outermost first, in scene pixels.
@@ -95,22 +95,6 @@ const cornerClipPath = (w: number, h: number, steps: number[]) => {
 
 const SCENE_CLIP = cornerClipPath(SCENE_W, SCENE_H, CORNER_STEPS)
 
-/** A visitor's choice, or null to follow whatever the room is doing. */
-type Override = 'on' | 'off' | null
-
-/**
- * Flip a control from whatever it is showing right now.
- *
- * The subtlety is the first click. Before anyone has touched it the override is
- * null and the thing is following something else, so a naive toggle would set
- * it to whatever it already was and appear to do nothing. `showing` says what
- * is on screen at the moment of the click, and the flip starts from that.
- *
- * Out here rather than in the component because it is pure, and because a rule
- * about what the first click does is worth being able to check.
- */
-export const flipFrom = (current: Override, showing: boolean): Override =>
-  (current ?? (showing ? 'on' : 'off')) === 'on' ? 'off' : 'on'
 
 export default function DeskScene() {
   const frameRef = useRef<HTMLDivElement>(null)
@@ -123,11 +107,6 @@ export default function DeskScene() {
   const [scale, setScale] = useState(0)
   const [failed, setFailed] = useState(false)
 
-  // What a visitor can change. Everything else is rolled. Both of these are
-  // nullable rather than plain booleans so that null means "whatever the room is
-  // doing" — a boolean default would have to pick on or off and would then fight
-  // the roll.
-  const [lightOverride, setLightOverride] = useState<Override>(null)
   const [clock, setClock] = useState<ToggleValues['clock']>('12-hour')
 
   // Seeded from the last visit rather than a default, so the sky does not paint
@@ -150,27 +129,15 @@ export default function DeskScene() {
   }, [])
 
   /**
-   * Whether the page is being read in dark mode.
+   * Light or dark, for the room and the page both.
    *
-   * Listened to rather than sampled, so switching the system appearance flips
-   * the room while the page is open — which is the whole point. Read once up
-   * front so the first frame is already right instead of correcting itself.
+   * One piece of state with two writers — the switch on the wall and the system
+   * appearance — rather than a preference the room follows and an override that
+   * escapes it. That collapse is the point: with the switch setting a theme and
+   * the theme driving the switch, anything less than one shared value is a loop.
    */
-  const [prefersDark, setPrefersDark] = useState(() => window.matchMedia(DARK_SCHEME).matches)
-  useEffect(() => {
-    const query = window.matchMedia(DARK_SCHEME)
-    const listen = (event: MediaQueryListEvent) => {
-      setPrefersDark(event.matches)
-      // Changing the system appearance takes the room back. Both acts are
-      // deliberate, so the later one wins: the switch is "just this once"
-      // rather than "for the rest of the visit". Held the other way, one click
-      // on the switch quietly severed the room from the page for good, and
-      // nothing on screen would say why it had stopped following.
-      setLightOverride(null)
-    }
-    query.addEventListener('change', listen)
-    return () => query.removeEventListener('change', listen)
-  }, [])
+  const [dark, setDark] = useState(isDark)
+  useEffect(() => watchSystem(setDark), [])
 
   /**
    * The room's state for this visit, rolled once and then left alone.
@@ -198,13 +165,11 @@ export default function DeskScene() {
       // Power. What is playing is `screen`, and the roll decides which.
       monitor: 'on',
       screen: activity.screen,
-      // The page's scheme is the light switch, unless a visitor has worked the
-      // real one since. An override lasts until the appearance changes again,
-      // which clears it.
-      roomLight: lightOverride ?? (prefersDark ? 'off' : 'on'),
+      // The lamp and the page are the same fact seen twice.
+      roomLight: dark ? 'off' : 'on',
       clock,
     }
-  }, [activity, sky, prefersDark, lightOverride, clock])
+  }, [activity, sky, dark, clock])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -269,13 +234,14 @@ export default function DeskScene() {
   // Both flip from whatever is showing now, so the first click always does
   // something visible rather than re-asserting the scheduled value.
 
-  // Read through a ref so the callback stays stable while still flipping from
-  // whatever the room is doing at the moment of the click.
-  const prefersDarkRef = useRef(prefersDark)
-  prefersDarkRef.current = prefersDark
-
+  // Working the switch is choosing a theme, which is why it writes through the
+  // module rather than only into React state: the choice outlives this page.
   const toggleLight = useCallback(
-    () => setLightOverride((current) => flipFrom(current, !prefersDarkRef.current)),
+    () =>
+      setDark((current) => {
+        chooseTheme(!current)
+        return !current
+      }),
     [],
   )
   if (failed) return null

@@ -116,6 +116,21 @@ Colours come from the scene rather than being invented, so the page and the
 illustration read as one thing. Every text colour clears 4.5:1 on its own
 background in both schemes.
 
+**The light switch in the scene is the site's theme control.** The switch and
+the system appearance write one value in `src/theme.ts`, and both the room's
+lamp and the page's colours read it — with the switch setting a theme and the
+theme driving the switch, anything less than one shared value is a loop.
+
+A choice beats the system preference and is remembered, so it survives a reload
+and the other two pages; changing the appearance again clears it, on the rule
+that whichever was done last wins. An inline script in the head applies a stored
+choice before anything paints, because the switch lives in the hero island,
+which does not exist on the other pages and does not run until after first paint
+on this one.
+
+The windows are untouched by any of it. They still run on real sunrise and
+sunset, so the room keeps its own time and only the lamp belongs to the reader.
+
 Every anchor goes through `src/components/Link.astro`, which decides for itself
 whether it leaves the site and opens a new tab if it does. That is a property of
 the component rather than a convention to remember — it was a convention until
