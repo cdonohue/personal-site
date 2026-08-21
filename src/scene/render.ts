@@ -174,6 +174,20 @@ const CABLE_END = 48;
 
 const CABLE_COLOUR = '#3a3a3e';
 
+/**
+ * The indicator on the power box under the right of the desk.
+ *
+ * Only the lit state is drawn here; unlit it is a dark lens in the art, which
+ * dims with the room as a dead lamp should. Lit, it is painted after the
+ * lighting wash so it keeps its brightness in a dark room — the same treatment
+ * the monitor and the clock get, and for the same reason: it is a light source,
+ * not a surface catching light.
+ *
+ * It rides the desk, so its position takes the same offset.
+ */
+const POWER_LED = { x: 125, y: 73 };
+const POWER_LED_COLOUR = '#bacaff';
+
 /** switch.aseprite frames are states, not a timeline. */
 const SWITCH_OFF_FRAME = 0;
 const SWITCH_ON_FRAME = 1;
@@ -564,6 +578,14 @@ export type SceneState = {
   deskOffset?: number;
   /** 0 plugged in, 1 lying on the floor. Eased by the caller, so the plug falls. */
   cableFall?: number;
+  /**
+   * Whether the desk has mains power.
+   *
+   * Separate from the monitor's phase, which lags behind it while the screen
+   * collapses. Anything else the desk feeds — the clock, the indicator on the
+   * power box — goes the instant the plug does.
+   */
+  powered?: boolean;
   /** Which screensaver the idle screen plays. Falls back to the first. */
   screensaverTag?: string;
   /** Freezes the monitor loop and holds the colon lit. */
@@ -737,6 +759,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     screensaverTag,
     deskOffset = 0,
     cableFall = 0,
+    powered = true,
   } = state;
 
   context.imageSmoothingEnabled = false;
@@ -821,7 +844,17 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
 
   // Rides the desk too.
   const clock = room.slice('clock-screen');
-  const placed = clockGlyphs(now, reducedMotion, hour24, timeZone).map((glyph, index) => ({
+  /**
+   * With no power the clock shows its ghost: every segment unlit, which is what
+   * an LCD looks like dead rather than a blank hole. The sprite already carries
+   * those frames — 12 for a digit with nothing lit, 11 for the dim colon — for
+   * the blanked leading digit, so nothing new was needed.
+   */
+  const glyphs = powered
+    ? clockGlyphs(now, reducedMotion, hour24, timeZone)
+    : [DIGIT_BLANK_FRAME, DIGIT_BLANK_FRAME, COLON_DIM_FRAME, DIGIT_BLANK_FRAME, DIGIT_BLANK_FRAME];
+
+  const placed = glyphs.map((glyph, index) => ({
     glyph,
     x: clock.x + CLOCK_PADDING_X + index * GLYPH_ADVANCE,
     y: clock.y + CLOCK_PADDING_Y - deskRise,
@@ -829,6 +862,13 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
 
   if (digitGlow) placed.forEach(({ glyph, x, y }) => digitGlow.draw(context, glyph, x, y));
   placed.forEach(({ glyph, x, y }) => digits.draw(context, glyph, x, y));
+
+  // After the wash, with the monitor and the clock: a lit lamp keeps its
+  // brightness in a dark room. It rides the desk, so it takes the same offset.
+  if (powered) {
+    context.fillStyle = POWER_LED_COLOUR;
+    context.fillRect(POWER_LED.x, POWER_LED.y - deskRise, 1, 1);
+  }
 
   drawCharacter(context, assets, presence, elapsed, reducedMotion, wash);
 };

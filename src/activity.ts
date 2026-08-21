@@ -45,26 +45,6 @@ export const PRESENCE_CURVE: [hour: number, chance: number][] = [
   [24, 0.05],
 ]
 
-/**
- * The room is never handed to a visitor completely dark.
- *
- * An empty chair is fine, and after midnight it is the truth. An empty chair
- * in front of a dead monitor is not: nothing moves, nothing is lit, and the
- * hero reads as broken rather than as quiet. So the guarantee is about the
- * screen, not the chair.
- *
- * This replaced a floor on presence itself, which had to be high enough to
- * avoid that dark state and therefore drowned the hourly curve — 80% occupied
- * at three in the morning, against a dark window. Guaranteeing only the screen
- * lets the curve run honestly at every hour while still never opening on
- * nothing.
- */
-export const LIVE_ON_ARRIVAL = true
-
-/** Chance the screen is left running once the room empties. */
-const LEFT_ON_CHANCE = 0.7
-const LEFT_ON_CHANCE_LATE = 0.25
-
 /** Chance of the work screen rather than the game, while someone is there. */
 const WORKING_CHANCE = 0.75
 const WORKING_CHANCE_OFF_HOURS = 0.25
@@ -88,56 +68,28 @@ const isWorkHours = (at: { hour: number; weekday: number }) =>
   at.weekday !== 0 && at.weekday !== 6 && at.hour >= 9 && at.hour < 17
 
 /**
- * What the room is doing: whether anyone is there, what is on the screen, and
- * whether the screen is on at all.
+ * What the room is doing: whether anyone is there, and what is on the screen.
  *
- * `content` is what shows *when powered*, kept separate from `powered` so that
- * clicking the monitor off and on again returns to what was already playing
- * rather than re-rolling it.
+ * Nothing here says whether the screen is *on*. It always is, as far as the
+ * schedule is concerned; the only thing that darkens it is the plug leaving the
+ * wall, and that is the scene's business rather than this model's.
  */
 export type Activity = {
   presence: 'present' | 'away'
   content: 'on' | 'game' | 'idle'
-  powered: boolean
 }
 
-export const roll = (now: Date, mustBeLit = false): Activity => {
+export const roll = (now: Date): Activity => {
   const at = zonedParts(now, TIME_ZONE)
   const hour = at.hour + at.minute / 60
 
-  // Straight off the curve. Nothing overrides this any more.
+  // Two states, and only two. Someone at the desk is working or playing;
+  // an empty room runs a screensaver. The screen is never simply off — the only
+  // thing that darkens it is the plug coming out of the wall, which is a
+  // visitor's doing rather than the schedule's.
   if (Math.random() < presenceChanceAt(hour)) {
     const working = Math.random() < (isWorkHours(at) ? WORKING_CHANCE : WORKING_CHANCE_OFF_HOURS)
-    return { presence: 'present', content: working ? 'on' : 'game', powered: true }
+    return { presence: 'present', content: working ? 'on' : 'game' }
   }
-
-  // Empty room: the screensaver, or a screen shut off on the way out — unless
-  // this is the frame the visitor arrives on, which is never allowed to be dark.
-  const late = hour >= 23 || hour < 6
-  const powered = mustBeLit || Math.random() < (late ? LEFT_ON_CHANCE_LATE : LEFT_ON_CHANCE)
-  return { presence: 'away', content: 'idle', powered }
-}
-
-/**
- * The final scene state, once a visitor's monitor toggle is taken into account.
- *
- * Enforces the one rule the roll cannot: nobody sits at a dark screen or watches
- * their own screensaver. The roll never produces that pairing, but a visitor
- * switching the monitor off while someone is at the desk would, so the person
- * gets up instead. Turn it back on and they come back.
- *
- * Separate from `roll` and exported so the invariant can be checked directly
- * rather than by watching the hero and hoping.
- */
-export const sceneStateFor = (
-  activity: Activity,
-  powerOverride: 'on' | 'off' | null,
-): { presence: Activity['presence']; monitor: 'on' | 'game' | 'idle' | 'off' } => {
-  const powered = powerOverride ? powerOverride === 'on' : activity.powered
-  const monitor = powered ? activity.content : 'off'
-  const worthSittingAt = monitor === 'on' || monitor === 'game'
-  return {
-    presence: activity.presence === 'present' && worthSittingAt ? 'present' : 'away',
-    monitor,
-  }
+  return { presence: 'away', content: 'idle' }
 }

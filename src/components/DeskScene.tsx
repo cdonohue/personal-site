@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
-import { LIVE_ON_ARRIVAL, TIME_ZONE, roll, sceneStateFor, type Activity } from '../activity'
+import { TIME_ZONE, roll, type Activity } from '../activity'
 import type { ToggleValues, Weather } from '../scene/toggles'
 import { REFRESH_MS, currentCondition, lastKnownCondition } from '../weather'
 
@@ -97,7 +97,6 @@ export default function DeskScene() {
   // nullable rather than plain booleans so that null means "whatever the room is
   // doing" — a boolean default would have to pick on or off and would then fight
   // the roll.
-  const [powerOverride, setPowerOverride] = useState<Override>(null)
   const [lightOverride, setLightOverride] = useState<Override>(null)
   const [clock, setClock] = useState<ToggleValues['clock']>('12-hour')
 
@@ -131,11 +130,9 @@ export default function DeskScene() {
    * A reload is the only thing that rolls again, which is also what makes the
    * variety land — between visits rather than during one.
    */
-  const [activity] = useState<Activity>(() => roll(new Date(), LIVE_ON_ARRIVAL))
+  const [activity] = useState<Activity>(() => roll(new Date()))
 
   const values = useMemo<Partial<ToggleValues>>(() => {
-    const { presence, monitor } = sceneStateFor(activity, powerOverride)
-
     return {
       // The environment is still real. Only the room's occupancy is rolled.
       lighting: 'auto',
@@ -143,14 +140,17 @@ export default function DeskScene() {
       // `present` and not `typing`: there is no typing pose yet, and a missing
       // tag falls back to playing the whole sheet — which would cycle the empty
       // chair and flicker the person in and out.
-      presence,
-      monitor,
+      presence: activity.presence,
+      monitor: activity.content,
       // The lamp goes off on the way out, unless someone has said otherwise. An
       // override holds for the visit rather than expiring on the next roll.
-      roomLight: lightOverride ?? (presence === 'present' ? 'on' : 'off'),
+      // Follows the roll's own occupancy, not the presence computed above.
+      // Keyed to the latter, switching the monitor off turned the room lights
+      // off too — one derived value quietly driving another.
+      roomLight: lightOverride ?? (activity.presence === 'present' ? 'on' : 'off'),
       clock,
     }
-  }, [activity, weather, powerOverride, lightOverride, clock])
+  }, [activity, weather, lightOverride, clock])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -166,7 +166,7 @@ export default function DeskScene() {
         sceneRef.current = created
         setSlices(
           new Map(
-            ['light-switch', 'monitor-screen', 'clock-screen', 'desk-controls', 'power-outlet']
+            ['light-switch', 'clock-screen', 'desk-controls', 'power-outlet']
               .map((name) => [name, created.slice(name)] as const)
               .filter((entry): entry is [string, Rect] => Boolean(entry[1])),
           ),
@@ -229,11 +229,6 @@ export default function DeskScene() {
     flip(setLightOverride, () => activityRef.current.presence === 'present'),
     [],
   )
-  const toggleMonitor = useCallback(
-    flip(setPowerOverride, () => activityRef.current.powered),
-    [],
-  )
-
   if (failed) return null
 
   /** Slices that ride the desk, so their hit targets have to ride it too. */
@@ -256,11 +251,6 @@ export default function DeskScene() {
       slice: 'light-switch',
       label: 'Toggle the room light',
       onClick: toggleLight,
-    },
-    {
-      slice: 'monitor-screen',
-      label: 'Turn the monitor on or off',
-      onClick: toggleMonitor,
     },
     {
       slice: 'desk-controls',

@@ -46,12 +46,12 @@
    { "name": "FOREGROUND" }
   ],
   "slices": [
-   { "name": "desk-controls", "color": "#ffa03cff", "keys": [{ "frame": 0, "bounds": {"x": 140, "y": 68, "w": 19, "h": 5 } }] },
-   { "name": "clock-screen", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 125, "y": 54, "w": 21, "h": 7 } }] },
-   { "name": "monitor-screen", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 73, "y": 29, "w": 46, "h": 26 } }] },
-   { "name": "light-switch", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 10, "y": 45, "w": 4, "h": 6 } }] },
+   { "name": "power-outlet", "color": "#ffc850ff", "keys": [{ "frame": 0, "bounds": {"x": 10, "y": 84, "w": 4, "h": 7 } }] },
    { "name": "character", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 76, "y": 22, "w": 40, "h": 74 } }] },
-   { "name": "power-outlet", "color": "#ffc850ff", "keys": [{ "frame": 0, "bounds": {"x": 10, "y": 84, "w": 4, "h": 7 } }] }
+   { "name": "light-switch", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 10, "y": 45, "w": 4, "h": 6 } }] },
+   { "name": "monitor-screen", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 73, "y": 29, "w": 46, "h": 26 } }] },
+   { "name": "clock-screen", "color": "#0000ffff", "keys": [{ "frame": 0, "bounds": {"x": 125, "y": 54, "w": 21, "h": 7 } }] },
+   { "name": "desk-controls", "color": "#ffa03cff", "keys": [{ "frame": 0, "bounds": {"x": 140, "y": 68, "w": 19, "h": 5 } }] }
   ]
  }
 }

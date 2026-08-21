@@ -269,6 +269,7 @@ export const createDeskRoom = async (
       presence: values.presence,
       deskOffset: desk,
       cableFall,
+      powered: cablePlugged,
     });
 
     handle = window.requestAnimationFrame(step);
