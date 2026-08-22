@@ -120,7 +120,7 @@ runtime plays it end to end.
 | file | frames | ms | kind |
 |---|---|---|---|
 | `screen-ai-work` | 96 | 9600 | scene |
-| `screen-zoom-call` | 48 | 10400 | scene |
+| `screen-zoom-call` | 48 | 16000 | scene |
 | `screen-game` | 48 | 3360 | scene |
 | `screen-cube` | 32 | 2880 | screensaver |
 | `screen-bounce` | 80 | 7200 | screensaver |
@@ -197,8 +197,8 @@ a shuffled `3, 1, 4, 2` order over 48 frames rather than walking around the grid
 The first and third 12-frame blocks use the four-tile gallery; the second moves
 all four people into a thumbnail row over a presentation, and the fourth does
 the same over a spreadsheet. The order is fixed in the baked sheet so the loop
-still closes exactly. Gallery frames run for 100ms. Each shared-screen block
-mixes 333ms and 334ms frames to total exactly four seconds.
+still closes exactly. Every 12-frame block mixes 333ms and 334ms frames to total
+exactly four seconds, giving the full loop an even 16-second cadence.
 
 Selecting it also chooses the call desk variant, draws the matching frame from
 `headphones.aseprite`, and lights the one-pixel camera indicator inside the
