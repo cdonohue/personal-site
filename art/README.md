@@ -192,12 +192,17 @@ not have, rather than throwing the way a missing slice does. Screen content is
 the one part of the contract a host chooses at runtime, so a name that has not
 been drawn yet should show the wrong picture rather than take the page down.
 
-`screen-zoom-call` is a four-person call loop. Its active-speaker outline rotates
-through all four tiles over 48 frames. Selecting it also chooses the call desk
-variant, draws the matching frame from `headphones.aseprite`, and lights the
-one-pixel camera indicator inside the webcam. That indicator uses the power-box
-LED colour and only lights while desk power, the monitor, and the call are all
-active.
+`screen-zoom-call` is a four-person call loop. Its active-speaker outline follows
+a shuffled `3, 1, 4, 2` order over 48 frames rather than walking around the grid.
+The first and third 12-frame blocks use the four-tile gallery; the second moves
+all four people into a thumbnail row over a presentation, and the fourth does
+the same over a spreadsheet. The order is fixed in the baked sheet so the loop
+still closes exactly.
+
+Selecting it also chooses the call desk variant, draws the matching frame from
+`headphones.aseprite`, and lights the one-pixel camera indicator inside the
+webcam. That indicator uses the power-box LED colour and only lights while desk
+power, the monitor, and the call are all active.
 
 **At 46×26 the panel carries shape, not detail.** About 1200 pixels. Two
 screensaver attempts failed identically here — Matrix rain, then a starfield —
