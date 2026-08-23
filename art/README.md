@@ -120,7 +120,7 @@ runtime plays it end to end.
 | file | frames | ms | kind |
 |---|---|---|---|
 | `screen-ai-work` | 96 | 9600 | scene |
-| `screen-zoom-call` | 48 | 16000 | scene |
+| `screen-zoom-call` | 160 | 16000 | scene |
 | `screen-game` | 48 | 3360 | scene |
 | `screen-cube` | 32 | 2880 | screensaver |
 | `screen-bounce` | 80 | 7200 | screensaver |
@@ -193,12 +193,13 @@ the one part of the contract a host chooses at runtime, so a name that has not
 been drawn yet should show the wrong picture rather than take the page down.
 
 `screen-zoom-call` is a four-person call loop. Its active-speaker outline follows
-a shuffled `3, 1, 4, 2` order over 48 frames rather than walking around the grid.
-The first and third 12-frame blocks use the four-tile gallery; the second moves
+a shuffled `3, 1, 4, 2` order over 160 frames rather than walking around the grid.
+The first and third 40-frame blocks use the four-tile gallery; the second moves
 all four people into a thumbnail row over a presentation, and the fourth does
 the same over a spreadsheet. The order is fixed in the baked sheet so the loop
-still closes exactly. Every 12-frame block mixes 333ms and 334ms frames to total
-exactly four seconds, giving the full loop an even 16-second cadence.
+still closes exactly. Every frame runs for 100ms, so each block lasts exactly
+four seconds while mouths retain a 200ms open/closed cadence. The full loop is
+16 seconds.
 
 Selecting it also chooses the call desk variant, draws the matching frame from
 `headphones.aseprite`, and lights the one-pixel camera indicator inside the
