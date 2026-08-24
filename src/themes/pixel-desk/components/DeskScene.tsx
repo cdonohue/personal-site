@@ -210,9 +210,14 @@ export default function DeskScene() {
         )
         created.start()
       })
-      .catch(() => {
+      .catch((error) => {
         // A hero that fails to load should leave the page intact, not break it.
-        if (!cancelled) setFailed(true)
+        // Keep the failure visible to diagnostics; otherwise a missing art
+        // export looks exactly like a deliberate page without a scene.
+        if (!cancelled) {
+          console.error('Desk scene failed to start', error)
+          setFailed(true)
+        }
       })
 
     return () => {

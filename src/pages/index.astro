@@ -1,35 +1,5 @@
 ---
-import DeskScene from '../components/DeskScene'
-import Link from '../components/Link.astro'
-import Layout from '../layouts/Layout.astro'
+import Page from '../themes/pixel-desk/pages/index.astro'
 ---
 
-<Layout>
-  {/*
-    client:only rather than client:load. The scene reads the visitor's clock and
-    fetches weather on mount, so a server pass would render a room at the build
-    machine's hour and then correct itself, and it would have to be reconciled
-    against markup that can never match. There is nothing to prerender here: the
-    whole component is a canvas.
-  */}
-  <DeskScene client:only="react" />
-
-  {/*
-    Deliberately thin. The scene above already shows the kind of thing I make,
-    and the full history is one click away on Experience, so this only has to
-    say what I do and where, then get out of the way.
-  */}
-  <section class="mb-16">
-    <div class="space-y-6 leading-relaxed">
-      <p>
-        I build web experiences at <Link href="https://ramp.com">Ramp</Link>. Most of my work sits where
-        design and engineering meet: design systems, frontend architecture, and the shared pieces
-        other teams build on top of.
-      </p>
-      <p>
-        AI agents and workflows have changed how I work, and I enjoy finding new ways to fold them
-        into how I make things.
-      </p>
-    </div>
-  </section>
-</Layout>
+<Page />
