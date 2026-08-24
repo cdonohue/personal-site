@@ -1,8 +1,13 @@
 import { Sheet, loadImage, loadSheet } from './aseprite';
 import type { Frame } from './aseprite';
 import { Glow } from './glow';
-import { WEATHER_CONDITIONS, type Daylight, type ToggleValues, type Weather } from './toggles';
+import { WEATHER_CONDITIONS, type ToggleValues, type Weather } from './toggles';
 import { OUTFITS, inkStencil, recolour, type Outfit } from './outfits';
+import { zonedParts } from './lighting';
+import {
+  STANDING_TAG,
+  type Posture,
+} from './state';
 import { FALLBACK_SCREEN_TAG, effectsForScreen } from './screens';
 import {
   SHEET_ASSETS,
@@ -13,6 +18,17 @@ import {
   skyPath,
 } from './art';
 export { PLAY_TAGS, SCREEN_TAGS, SCREENSAVER_TAGS, WORK_TAGS } from './screens';
+export { nightAmountAt, nightAmountFor, washFor, zonedParts } from './lighting';
+export {
+  CHAIR_EXIT,
+  CHAIR_SHOVE_TAG,
+  DESK_MAX,
+  DESK_RAISED,
+  POSTURE_TAG,
+  STANDING_TAG,
+  STARTLE_TAG,
+} from './state';
+export type { Posture } from './state';
 
 /**
  * How the sky moves, in pixels per second. Motion comes from scrolling one
@@ -120,43 +136,6 @@ const COLON_DIM_FRAME = 11;
 const DIGIT_BLANK_FRAME = 12;
 
 /**
- * The highest the desktop can physically go, in scene pixels.
- *
- * Set by the art, not by taste. The inner post can slide 17px out of the middle
- * sleeve and the sleeve 7px out of the fixed one, and each joint keeps 3px of
- * overlap so it still reads as a column: 14 + 4. Past about 20 the joints run
- * out of overlap and the leg visibly comes apart, so this is a hard clamp
- * rather than a suggestion.
- */
-export const DESK_MAX = 18;
-
-/**
- * Where the desk comes to rest when raised.
- *
- * Deliberately short of the maximum, and by a measured amount rather than a
- * guess. The spring's natural peak from here is 17.5, which clears the 18px
- * ceiling: the clamp stays a safety net instead of becoming the behaviour. At
- * 15 the arc peaked at 18.8 and was chopped off mid-bounce, which reads as the
- * desk hitting something rather than as a spring settling.
- */
-export const DESK_RAISED = 14;
-
-/**
- * How far right the chair travels to leave the shot, in scene pixels.
- *
- * Measured, not chosen. The chair's left edge sits at x78, and the scene is
- * 192 wide, so 114 is the exact distance at which its last column clears the
- * frame. Anything less leaves a sliver of armrest parked on the edge, which
- * reads as a clipping bug rather than as a chair that has been pushed away.
- *
- * It is a long way, and knowingly so: it crosses the right leg, the power box
- * and the lower half of the right window on the way out. All three are behind
- * it, so the occlusion is free — the cost is time, which is why the travel is
- * the longest single beat in the sequence.
- */
-export const CHAIR_EXIT = 114;
-
-/**
  * The middle sleeve's share of the maximum travel.
  *
  * The stages have different strokes, so moving them at the same rate would run
@@ -236,155 +215,6 @@ const CLOCK_PADDING_Y = 1;
  */
 const DIGIT_GLOW = false;
 
-/**
- * How much of the dark mask each combination applies.
- *
- * The room light and the time of day drive the *same* mask, so they have to
- * resolve to one opacity rather than stacking two washes — otherwise night with
- * the lights off double-darkens to near black.
- *
- * Night no longer has to carry its whole signal here: the window exterior swaps
- * to room.night.png, so the glass goes dark on its own. That frees night with
- * the lamp on to be a *lit* room with dark windows rather than just a dimmer
- * room, which is what made it indistinguishable from day with the lamp off.
- */
-const WASH = {
-  day: { on: 0, off: 0.55 },
-  night: { on: 0.28, off: 0.8 },
-};
-
-/**
- * Interpolated by how far into night it is, so dusk dims the room gradually
- * rather than snapping when the phase changes.
- */
-export const washFor = (lightsOn: boolean, nightAmount: number): number => {
-  const key = lightsOn ? 'on' : 'off';
-  return WASH.day[key] + (WASH.night[key] - WASH.day[key]) * nightAmount;
-};
-
-/**
- * Formatters are cached: the clock is read every frame, and building an
- * Intl.DateTimeFormat is far more expensive than using one.
- */
-const formatters = new Map<string, Intl.DateTimeFormat>();
-
-const WEEKDAYS: Record<string, number> = {
-  Sun: 0,
-  Mon: 1,
-  Tue: 2,
-  Wed: 3,
-  Thu: 4,
-  Fri: 5,
-  Sat: 6,
-};
-
-/**
- * The clock the scene runs on, split into parts.
- *
- * With no `timeZone` this is the viewer's own clock, which is what a portable
- * scene should default to. A host that wants the room to keep somebody else's
- * hours passes one — and it has to be a zone name rather than an offset, or the
- * room is an hour wrong either side of a daylight-saving change.
- */
-export const zonedParts = (
-  date: Date,
-  timeZone?: string,
-): { hour: number; minute: number; second: number; weekday: number } => {
-  if (!timeZone) {
-    return {
-      hour: date.getHours(),
-      minute: date.getMinutes(),
-      second: date.getSeconds(),
-      weekday: date.getDay(),
-    };
-  }
-
-  let formatter = formatters.get(timeZone);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      // h23 rather than hour12: false — the latter reports midnight as 24.
-      hourCycle: 'h23',
-      weekday: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-    formatters.set(timeZone, formatter);
-  }
-
-  const parts: Record<string, string> = {};
-  for (const part of formatter.formatToParts(date)) parts[part.type] = part.value;
-
-  return {
-    hour: Number(parts.hour),
-    minute: Number(parts.minute),
-    second: Number(parts.second),
-    weekday: WEEKDAYS[parts.weekday] ?? date.getDay(),
-  };
-};
-
-/**
- * How far either side of sunrise and sunset the room takes to change over.
- *
- * Not symmetric, because dusk is not the reverse of dawn: the sky keeps some
- * light for a while after the sun has gone and has almost none before it
- * arrives. Half an hour before sunset to an hour after covers civil twilight
- * with a little either side, which is about when a room stops being usable
- * without a lamp.
- */
-const DAWN_LEAD = 1;
-const DAWN_TRAIL = 0.5;
-const DUSK_LEAD = 0.5;
-const DUSK_TRAIL = 1;
-
-/**
- * Used when nothing has been fetched. With the leads above it gives dawn
- * 05:30–07:00 and dusk 18:00–19:30 — roughly Houston's equinox.
- *
- * A fixed pair was the whole model once, and it was only defensible for a few
- * weeks a year: the sun sets at 20:26 here in June and 17:25 in December, so
- * any single answer is over an hour wrong for most of it. Kept as the offline
- * case because a fixed curve is wrong by a bounded amount and a missing one is
- * wrong by half a day.
- */
-const FALLBACK_DAYLIGHT: Daylight = { sunrise: 6.5, sunset: 18.5 };
-
-/**
- * Local time to how night it is, 0..1.
- *
- * Smoothstepped rather than linear so the ramps ease in and out at the phase
- * boundaries. No hard swap at a boundary, and a linear ramp still changes
- * direction abruptly at each end even though the value itself is continuous.
- */
-const smoothstep = (t: number) => t * t * (3 - 2 * t);
-
-export const nightAmountAt = (date: Date, timeZone?: string, daylight?: Daylight | null): number => {
-  const at = zonedParts(date, timeZone);
-  const hour = at.hour + at.minute / 60 + at.second / 3600;
-  const { sunrise, sunset } = daylight ?? FALLBACK_DAYLIGHT;
-
-  const dawnStart = sunrise - DAWN_LEAD;
-  const dawnEnd = sunrise + DAWN_TRAIL;
-  const duskStart = sunset - DUSK_LEAD;
-  const duskEnd = sunset + DUSK_TRAIL;
-
-  if (hour < dawnStart) return 1;
-  if (hour < dawnEnd) return 1 - smoothstep((hour - dawnStart) / (dawnEnd - dawnStart));
-  if (hour < duskStart) return 0;
-  if (hour < duskEnd) return smoothstep((hour - duskStart) / (duskEnd - duskStart));
-  return 1;
-};
-
-/** The scene's night level for a lighting mode: auto reads the clock. */
-export const nightAmountFor = (
-  lighting: 'auto' | 'day' | 'night',
-  now: Date,
-  timeZone?: string,
-  daylight?: Daylight | null,
-): number =>
-  lighting === 'auto' ? nightAmountAt(now, timeZone, daylight) : lighting === 'night' ? 1 : 0;
-
 /** Which character tag each presence state plays, seated. */
 export const PRESENCE_TAG: Record<ToggleValues['presence'], string> = {
   present: 'idle',
@@ -426,52 +256,6 @@ export const characterTag = (
     once: false,
   };
 };
-
-/**
- * Whether the occupant is in the chair or on their feet.
- *
- * A second axis rather than two more presence values, because it is orthogonal
- * to all four of them and folding it in would double a table that is already a
- * lookup. It only reads `standing` while somebody is here: the transitions that
- * reach it are gated on presence, so an empty room never gets there.
- */
-export type Posture = 'seated' | 'standing';
-
-/** The standing idle pose. */
-export const STANDING_TAG = 'standing';
-
-/**
- * The two transitions, keyed by the posture they arrive at.
- *
- * Separate animations rather than one played backwards. Standing up is a push
- * off the seat and sitting down is a controlled drop, and the reversed frames
- * of either read as the other run in rewind.
- */
-export const POSTURE_TAG: Record<Posture, string> = {
-  standing: 'stand-up',
-  seated: 'sit-down',
-};
-
-/**
- * The startle when the power goes, which is a different drawing on your feet
- * than in a chair.
- *
- * Seated it is mostly the marks doing the work, because the chair hides the
- * legs. Standing the hop is a translation of the whole figure, and the two
- * pixels of floor that open up under the shoes are what make it a jump.
- */
-export const STARTLE_TAG: Record<Posture, string> = {
-  seated: 'surprised',
-  standing: 'surprised-standing',
-};
-
-/**
- * The chair's own reaction to being pushed off.
- *
- * Only on the way out. Going back it is being pulled into place by hand, which
- * is a controlled movement with nothing to react to.
- */
-export const CHAIR_SHOVE_TAG = 'shove';
 
 /**
  * Where a shirt logo sits, and how the runtime finds it on any frame.
