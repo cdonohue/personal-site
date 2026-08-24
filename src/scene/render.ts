@@ -589,6 +589,8 @@ export type Assets = {
   deskTop: HTMLImageElement;
   /** Call-state desktop: extended mic, with the hanging headphones hidden. */
   callDeskTop: HTMLImageElement;
+  /** Extended mic alone, used to restore its pixels over live screen content. */
+  callMic: HTMLImageElement;
   /** Character-registered overlay with one authored headset frame per pose. */
   headphones: Sheet;
   /** One tileable frame per condition, scrolled and clipped to the glass. */
@@ -728,6 +730,7 @@ export const loadAssets = async (
     deskLegsFixed,
     deskTop,
     callDeskTop,
+    callMic,
     ...rest
   ] = await Promise.all([
     loadSheet(`${basePath}/room`),
@@ -748,6 +751,7 @@ export const loadAssets = async (
     loadImage(`${basePath}/room.legs-fixed.png`),
     loadImage(`${basePath}/room.desk-top.png`),
     loadImage(`${basePath}/room.desk-top-call.png`),
+    loadImage(`${basePath}/room.mic-extended.png`),
     ...skyNames.map((sky) => loadImage(`${basePath}/room.${sky}.png`)),
     ...wanted.map((tag) => loadScreen(basePath, tag)),
     outfit.shirt.logo ? loadLogo(basePath, outfit.shirt.logo.art) : Promise.resolve(null),
@@ -768,6 +772,7 @@ export const loadAssets = async (
     deskLegsFixed,
     deskTop,
     callDeskTop,
+    callMic,
     weather,
     glass: buildGlassMask(skies['clear-day'], skies['clear-night']),
     skies,
@@ -817,6 +822,8 @@ export const loadAssets = async (
 let skyBuffer: HTMLCanvasElement | null = null;
 /** Offscreen scratch for dimming the character. Reused every frame. */
 let characterBuffer: HTMLCanvasElement | null = null;
+/** Offscreen scratch for dimming the mic pixels redrawn over the live screen. */
+let callMicBuffer: HTMLCanvasElement | null = null;
 
 /**
  * Alpha of room.dark.png. The wash multiplies it, so dimming anything drawn
@@ -829,6 +836,46 @@ const scratch = (width: number, height: number) => {
   canvas.width = width;
   canvas.height = height;
   return canvas;
+};
+
+/**
+ * Restore only the call mic pixels crossed by the live monitor content.
+ *
+ * The authored desk variant already composites the mic correctly over the
+ * bezel and every other desk layer. The animated screen is painted later,
+ * however, so it covers the part of the boom inside the screen slice. Redraw
+ * that intersection only; drawing the whole mic again here would brighten its
+ * remaining pixels after the room wash and could incorrectly cover the clock.
+ */
+const drawCallMicOverScreen = (
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  screen: { x: number; y: number; w: number; h: number },
+  deskRise: number,
+  wash: number,
+) => {
+  if (!callMicBuffer) callMicBuffer = scratch(SCENE_WIDTH, SCENE_HEIGHT);
+  const buffer = callMicBuffer.getContext('2d');
+  if (!buffer) return;
+
+  buffer.imageSmoothingEnabled = false;
+  buffer.globalCompositeOperation = 'source-over';
+  buffer.clearRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+  buffer.save();
+  buffer.beginPath();
+  buffer.rect(screen.x, screen.y - deskRise, screen.w, screen.h);
+  buffer.clip();
+  buffer.drawImage(image, 0, -deskRise);
+  buffer.restore();
+
+  if (wash > 0.001) {
+    buffer.globalCompositeOperation = 'source-atop';
+    buffer.fillStyle = `rgba(0, 0, 0, ${MASK_ALPHA * wash})`;
+    buffer.fillRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+    buffer.globalCompositeOperation = 'source-over';
+  }
+
+  context.drawImage(callMicBuffer, 0, 0);
 };
 
 const buildGlassMask = (day: HTMLImageElement, night: HTMLImageElement): HTMLCanvasElement => {
@@ -1215,7 +1262,7 @@ const drawCable = (context: CanvasRenderingContext2D, fall: number) => {
 export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, state: SceneState) => {
   // The character is not pulled out here: it is drawn last by drawCharacter.
   const { room, skies, power, screens, digits, switchPlate, dark, digitGlow } = assets;
-  const { deskLegsInner, deskLegsMid, deskLegsFixed, deskTop, callDeskTop } = assets;
+  const { deskLegsInner, deskLegsMid, deskLegsFixed, deskTop, callDeskTop, callMic } = assets;
   const {
     elapsed,
     now,
@@ -1322,6 +1369,10 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     if (tag) {
       power.draw(context, power.frameOnce(monitor.elapsed, tag), screenAt.x, screenAt.y - deskRise);
     }
+  }
+
+  if (screenTag === ZOOM_CALL_SCREEN) {
+    drawCallMicOverScreen(context, callMic, screenAt, deskRise, wash);
   }
 
   // Rides the desk too.

@@ -144,14 +144,15 @@ export default defineConfig({
       aseprite({
         dir: new URL('./art', import.meta.url).pathname,
         base: '/art',
-        // dark       — lighting mask, faded by the room light and the hour.
+        // dark         — lighting mask, faded by the room light and the hour.
+        // mic-extended — redrawn over live screen content in the call scene.
         // desk-front — the desk lip, redrawn over anything behind it.
         // desk-items — what rests on the desk.
         // dark — the lighting mask, faded by the room light and the hour. The
         // desk-front and desk-items exports that used to sit here are gone:
         // nothing drew them once the character moved in front of the desk, and
         // they are inside the desk-top piece now.
-        layers: { room: ['dark'] },
+        layers: { room: ['dark', 'mic-extended'] },
         variants: { room: { ...weatherVariants, ...deskVariants } },
       }),
     ],

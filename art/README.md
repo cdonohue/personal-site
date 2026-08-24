@@ -104,7 +104,10 @@ Keep both state layers inside `DESK`, at full-room registration. The variant
 definitions live beside the other desk pieces in `astro.config.mjs`. Both mic
 layers must remain above the `MONITOR` group in the Aseprite stack: variants
 change visibility, not compositing order, so a mic below that group is covered
-by the screen.
+by the monitor artwork. `mic-extended` is also exported alone as
+`room.mic-extended.png`. The runtime redraws only the part intersecting the
+`monitor-screen` slice after live screen content, since that content is
+composited later than the room artwork.
 
 Sky colour lives in this file as full-canvas `WEATHER` layers, one per
 condition-phase, exported as ten flattened variants. **Flattened, not masked:**
