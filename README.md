@@ -15,25 +15,27 @@ there are no rewrite rules to configure and no client-side routing to get wrong.
 ## What is where
 
 ```
-art/            Aseprite sources and their exports  (see art/README.md)
-src/scene/      the desk scene, framework-agnostic
-src/pages/      one .astro file per route
-src/dev/        the workbench at /dev — never built  (see below)
-src/activity.ts what the room is doing when you arrive, and how likely it is
-src/content.ts  everything the site says about jobs, tools and links
-src/index.css   the whole design system: tokens, roles, type
+src/components/             theme-neutral components
+src/content.ts              everything the site says about jobs, tools and links
+src/pages/                  thin route selectors for the active full-site theme
+src/themes/pixel-desk/      the complete pixel-desk theme and its workbench
+themes/pixel-desk/art/      its Aseprite sources and exports (see its README)
 ```
+
+The route files deliberately contain only an import and a render. A theme can
+take over the whole site by supplying its own pages, layout, styles and visual
+runtime, then becoming the import selected by `src/pages/`. Shared content and
+truly theme-neutral components remain above that boundary.
 
 ## The scene
 
-`src/scene/` knows nothing about React or Astro. `createDeskRoom(canvas, opts)`
-takes a canvas and returns something with `start()`, `stop()` and `set()`. That
-is what made moving from Next.js to a Vite SPA to Astro cost almost nothing, and
-it is worth keeping true.
+`src/themes/pixel-desk/scene/` knows nothing about React or Astro.
+`createDeskRoom(canvas, opts)` takes a canvas and returns something with
+`start()`, `stop()` and `set()`. That boundary is what made moving from Next.js
+to a Vite SPA to Astro cost almost nothing, and it is worth keeping true.
 
-`src/components/DeskScene.tsx` is the one React file on the site, and the one
-island. It ships on the home page only; the other pages send no JavaScript at
-all.
+`src/themes/pixel-desk/components/DeskScene.tsx` is the theme's one React island.
+It ships on the home page only; the other pages send no JavaScript at all.
 
 What drives it:
 
@@ -83,14 +85,16 @@ the clock and the indicator on the power box, and startles whoever is there.
 `npm run dev` also serves **`/dev`**, which is not a page. It holds every scene
 value as a control, buttons for the desk and the plug, and an outfit customiser
 that previews live and prints a block of TypeScript to paste into
-`src/scene/outfits.ts`. The point is reaching states you would otherwise wait
-days for: snow, three in the morning, away-and-standing, the startle.
+`src/themes/pixel-desk/scene/outfits.ts`. The point is reaching states you would
+otherwise wait days for: snow, three in the morning, away-and-standing, the
+startle.
 
-**It cannot ship.** `src/dev/` sits outside `src/pages/`, so file-based routing
-cannot find it, and the route is only injected when the command is `dev`. Both
-at once on purpose — a build has neither a file to route nor a route to build,
-so there is nothing to tree-shake and nothing to take on trust. `dist/` holds
-three HTML files, and `grep` finds no trace of the panel in it.
+**It cannot ship.** `src/themes/pixel-desk/dev/` sits outside `src/pages/`, so
+file-based routing cannot find it, and the route is only injected when the
+command is `dev`. Both at once on purpose: a build has neither a file to route
+nor a route to build, so there is nothing to tree-shake and nothing to take on
+trust. `dist/` holds three HTML files, and `grep` finds no trace of the panel in
+it.
 
 The one concession in shipped code is `setOutfit` on `DeskRoom`, so a colour can
 be changed without remounting and losing the desk height mid-fiddle. The site
@@ -100,27 +104,28 @@ Nothing in the panel persists. Its output is source to paste, which keeps
 `outfits.ts` the only place an outfit lives.
 
 The art and the code meet at exactly two places: **slice names** and **tag
-names**. `art/README.md` documents that contract and the reasoning behind the
-art itself, including the parts that failed first.
+names**. `themes/pixel-desk/art/README.md` documents that contract and the
+reasoning behind the art itself, including the parts that failed first.
 
 ## Design
 
 One accent, two typefaces, one size of body text.
 
 Typography is expressed as roles rather than font names: `--font-display` and
-`--font-body` in `src/index.css`, and nothing outside that block names a
-typeface. Heading *levels* describe the document; `data-role` attributes
-describe how things look. The two used to be conflated and it went wrong in both
-directions.
+`--font-body` in `src/themes/pixel-desk/styles.css`, and nothing outside that
+block names a typeface. Heading *levels* describe the document; `data-role`
+attributes describe how things look. The two used to be conflated and it went
+wrong in both directions.
 
 Colours come from the scene rather than being invented, so the page and the
 illustration read as one thing. Every text colour clears 4.5:1 on its own
 background in both schemes.
 
-**The light switch in the scene is the site's theme control.** The switch and
-the system appearance write one value in `src/theme.ts`, and both the room's
-lamp and the page's colours read it — with the switch setting a theme and the
-theme driving the switch, anything less than one shared value is a loop.
+**The light switch in the scene is the pixel desk's colour-mode control.** The
+switch and system appearance write one value in
+`src/themes/pixel-desk/theme.ts`, and both the room's lamp and the page's colours
+read it. This state belongs inside the visual theme; it does not choose which
+full-site theme is active.
 
 A choice beats the system preference and is remembered, so it survives a reload
 and the other two pages; changing the appearance again clears it, on the rule

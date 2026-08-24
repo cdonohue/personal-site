@@ -1,7 +1,7 @@
 # The desk scene
 
 Pixel art for the home page hero. Aseprite sprites are exported to PNG + JSON
-and composited on a canvas at runtime by `src/scene/`.
+and composited on a canvas at runtime by `src/themes/pixel-desk/scene/`.
 
 The art and the code meet at exactly two places: **slice names** and **tag
 names**. Everything else on either side can change freely. Rename a slice or a
@@ -40,9 +40,9 @@ editable without re-exporting everything.
 ## Pipeline
 
 ```
-art/*.aseprite  ──►  export.sh              ──►  art/*.png + art/*.json
-                └─►  vite-plugin-aseprite.ts ─►  art/room.<layer>.png
-                                                 art/room.<condition>-<phase>.png
+themes/pixel-desk/art/*.aseprite  ──►  export.sh ──►  adjacent PNG + JSON exports
+                                  └─►  vite-plugin-aseprite.ts
+                                       └─►  room.<layer>.png and variants
 ```
 
 `export.sh` does whole sprites and is incremental; pass `--force` to rebuild
@@ -61,8 +61,8 @@ Those two are build dependencies. **Do not delete them.**
 
 The generated `room.*.png` files are committed. They are the fallback when
 Aseprite is not installed, so CI and any clone can build without it. Wiping
-`art/*.png` and running `export.sh` will *not* bring them back — only the plugin
-produces them.
+the generated PNG files and running `export.sh` will *not* bring them back: only
+the plugin produces them.
 
 ---
 
@@ -394,10 +394,10 @@ states.
 #### Indexed, and the palette is the contract
 
 Like `digits.aseprite`, and for a sharper reason: **entries 1–9 are the keys
-`src/scene/outfits.ts` recolours by**, and three of them sit one unit from a
-neighbour. In RGB those pairs are three indistinguishable greys and a stray
-brush stroke merges two roles into one; as palette slots they cannot be
-confused.
+`src/themes/pixel-desk/scene/outfits.ts` recolours by**, and three of them sit
+one unit from a neighbour. In RGB those pairs are three indistinguishable greys
+and a stray brush stroke merges two roles into one; as palette slots they cannot
+be confused.
 
 | # | part | value | |
 |---|---|---|---|
@@ -465,10 +465,10 @@ the outfit supplies the ink, so one file works on a light shirt and a dark one.
 Draw it in whatever is convenient.
 
 **It has to be an `.aseprite`, even though only the PNG is read.** The plugin
-finds art by globbing `*.aseprite` and only emits the outputs derived from
-those names, so a hand-authored PNG dropped into `art/` is served in dev by the
-middleware and then silently missing from the build — the one failure mode that
-looks like everything working.
+finds art by globbing `*.aseprite` and only emits the outputs derived from those
+names, so a hand-authored PNG dropped into this directory is served in dev by
+the middleware and then silently missing from the build: the one failure mode
+that looks like everything working.
 
 An outfit opts in by naming the file without its prefix:
 
@@ -560,10 +560,10 @@ no warning. This is how the startle marks above the head first vanished. When a
 pose needs to reach past what the frame it came from covered, build the cel at
 full canvas size.
 
-**Runtime values live in `src/scene/render.ts`, not here.** Rain parallax passes,
-fog and snow layering, the dawn/dusk curve, the lighting wash, glyph spacing —
-all constants there, all commented. Deliberately not duplicated into this file,
-where they would go stale.
+**Runtime values live in `src/themes/pixel-desk/scene/render.ts`, not here.**
+Rain parallax passes, fog and snow layering, the dawn/dusk curve, the lighting
+wash, glyph spacing: all constants there, all commented. Deliberately not
+duplicated into this file, where they would go stale.
 
 ---
 
@@ -575,7 +575,7 @@ from them; the scripts themselves are recoverable if a full regeneration is ever
 wanted:
 
 ```sh
-git log --diff-filter=D --name-only -- art/scripts   # find the removing commit
+git log --diff-filter=D --name-only -- art/scripts   # find the pre-move removing commit
 git show <commit>^:art/scripts/create-weather.lua    # read one back
 ```
 
