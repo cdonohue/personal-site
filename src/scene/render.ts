@@ -4,6 +4,14 @@ import { Glow } from './glow';
 import { WEATHER_CONDITIONS, type Daylight, type ToggleValues, type Weather } from './toggles';
 import { OUTFITS, inkStencil, recolour, type Outfit } from './outfits';
 import { FALLBACK_SCREEN_TAG, effectsForScreen } from './screens';
+import {
+  SHEET_ASSETS,
+  SKY_VARIANTS,
+  artPath,
+  roomLayerPath,
+  roomVariantPath,
+  skyPath,
+} from './art';
 export { PLAY_TAGS, SCREEN_TAGS, SCREENSAVER_TAGS, WORK_TAGS } from './screens';
 
 /**
@@ -642,6 +650,13 @@ export const loadLogo = async (
   }
 };
 
+const resolveRecord = async <T extends Record<string, Promise<unknown>>>(
+  pending: T,
+): Promise<{ [K in keyof T]: Awaited<T[K]> }> =>
+  Object.fromEntries(
+    await Promise.all(Object.entries(pending).map(async ([key, value]) => [key, await value])),
+  ) as { [K in keyof T]: Awaited<T[K]> };
+
 /**
  * `basePath` is where the exported PNG and JSON are served from. It is a
  * parameter rather than a constant because a host site almost certainly serves
@@ -662,7 +677,6 @@ export const loadAssets = async (
   screens: readonly string[] = [],
   outfit: Outfit = OUTFITS[0],
 ): Promise<Assets> => {
-  const skyNames = WEATHER_CONDITIONS.flatMap((weather) => [`${weather}-day`, `${weather}-night`]);
   // The character as exported, kept so a different outfit can be applied to it
   // later. Recolouring the recoloured copy would stack one outfit on the next.
   let characterSource: HTMLImageElement | null = null;
@@ -674,7 +688,35 @@ export const loadAssets = async (
   // Deduplicated, and always with a fallback in it: the draw needs something to
   // reach for when it is handed a name that has not been drawn.
   const wanted = [...new Set([FALLBACK_SCREEN_TAG, ...screens])];
-  const [
+  const [core, skyEntries, screenEntries, initialLogo] = await Promise.all([
+    resolveRecord({
+      room: loadSheet(artPath(basePath, SHEET_ASSETS.room)),
+      power: loadSheet(artPath(basePath, SHEET_ASSETS.power)),
+      digits: loadSheet(artPath(basePath, SHEET_ASSETS.digits)),
+      switchPlate: loadSheet(artPath(basePath, SHEET_ASSETS.switchPlate)),
+      weather: loadSheet(artPath(basePath, SHEET_ASSETS.weather)),
+      character: loadSheet(artPath(basePath, SHEET_ASSETS.character), (image) => {
+        characterSource = image;
+        characterCanvas = recolour(image, outfit);
+        return characterCanvas;
+      }),
+      chair: loadSheet(artPath(basePath, SHEET_ASSETS.chair)),
+      headphones: loadSheet(artPath(basePath, SHEET_ASSETS.headphones)),
+      dark: loadImage(`${roomLayerPath(basePath, 'dark')}.png`),
+      callMic: loadImage(`${roomLayerPath(basePath, 'callMic')}.png`),
+      deskLegsInner: loadImage(`${roomVariantPath(basePath, 'deskLegsInner')}.png`),
+      deskLegsMid: loadImage(`${roomVariantPath(basePath, 'deskLegsMid')}.png`),
+      deskLegsFixed: loadImage(`${roomVariantPath(basePath, 'deskLegsFixed')}.png`),
+      deskTop: loadImage(`${roomVariantPath(basePath, 'deskTop')}.png`),
+      callDeskTop: loadImage(`${roomVariantPath(basePath, 'callDeskTop')}.png`),
+    }),
+    Promise.all(
+      SKY_VARIANTS.map(async (sky) => [sky, await loadImage(`${skyPath(basePath, sky)}.png`)] as const),
+    ),
+    Promise.all(wanted.map(async (tag) => [tag, await loadScreen(basePath, tag)] as const)),
+    outfit.shirt.logo ? loadLogo(basePath, outfit.shirt.logo.art) : Promise.resolve(null),
+  ]);
+  const {
     room,
     power,
     digits,
@@ -690,36 +732,10 @@ export const loadAssets = async (
     deskTop,
     callDeskTop,
     callMic,
-    ...rest
-  ] = await Promise.all([
-    loadSheet(`${basePath}/room`),
-    loadSheet(`${basePath}/screen-power`),
-    loadSheet(`${basePath}/digits`),
-    loadSheet(`${basePath}/switch`),
-    loadSheet(`${basePath}/weather`),
-    loadSheet(`${basePath}/character`, (image) => {
-      characterSource = image;
-      characterCanvas = recolour(image, outfit);
-      return characterCanvas;
-    }),
-    loadSheet(`${basePath}/chair`),
-    loadSheet(`${basePath}/headphones`),
-    loadImage(`${basePath}/room.dark.png`),
-    loadImage(`${basePath}/room.legs-inner.png`),
-    loadImage(`${basePath}/room.legs-mid.png`),
-    loadImage(`${basePath}/room.legs-fixed.png`),
-    loadImage(`${basePath}/room.desk-top.png`),
-    loadImage(`${basePath}/room.desk-top-call.png`),
-    loadImage(`${basePath}/room.mic-extended.png`),
-    ...skyNames.map((sky) => loadImage(`${basePath}/room.${sky}.png`)),
-    ...wanted.map((tag) => loadScreen(basePath, tag)),
-    outfit.shirt.logo ? loadLogo(basePath, outfit.shirt.logo.art) : Promise.resolve(null),
-  ]);
-  const skyImages = rest.slice(0, skyNames.length) as HTMLImageElement[];
-  const screenSheets = rest.slice(skyNames.length, skyNames.length + wanted.length) as (Sheet | null)[];
-  logoSource = rest[rest.length - 1] as HTMLImageElement | null;
+  } = core;
+  logoSource = initialLogo;
   logoArt = outfit.shirt.logo?.art ?? null;
-  const skies = Object.fromEntries(skyNames.map((sky, index) => [sky, skyImages[index]]));
+  const skies = Object.fromEntries(skyEntries);
 
   const assets: Assets = {
     room,
@@ -737,9 +753,7 @@ export const loadAssets = async (
     skies,
     power,
     screens: new Map(
-      wanted
-        .map((tag, index) => [tag, screenSheets[index]] as const)
-        .filter((entry): entry is [string, Sheet] => entry[1] !== null),
+      screenEntries.filter((entry): entry is [string, Sheet] => entry[1] !== null),
     ),
     digits,
     switchPlate,

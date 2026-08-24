@@ -69,6 +69,9 @@ const outputsFor = (dir: string, name: string, layers: string[], variants: Varia
   ...Object.keys(variants).map((variant) => path.join(dir, suffixed(name, variant))),
 ];
 
+const missingOutputs = (dir: string, name: string, layers: string[], variants: Variants) =>
+  outputsFor(dir, name, layers, variants).filter((file) => !fs.existsSync(file));
+
 /** An export is stale when any output is missing or older than the source. */
 const isStale = (dir: string, name: string, layers: string[], variants: Variants) => {
   const source = fs.statSync(path.join(dir, `${name}.aseprite`)).mtimeMs;
@@ -160,15 +163,21 @@ export default function aseprite(options: AsepriteOptions): Plugin {
   };
 
   /**
-   * Returns the names it actually exported. A missing Aseprite is a warning,
-   * not an error: the committed PNG/JSON are still there, so a teammate or CI
-   * box without the app installed can still run and build the page.
+   * Returns the names it actually exported. Stale committed output remains a
+   * warning when Aseprite is absent. Missing output is fatal because there is
+   * no usable fallback for the browser to load.
    */
   const exportStale = (names = spriteNames(dir)) => {
     const stale = names.filter((name) => isStale(dir, name, layersFor(name), variantsFor(name)));
     if (stale.length === 0) return [];
 
     if (!fs.existsSync(binary)) {
+      const missing = stale.flatMap((name) =>
+        missingOutputs(dir, name, layersFor(name), variantsFor(name)),
+      );
+      if (missing.length > 0) {
+        throw new Error(`aseprite: required exports are missing: ${missing.join(', ')}`);
+      }
       if (!warnedMissingBinary) {
         warnedMissingBinary = true;
         logger.warn(
@@ -184,9 +193,15 @@ export default function aseprite(options: AsepriteOptions): Plugin {
     for (const name of stale) {
       try {
         exportSprite(binary, dir, name, layersFor(name), variantsFor(name));
+        const missing = missingOutputs(dir, name, layersFor(name), variantsFor(name));
+        if (missing.length > 0) {
+          throw new Error(`required exports were not produced: ${missing.join(', ')}`);
+        }
         logger.info(`aseprite: exported ${name}`);
         exported.push(name);
       } catch (cause) {
+        const missing = missingOutputs(dir, name, layersFor(name), variantsFor(name));
+        if (missing.length > 0) throw cause;
         logger.warn(
           `aseprite: failed to export ${name} — ${cause instanceof Error ? cause.message : cause}`,
         );
