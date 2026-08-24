@@ -446,11 +446,11 @@ durations, and tags. `reference-character` and `reference-hat` are hidden
 drawing guides. Draw only on the visible `headphones-on` layer, using the frame
 that matches the pose underneath it.
 
-Every frame already has a blank cel. The runtime draws the overlay at the
-character slice only for `zoom-call`, using the same frame index it selected
-for the person. That keeps seated, standing, transition, and reaction poses in
-registration without a second position table. The layer is deliberately blank
-until those drawings are authored.
+The runtime draws the overlay at the character slice only for `zoom-call`, using
+the same frame index it selected for the person. That keeps seated, standing,
+transition, and reaction poses in registration without a second position table.
+All occupied frames carry matching headphone art; `away` remains deliberately
+blank.
 
 ### `logo-*.aseprite` — 14×14, shirt logos
 
