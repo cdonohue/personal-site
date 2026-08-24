@@ -3,6 +3,8 @@ import type { Frame } from './aseprite';
 import { Glow } from './glow';
 import { WEATHER_CONDITIONS, type Daylight, type ToggleValues, type Weather } from './toggles';
 import { OUTFITS, inkStencil, recolour, type Outfit } from './outfits';
+import { FALLBACK_SCREEN_TAG, effectsForScreen } from './screens';
+export { PLAY_TAGS, SCREEN_TAGS, SCREENSAVER_TAGS, WORK_TAGS } from './screens';
 
 /**
  * How the sky moves, in pixels per second. Motion comes from scrolling one
@@ -205,9 +207,6 @@ const CABLE_COLOUR = '#3a3a3e';
 const POWER_LED = { x: 125, y: 73 };
 const POWER_LED_COLOUR = '#bacaff';
 
-/** The work scene whose room setup includes a live camera, headset and boom. */
-export const ZOOM_CALL_SCREEN = 'zoom-call';
-
 /** One emissive pixel inside the webcam body, padded one pixel from its right edge. */
 const CAMERA_LED = { x: 98, y: 23 };
 
@@ -377,46 +376,6 @@ export const nightAmountFor = (
   daylight?: Daylight | null,
 ): number =>
   lighting === 'auto' ? nightAmountAt(now, timeZone, daylight) : lighting === 'night' ? 1 : 0;
-
-/**
- * The idle screen has more than one screensaver, and they are interchangeable —
- * each is a self-contained loop on the same panel.
- *
- * Named for what they show rather than what they are for. `screensaver` was
- * fine while there was one, but next to `bounce` it reads as the category
- * rather than a peer, and the category is already expressed by this list.
- *
- * Listed here rather than chosen here: the scene draws whichever it is handed,
- * and the caller decides, so adding a third is a tag and one entry.
- */
-export const SCREENSAVER_TAGS = [
-  'cube',
-  'bounce',
-  'aquarium',
-  'fireworks',
-  'ribbons',
-  'orbit',
-  'radar',
-  'comet',
-  'hypno',
-] as const;
-
-/**
- * What plays while somebody is at the desk, split by what it depicts.
- *
- * Three lists and no fourth place to remember. Adding a screen is a file at
- * `art/screen-<name>.aseprite` and one entry in whichever of these it belongs
- * to; nothing else in the codebase names a screen.
- *
- * The split is here rather than in `activity.ts` because it describes the art —
- * whether a drawing shows work or not is a fact about the drawing. *When* each
- * gets used is the schedule's business, and that stays out there.
- */
-export const WORK_TAGS = ['ai-work', ZOOM_CALL_SCREEN] as const;
-export const PLAY_TAGS = ['game'] as const;
-
-/** Every scene, for callers that do not care which kind it is. */
-export const SCREEN_TAGS = [...WORK_TAGS, ...PLAY_TAGS];
 
 /** Which character tag each presence state plays, seated. */
 export const PRESENCE_TAG: Record<ToggleValues['presence'], string> = {
@@ -997,9 +956,6 @@ export const MONITOR_TAG: Record<MonitorPhase, string | null> = {
   'turning-off': 'power-off',
 };
 
-/** What a lit screen falls back to when handed a tag the sheet does not have. */
-const FALLBACK_SCREEN_TAG = WORK_TAGS[0];
-
 export type SceneState = {
   /** Milliseconds into the monitor animation. */
   elapsed: number;
@@ -1120,8 +1076,7 @@ const drawCharacter = (
     | 'reducedMotion'
     | 'characterOneShot'
     | 'chairOneShot'
-    | 'screenTag'
-  > & { elapsed: number; wash: number; chairShift: number },
+  > & { elapsed: number; wash: number; chairShift: number; headphonesOn: boolean },
 ) => {
   const { room, character, chair, headphones, logo, torsoTop } = assets;
   const at = room.slice('character');
@@ -1132,7 +1087,7 @@ const drawCharacter = (
     reducedMotion,
     wash,
     chairShift,
-    screenTag,
+    headphonesOn,
     characterOneShot: oneShot,
     chairOneShot,
   } = state;
@@ -1174,7 +1129,7 @@ const drawCharacter = (
   // entirely does.
   const paint = (target: CanvasRenderingContext2D) => {
     character.draw(target, frame, at.x, at.y);
-    if (screenTag === ZOOM_CALL_SCREEN) headphones.draw(target, frame, at.x, at.y);
+    if (headphonesOn) headphones.draw(target, frame, at.x, at.y);
     if (logo && shirtTop !== null) {
       // Both are rows and columns within the frame, so they need the slice's
       // own origin added to land in scene space.
@@ -1284,6 +1239,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     characterOneShot,
     chairOneShot,
   } = state;
+  const effects = effectsForScreen(screenTag);
 
   context.imageSmoothingEnabled = false;
   context.clearRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
@@ -1330,7 +1286,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   context.drawImage(deskLegsInner, 0, -deskRise);
   context.drawImage(deskLegsMid, 0, -midRise);
   context.drawImage(deskLegsFixed, 0, 0);
-  context.drawImage(screenTag === ZOOM_CALL_SCREEN ? callDeskTop : deskTop, 0, -deskRise);
+  context.drawImage(effects.desk === 'call' ? callDeskTop : deskTop, 0, -deskRise);
 
   // The switch is a wall object, so it belongs under the wash and dims with
   // everything else. Only the screens are emissive.
@@ -1371,7 +1327,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     }
   }
 
-  if (screenTag === ZOOM_CALL_SCREEN) {
+  if (effects.screenOverlay === 'call-mic') {
     drawCallMicOverScreen(context, callMic, screenAt, deskRise, wash);
   }
 
@@ -1406,7 +1362,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   // The camera light is part of the call state, not merely mains power. It is
   // emissive like the power-box LED and only lit while the monitor is actually
   // showing the call.
-  if (powered && monitor.phase === 'lit' && screenTag === ZOOM_CALL_SCREEN) {
+  if (powered && monitor.phase === 'lit' && effects.cameraIndicator) {
     context.fillStyle = POWER_LED_COLOUR;
     context.fillRect(CAMERA_LED.x, CAMERA_LED.y - deskRise, 1, 1);
   }
@@ -1418,7 +1374,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     reducedMotion,
     wash,
     chairShift,
-    screenTag,
+    headphonesOn: effects.characterOverlay === 'headphones',
     characterOneShot,
     chairOneShot,
   });
