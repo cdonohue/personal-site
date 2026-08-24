@@ -42,6 +42,7 @@
    { "name": "camera", "group": "MONITOR", "opacity": 255, "blendMode": "normal" },
    { "name": "arm", "group": "MONITOR", "opacity": 255, "blendMode": "normal" },
    { "name": "screen", "group": "MONITOR", "opacity": 255, "blendMode": "normal" },
+   { "name": "headphones-hanging", "group": "DESK", "opacity": 255, "blendMode": "normal" },
    { "name": "CHARACTER" },
    { "name": "FOREGROUND" }
   ],
