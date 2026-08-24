@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
 import { SCREENSAVER_TAGS } from '../scene/render'
-import { TIME_ZONE, roll, type Activity } from '../activity'
+import { roll, type Activity } from '../activity'
 import type { ToggleValues } from '../scene/toggles'
-import { REFRESH_MS, currentSky, lastKnownSky, type Sky } from '../weather'
+import { REFRESH_MS, currentSky, lastKnownSky, visitorTimeZone, type Sky } from '../weather'
 import { chooseTheme, isDark, watchSystem } from '../theme'
 
 /**
@@ -52,7 +52,7 @@ const DESK_SAMPLE_MS = 80
  * outside and somebody was home. That read well on its own and cannot coexist
  * with this: one lamp cannot follow two things. What survives is the half worth
  * keeping, because the windows still run on real sunrise and sunset. The room
- * keeps its own time; only the light switch belongs to whoever is looking.
+ * follows the visitor's time; the light switch belongs to them as well.
  *
  * The wash is eased, so a flip fades over about a second rather than cutting.
  */
@@ -109,15 +109,18 @@ export default function DeskScene() {
   const [failed, setFailed] = useState(false)
 
   const [clock, setClock] = useState<ToggleValues['clock']>('12-hour')
+  const [timeZone] = useState(visitorTimeZone)
 
   // Seeded from the last visit rather than a default, so the sky does not paint
   // clear and then visibly correct itself once the request lands.
-  const [sky, setSky] = useState<Sky>(() => lastKnownSky() ?? { condition: 'clear', daylight: null })
+  const [sky, setSky] = useState<Sky>(() =>
+    lastKnownSky(timeZone) ?? { condition: 'clear', daylight: null },
+  )
 
   useEffect(() => {
     let cancelled = false
     const load = () => {
-      currentSky().then((next) => {
+      currentSky(timeZone).then((next) => {
         if (!cancelled) setSky(next)
       })
     }
@@ -127,7 +130,7 @@ export default function DeskScene() {
       cancelled = true
       window.clearInterval(timer)
     }
-  }, [])
+  }, [timeZone])
 
   /**
    * Light or dark, for the room and the page both.
@@ -151,7 +154,7 @@ export default function DeskScene() {
    * A reload is the only thing that rolls again, which is also what makes the
    * variety land — between visits rather than during one.
    */
-  const [activity] = useState<Activity>(() => roll(new Date()))
+  const [activity] = useState<Activity>(() => roll(new Date(), timeZone))
   /**
    * Starts at the visit's random choice. In an empty room the monitor becomes
    * a picker from there, advancing through the canonical screensaver order.
@@ -188,7 +191,7 @@ export default function DeskScene() {
 
     createDeskRoom(canvas, {
       values,
-      timeZone: TIME_ZONE,
+      timeZone,
       posture: activity.posture,
       outfit: activity.outfit,
       // Cycling should be instant. Only empty-room visits pay to load the set.

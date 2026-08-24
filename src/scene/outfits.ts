@@ -104,11 +104,10 @@ export const keyMap = (outfit: Outfit): [from: RGB, to: RGB][] => {
 export type RGB = [number, number, number];
 
 /**
- * Which calendar day it is where the room is, as an integer that steps by one.
+ * Which calendar day it is for the visitor, as an integer that steps by one.
  *
- * The room's zone rather than the visitor's, like everything else here: the
- * outfit changes when it is a new day at the desk, not when it is a new day in
- * Tokyo. `en-CA` because it formats as YYYY-MM-DD and nothing else does.
+ * The outfit changes at midnight in the same zone as the clock and activity
+ * schedule. `en-CA` because it formats as YYYY-MM-DD and nothing else does.
  */
 const dayNumber = (date: Date, timeZone?: string): number => {
   const iso = new Intl.DateTimeFormat('en-CA', {
@@ -159,9 +158,9 @@ const orderFor = (block: number, n: number): number[] => {
  * One outfit a day, the same one for everybody looking on that day.
  *
  * Derived from the date rather than rolled and stored, which is what makes it
- * hold still: a reload cannot change it, two visitors an hour apart see the
- * same thing, and no state has to be kept anywhere. It turns over at midnight
- * where the room is, not where the visitor is.
+ * hold still: a reload cannot change it, two visitors on the same local date
+ * see the same thing, and no state has to be kept anywhere. It turns over at
+ * midnight for the visitor.
  *
  * Fewer than three outfits cannot be shuffled into anything — with two, the
  * only sequence that never repeats is strict alternation — so they just take
