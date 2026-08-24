@@ -39,11 +39,9 @@ It ships on the home page only; the other pages send no JavaScript at all.
 
 What drives it:
 
-- **The weather is real.** The browser asks for the visitor's location and
-  Open-Meteo supplies the conditions, with no key. Results are cached for half
-  an hour. Denied or unavailable location falls back to central Houston; a
-  failed visitor forecast gets one Houston attempt before the scene uses its
-  cached or clear fallback.
+- **The weather is real, and it is Houston's.** Open-Meteo supplies the
+  conditions without a key or a visitor-location request. Results are cached
+  for half an hour; a failed forecast uses the cached or clear fallback.
 - **The daylight is real too**, and rides along in the same request. Sunrise and
   sunset drive when the room and the windows go dark. Fixed hours did that job
   once and were only ever right around the equinox: the sun sets at 20:26 here in
@@ -134,8 +132,9 @@ choice before anything paints, because the switch lives in the hero island,
 which does not exist on the other pages and does not run until after first paint
 on this one.
 
-The windows are untouched by any of it. They still run on sunrise and sunset at
-the visitor's location, while the lamp remains the reader's direct control.
+The windows are untouched by any of it. They still run on Houston's sunrise and
+sunset, expressed in the visitor's timezone so the scene changes at the correct
+instant, while the lamp remains the reader's direct control.
 
 Every anchor goes through `src/components/Link.astro`, which decides for itself
 whether it leaves the site and opens a new tab if it does. That is a property of
