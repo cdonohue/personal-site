@@ -4,7 +4,7 @@ import type { Posture } from '../scene/render'
 import { PLAY_TAGS, SCREENSAVER_TAGS, WORK_TAGS } from '../scene/render'
 import { OUTFITS, type Outfit } from '../scene/outfits'
 import { DEFAULT_VALUES, LIVE_TOGGLES, type ToggleValues } from '../scene/toggles'
-import { TIME_ZONE, roll, type Activity } from '../activity'
+import { roll, type Activity } from '../activity'
 
 /**
  * The workbench.
@@ -86,7 +86,6 @@ export default function DevPanel() {
     createDeskRoom(canvas, {
       values,
       outfit,
-      timeZone: TIME_ZONE,
       // Never inherit the visitor's setting here: reduced motion freezes the
       // loops, and a frozen scene is not what anyone opens this page to look at.
       reducedMotion: false,

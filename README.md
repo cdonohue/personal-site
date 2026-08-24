@@ -37,19 +37,20 @@ all.
 
 What drives it:
 
-- **The weather is real.** Open-Meteo, no key, no permission prompt, fixed
-  coordinates for central Houston rather than a home address, cached for half an
-  hour.
+- **The weather is real.** The browser asks for the visitor's location and
+  Open-Meteo supplies the conditions, with no key. Results are cached for half
+  an hour. Denied or unavailable location falls back to central Houston; a
+  failed visitor forecast gets one Houston attempt before the scene uses its
+  cached or clear fallback.
 - **The daylight is real too**, and rides along in the same request. Sunrise and
   sunset drive when the room and the windows go dark. Fixed hours did that job
   once and were only ever right around the equinox: the sun sets at 20:26 here in
   June and 17:25 in December, so any single pair of numbers is over an hour wrong
   for most of the year. Offline it falls back to a fixed curve, which is wrong by
   a bounded amount rather than by half a day.
-- **The time is real, and it is not the visitor's.** The clock, dusk and the
-  light all read `America/Chicago` — a zone name and never an offset, or the
-  room is an hour wrong for eight months. Someone in Tokyo looks in on the room
-  rather than at a copy running on their own clock.
+- **The time is real, and it is the visitor's.** The clock, dusk, activity
+  schedule and daily outfit all use the browser's IANA timezone. Houston's
+  `America/Chicago` is the fallback if the browser cannot provide one.
 - **The schedule is half real.** Weekdays nine to five, the desk is occupied —
   not likely, occupied. Outside that a small weighted curve in `src/activity.ts`
   decides, peaking around a quarter in the evening. So a visitor at eleven on a
@@ -128,8 +129,8 @@ choice before anything paints, because the switch lives in the hero island,
 which does not exist on the other pages and does not run until after first paint
 on this one.
 
-The windows are untouched by any of it. They still run on real sunrise and
-sunset, so the room keeps its own time and only the lamp belongs to the reader.
+The windows are untouched by any of it. They still run on sunrise and sunset at
+the visitor's location, while the lamp remains the reader's direct control.
 
 Every anchor goes through `src/components/Link.astro`, which decides for itself
 whether it leaves the site and opens a new tab if it does. That is a property of

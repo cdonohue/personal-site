@@ -11,17 +11,7 @@ import { outfitFor, type Outfit } from './scene/outfits'
  * two minutes at a time is a curve nobody will ever check.
  */
 
-/**
- * The zone the room keeps.
- *
- * Everything the page derives from time reads this: the curve below, and the
- * clock face and dusk inside the scene. A visitor anywhere sees the room lit as
- * it actually is rather than by their own clock. It has to be a zone name and
- * never an offset, or the room is an hour wrong for eight months of the year.
- */
-export const TIME_ZONE = 'America/Chicago'
-
-/** Weekdays, nine to five, in the room's zone. Inside this, the desk is manned. */
+/** Weekdays, nine to five, in the chosen zone. Inside this, the desk is manned. */
 const WORK_START = 9
 const WORK_END = 17
 
@@ -122,15 +112,15 @@ export type Activity = {
   outfit: Outfit
 }
 
-export const roll = (now: Date): Activity => {
-  const at = zonedParts(now, TIME_ZONE)
+export const roll = (now: Date, timeZone?: string): Activity => {
+  const at = zonedParts(now, timeZone)
   const hour = at.hour + at.minute / 60
 
   // Independent of everything below it. The desk is where it was left, which
   // has no bearing on whether anyone came back to it.
   const posture = Math.random() < STANDING_CHANCE ? 'standing' : 'seated'
 
-  const outfit = outfitFor(now, TIME_ZONE)
+  const outfit = outfitFor(now, timeZone)
 
   // Working hours are a guarantee rather than a weighting. Outside them the
   // curve takes over, and every value on it is small.
