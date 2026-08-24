@@ -94,8 +94,8 @@ The Zoom-call setup is authored as room state, not painted by the runtime:
 
 - `headphones-hanging` is visible by default and contains the pair formerly on
   `surface`.
-- `mic-extended` is hidden by default and is the drawing surface for the boom's
-  call position. It is deliberately blank until that pose is drawn.
+- `mic-extended` is hidden by default and contains the boom's call-position
+  drawing beside the character.
 - `room.desk-top.png` shows `mic` plus `headphones-hanging`.
 - `room.desk-top-call.png` shows `mic-extended` and hides both the parked mic
   and hanging headphones.
