@@ -8,7 +8,7 @@ import {
   STANDING_TAG,
   type Posture,
 } from './state';
-import { FALLBACK_SCREEN_TAG, effectsForScreen } from './screens';
+import { FALLBACK_SCREEN_TAG, effectsForScreen, sourceForScreen } from './screens';
 import {
   SHEET_ASSETS,
   SKY_VARIANTS,
@@ -471,7 +471,9 @@ export const loadAssets = async (
   let logoArt: string | null = null;
   // Deduplicated, and always with a fallback in it: the draw needs something to
   // reach for when it is handed a name that has not been drawn.
-  const wanted = [...new Set([FALLBACK_SCREEN_TAG, ...screens])];
+  const wanted = [...new Set([FALLBACK_SCREEN_TAG, ...screens])].filter(
+    (tag) => sourceForScreen(tag) === 'sheet',
+  );
   const [core, skyEntries, screenEntries, initialLogo] = await Promise.all([
     resolveRecord({
       room: loadSheet(artPath(basePath, SHEET_ASSETS.room)),
@@ -822,6 +824,8 @@ export type SceneState = {
   monitor: { phase: MonitorPhase; elapsed: number };
   /** 0 = day windows, 1 = night windows. Eased, so it crossfades. */
   nightAmount: number;
+  /** High-density previous room frame, scaled into the recursive live-scene screen. */
+  feedbackFrame?: HTMLCanvasElement;
 };
 
 /** Colon blinks once a second, lit for the first half. */
@@ -1036,6 +1040,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     powered = true,
     characterOneShot,
     chairOneShot,
+    feedbackFrame,
   } = state;
   const effects = effectsForScreen(screenTag);
 
@@ -1109,13 +1114,27 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   // Rides the desk, so the content has to move with the bezel around it.
   const screenAt = room.slice('monitor-screen');
   if (monitor.phase === 'lit') {
-    // A screen is a whole file now, so there is no tag to ask for — the sheet
-    // is the screen and it plays end to end. Falling back rather than throwing:
-    // a screen name is the one piece of the art contract a host picks at
-    // runtime, so one that has not been drawn should cost the wrong picture
-    // rather than the page. It can also simply not have arrived yet.
-    const sheet = screens.get(screenTag) ?? screens.get(FALLBACK_SCREEN_TAG);
-    if (sheet) sheet.draw(context, sheet.frameAt(elapsed), screenAt.x, screenAt.y - deskRise);
+    if (sourceForScreen(screenTag) === 'scene' && feedbackFrame) {
+      // The previous completed frame includes the character, clock and the last
+      // recursive image. Scale the complete high-density canvas into the
+      // monitor rather than cropping or rebuilding a low-resolution miniature.
+      context.drawImage(
+        feedbackFrame,
+        0,
+        0,
+        feedbackFrame.width,
+        feedbackFrame.height,
+        screenAt.x,
+        screenAt.y - deskRise,
+        screenAt.w,
+        screenAt.h,
+      );
+    } else {
+      // A sheet-backed screen is a whole file, so there is no tag to ask for.
+      // Falling back rather than throwing also covers the first feedback frame.
+      const sheet = screens.get(screenTag) ?? screens.get(FALLBACK_SCREEN_TAG);
+      if (sheet) sheet.draw(context, sheet.frameAt(elapsed), screenAt.x, screenAt.y - deskRise);
+    }
   } else {
     // The transitions are one-shots timed from the toggle and held on their
     // last frame, and they share one sheet, so these are still tags.

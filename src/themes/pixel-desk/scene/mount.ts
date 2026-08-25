@@ -8,6 +8,7 @@ import {
 } from './render';
 import type { Assets, Posture } from './render';
 import type { Outfit } from './outfits';
+import { sourceForScreen } from './screens';
 import { SceneSimulation } from './simulation';
 import { DEFAULT_VALUES, type ToggleValues } from './toggles';
 
@@ -145,6 +146,7 @@ export const createDeskRoom = async (
    * at all should name the screen at construction, where it is awaited.
    */
   const wantScreen = (tag: string) => {
+    if (sourceForScreen(tag) !== 'sheet') return;
     if (assets.screens.has(tag) || fetching.has(tag)) return;
     fetching.add(tag);
     loadScreen(basePath, tag).then((sheet) => {
@@ -156,10 +158,24 @@ export const createDeskRoom = async (
   const reducedMotion =
     options.reducedMotion ?? window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  canvas.width = SCENE_WIDTH;
-  canvas.height = SCENE_HEIGHT;
+  // Four backing pixels per scene pixel keep the room's 192x108 coordinate
+  // system intact while giving live canvas content inside the monitor enough
+  // resolution to remain recognizable. Sprite pixels are still drawn as hard
+  // 4x4 blocks; only the nested scene benefits from the denser backing store.
+  const renderScale = 4;
+  canvas.width = SCENE_WIDTH * renderScale;
+  canvas.height = SCENE_HEIGHT * renderScale;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('createDeskRoom: could not get a 2d context');
+  context.setTransform(renderScale, 0, 0, renderScale, 0, 0);
+
+  const feedbackFrame = document.createElement('canvas');
+  feedbackFrame.width = canvas.width;
+  feedbackFrame.height = canvas.height;
+  const feedbackContext = feedbackFrame.getContext('2d');
+  if (!feedbackContext) throw new Error('createDeskRoom: could not create the feedback frame');
+  feedbackContext.imageSmoothingEnabled = false;
+  let feedbackReady = false;
 
   let values: ToggleValues = { ...DEFAULT_VALUES, ...options.values };
   const timeZone = options.timeZone;
@@ -203,7 +219,25 @@ export const createDeskRoom = async (
       powered: frame.powered,
       chairOneShot: frame.chairOneShot,
       characterOneShot: frame.characterOneShot,
+      feedbackFrame: feedbackReady ? feedbackFrame : undefined,
     });
+
+    // Preserve the completed high-density canvas. The next frame scales this
+    // complete image into the monitor instead of reconstructing the room at
+    // the monitor's much coarser 46x26 scene-pixel resolution.
+    feedbackContext.clearRect(0, 0, feedbackFrame.width, feedbackFrame.height);
+    feedbackContext.drawImage(
+      canvas,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+      0,
+      0,
+      feedbackFrame.width,
+      feedbackFrame.height,
+    );
+    feedbackReady = true;
 
     handle = window.requestAnimationFrame(step);
   };
