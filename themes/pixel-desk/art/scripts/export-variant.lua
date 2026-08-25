@@ -50,12 +50,22 @@ local missing = {}
 for name in pairs(hide) do missing[name] = true end
 for name in pairs(show) do missing[name] = true end
 
+-- Explicitly showing a group means showing the artwork inside it as well.
+-- Product states now use nested sublayers, and merely lifting the parent leaves
+-- any hidden child (such as the extended mic's desk clamp) out of the variant.
+local function reveal(layer)
+  layer.isVisible = true
+  if layer.isGroup then
+    for _, child in ipairs(layer.layers) do reveal(child) end
+  end
+end
+
 each(sprite.layers, function(layer)
   if hide[layer.name] then
     layer.isVisible = false
     missing[layer.name] = nil
   elseif show[layer.name] then
-    layer.isVisible = true
+    reveal(layer)
     missing[layer.name] = nil
     -- A layer inside a hidden group renders as nothing, so lift its ancestors.
     local node = layer.parent

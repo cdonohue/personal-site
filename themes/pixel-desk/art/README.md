@@ -3,6 +3,9 @@
 Pixel art for the home page hero. Aseprite sprites are exported to PNG + JSON
 and composited on a canvas at runtime by `src/themes/pixel-desk/scene/`.
 
+The physical-product inventory and the separation work required before those
+objects can appear on `/uses` live in [`USES_INVENTORY.md`](USES_INVENTORY.md).
+
 The art and the code meet at exactly two places: **slice names** and **tag
 names**. Everything else on either side can change freely. Rename a slice or a
 tag and the page throws — deliberately, because a silently missing slice draws
@@ -50,14 +53,16 @@ regardless of mtime.
 
 The plugin is a Vite plugin and keeps that name, but there is no `vite.config.ts`
 to look for: Astro runs on Vite, so it is registered under `vite.plugins` in
-`astro.config.mjs`. It re-exports on save in dev and shells out to the two
+`astro.config.mjs`. It re-exports on save in dev and shells out to the three
 scripts in `scripts/`:
 
 - **`export-layer.lua`** — one layer alone. Needed because `--layer` combined
   with `--all-layers` silently exports the whole sprite instead of erroring.
 - **`export-variant.lua`** — a specific show/hide combination, flattened.
+- **`export-item.lua`** — one or more named product layers, tightly cropped for
+  `/uses`.
 
-Those two are build dependencies. **Do not delete them.**
+Those three are build dependencies. **Do not delete them.**
 
 The generated `room.*.png` files are committed. They are the fallback when
 Aseprite is not installed, so CI and any clone can build without it. Wiping
@@ -88,7 +93,18 @@ Layers exported separately, because each needs its own opacity at runtime:
 
 - `dark` — the lighting mask, faded by the room light and the hour
 - `desk-front` — the desk lip, redrawn *over* the character
-- `desk-items` — what rests on the desk
+- `desk-items` — a group containing separate keyboard, mouse and
+  MacBook-to-TS4 cable layers
+
+Product artwork in the static plate is organized beneath scene-level groups:
+
+- `surface` contains two complete Oeveo tray layers, separate Fosi K7 and
+  CalDigit TS4 device layers, and the desk controller. Tray backing pixels stay
+  with the trays, including the pixels hidden behind each mounted device.
+- `mac` contains separate MacBook Pro and Kuzy stand layers. The MacBook is
+  complete behind the overlapping stand.
+- `mic` and `mic-extended` contain separate microphone and boom-arm sublayers
+  for their parked and call positions.
 
 The Zoom-call setup is authored as room state, not painted by the runtime:
 
