@@ -90,6 +90,7 @@ export class SceneSimulation {
   private pending: Posture | null = null
   private chairShift = 0
   private cablePlugged = true
+  private powerLostAt: number | null = null
   private cableFall = 0
   private reaction: Reaction | null = null
 
@@ -176,7 +177,7 @@ export class SceneSimulation {
     let characterOneShot: SimulationFrame['characterOneShot']
     let chairOneShot: SimulationFrame['chairOneShot']
 
-    if (this.move) {
+    if (this.move && this.cablePlugged) {
       const plan = this.planFor(this.move.to)
       const total = this.planTotal(this.move.to)
       const inMove = time - this.move.since
@@ -206,7 +207,9 @@ export class SceneSimulation {
     }
 
     const deskTarget = this.deskRaised ? DESK_RAISED : 0
-    if (this.reducedMotion) {
+    if (!this.cablePlugged) {
+      this.deskVelocity = 0
+    } else if (this.reducedMotion) {
       this.desk = deskTarget
       this.deskVelocity = 0
     } else {
@@ -260,22 +263,37 @@ export class SceneSimulation {
   }
 
   toggleDesk(time: number, presence: ToggleValues['presence']) {
+    // The controls and lift motor share the outlet with the rest of the desk.
+    // Reject the command here, where every host enters the simulation, rather
+    // than relying on a particular UI to disable its hotspot.
+    if (!this.cablePlugged) return false
+
     const target: Posture = (this.move?.to ?? this.posture) === 'standing' ? 'seated' : 'standing'
     if (presence !== 'present' || this.reducedMotion) {
       this.settleInto(target, presence)
-      return
+      return true
     }
     if (this.move) {
       this.pending = target
-      return
+      return true
     }
     if (target !== this.posture) this.move = { to: target, since: time }
+    return true
   }
 
   toggleCable(time: number, presence: ToggleValues['presence']) {
     this.cablePlugged = !this.cablePlugged
-    if (!this.cablePlugged && presence === 'present' && !this.reaction && !this.move) {
-      this.reaction = { phase: 'noticing', since: time, tag: STARTLE_TAG.seated }
+    if (!this.cablePlugged) {
+      this.powerLostAt = time
+      this.deskVelocity = 0
+      if (presence === 'present' && !this.reaction && !this.move) {
+        this.reaction = { phase: 'noticing', since: time, tag: STARTLE_TAG.seated }
+      }
+    } else if (this.powerLostAt !== null) {
+      // Preserve the remaining choreography instead of letting wall-clock time
+      // elapse behind the frozen desk and completing it on the first powered frame.
+      if (this.move) this.move.since += time - this.powerLostAt
+      this.powerLostAt = null
     }
   }
 

@@ -6,6 +6,7 @@ import aseprite from './vite-plugin-aseprite.ts'
 import {
   ROOM_EXPORT_LAYERS,
   ROOM_EXPORT_VARIANTS,
+  ROOM_ITEM_EXPORTS,
 } from './src/themes/pixel-desk/scene/art.ts'
 
 /**
@@ -58,6 +59,7 @@ export default defineConfig({
         // they are inside the desk-top piece now.
         layers: { room: ROOM_EXPORT_LAYERS },
         variants: { room: ROOM_EXPORT_VARIANTS },
+        items: { room: ROOM_ITEM_EXPORTS },
       }),
     ],
   },

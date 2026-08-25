@@ -66,6 +66,38 @@ test('an empty reduced-motion room moves the desk without moving the chair', () 
   assert.equal(frame.characterOneShot, undefined)
 })
 
+test('an unplugged desk ignores its raise and lower control', () => {
+  const scene = simulation({}, true)
+  const state = values()
+
+  scene.toggleCable(0, 'present')
+  assert.equal(scene.toggleDesk(0, 'present'), false)
+  const frame = scene.step(0, new Date('2026-01-01T12:00:00Z'), state)
+
+  assert.equal(frame.powered, false)
+  assert.equal(frame.posture, 'seated')
+  assert.equal(frame.deskOffset, 0)
+})
+
+test('power loss pauses an active desk movement until power returns', () => {
+  const scene = simulation()
+  const state = values()
+
+  scene.toggleDesk(0, 'present')
+  const moving = scene.step(100, new Date('2026-01-01T12:00:00Z'), state)
+  assert.ok(moving.deskOffset > 0)
+
+  scene.toggleCable(100, 'present')
+  const paused = scene.step(600, new Date('2026-01-01T12:00:00Z'), state)
+  assert.equal(paused.powered, false)
+  assert.equal(paused.deskOffset, moving.deskOffset)
+
+  scene.toggleCable(600, 'present')
+  const resumed = scene.step(601, new Date('2026-01-01T12:00:00Z'), state)
+  assert.equal(resumed.powered, true)
+  assert.ok(resumed.deskOffset > paused.deskOffset)
+})
+
 test('standing choreography begins with the person and then the chair', () => {
   const scene = simulation()
   const state = values()

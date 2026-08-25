@@ -47,6 +47,8 @@ export type AsepriteOptions = {
    * glass, which a rectangle drawn at runtime could not manage.
    */
   variants?: Record<string, Record<string, { hide?: string[]; show?: string[] }>>;
+  /** Tightly cropped product renders, emitted as `item-<name>.png`. */
+  items?: Record<string, Record<string, { layers: readonly string[]; crop: readonly number[] }>>;
 };
 
 const binaryFor = (options: AsepriteOptions) =>
@@ -59,23 +61,31 @@ const spriteNames = (dir: string) =>
     .map((file) => path.basename(file, '.aseprite'));
 
 type Variants = Record<string, { hide?: string[]; show?: string[] }>;
+type Items = Record<string, { layers: readonly string[]; crop: readonly number[] }>;
 
 const suffixed = (name: string, suffix: string) => `${name}.${suffix}.png`;
+const itemFile = (name: string) => `item-${name}.png`;
 
-const outputsFor = (dir: string, name: string, layers: string[], variants: Variants) => [
+const outputsFor = (dir: string, name: string, layers: string[], variants: Variants, items: Items) => [
   path.join(dir, `${name}.png`),
   path.join(dir, `${name}.json`),
   ...layers.map((layer) => path.join(dir, suffixed(name, layer))),
   ...Object.keys(variants).map((variant) => path.join(dir, suffixed(name, variant))),
+  ...Object.keys(items).map((item) => path.join(dir, itemFile(item))),
 ];
 
-const missingOutputs = (dir: string, name: string, layers: string[], variants: Variants) =>
-  outputsFor(dir, name, layers, variants).filter((file) => !fs.existsSync(file));
+const missingOutputs = (
+  dir: string,
+  name: string,
+  layers: string[],
+  variants: Variants,
+  items: Items,
+) => outputsFor(dir, name, layers, variants, items).filter((file) => !fs.existsSync(file));
 
 /** An export is stale when any output is missing or older than the source. */
-const isStale = (dir: string, name: string, layers: string[], variants: Variants) => {
+const isStale = (dir: string, name: string, layers: string[], variants: Variants, items: Items) => {
   const source = fs.statSync(path.join(dir, `${name}.aseprite`)).mtimeMs;
-  return outputsFor(dir, name, layers, variants).some(
+  return outputsFor(dir, name, layers, variants, items).some(
     (file) => !fs.existsSync(file) || fs.statSync(file).mtimeMs < source,
   );
 };
@@ -86,6 +96,7 @@ const exportSprite = (
   name: string,
   layers: string[],
   variants: Variants,
+  items: Items,
 ) => {
   execFileSync(
     binary,
@@ -145,6 +156,26 @@ const exportSprite = (
       { cwd: dir, stdio: 'pipe' },
     );
   }
+
+  for (const [item, { layers: itemLayers, crop }] of Object.entries(items)) {
+    if (crop.length !== 4) throw new Error(`aseprite: item ${item} crop must be X,Y,W,H`);
+    execFileSync(
+      binary,
+      [
+        '-b',
+        `${name}.aseprite`,
+        '--script-param',
+        `layers=${itemLayers.join(',')}`,
+        '--script-param',
+        `crop=${crop.join(',')}`,
+        '--script-param',
+        `out=${path.join(dir, itemFile(item))}`,
+        '--script',
+        path.join(dir, 'scripts', 'export-item.lua'),
+      ],
+      { cwd: dir, stdio: 'pipe' },
+    );
+  }
 };
 
 export default function aseprite(options: AsepriteOptions): Plugin {
@@ -153,6 +184,7 @@ export default function aseprite(options: AsepriteOptions): Plugin {
   const binary = binaryFor(options);
   const layersFor = (name: string) => options.layers?.[name] ?? [];
   const variantsFor = (name: string) => options.variants?.[name] ?? {};
+  const itemsFor = (name: string) => options.items?.[name] ?? {};
 
   let warnedMissingBinary = false;
   // Rollup's this.warn() is filtered out at Vite's default log level, which
@@ -168,12 +200,14 @@ export default function aseprite(options: AsepriteOptions): Plugin {
    * no usable fallback for the browser to load.
    */
   const exportStale = (names = spriteNames(dir)) => {
-    const stale = names.filter((name) => isStale(dir, name, layersFor(name), variantsFor(name)));
+    const stale = names.filter((name) =>
+      isStale(dir, name, layersFor(name), variantsFor(name), itemsFor(name)),
+    );
     if (stale.length === 0) return [];
 
     if (!fs.existsSync(binary)) {
       const missing = stale.flatMap((name) =>
-        missingOutputs(dir, name, layersFor(name), variantsFor(name)),
+        missingOutputs(dir, name, layersFor(name), variantsFor(name), itemsFor(name)),
       );
       if (missing.length > 0) {
         throw new Error(`aseprite: required exports are missing: ${missing.join(', ')}`);
@@ -192,15 +226,27 @@ export default function aseprite(options: AsepriteOptions): Plugin {
     const exported: string[] = [];
     for (const name of stale) {
       try {
-        exportSprite(binary, dir, name, layersFor(name), variantsFor(name));
-        const missing = missingOutputs(dir, name, layersFor(name), variantsFor(name));
+        exportSprite(binary, dir, name, layersFor(name), variantsFor(name), itemsFor(name));
+        const missing = missingOutputs(
+          dir,
+          name,
+          layersFor(name),
+          variantsFor(name),
+          itemsFor(name),
+        );
         if (missing.length > 0) {
           throw new Error(`required exports were not produced: ${missing.join(', ')}`);
         }
         logger.info(`aseprite: exported ${name}`);
         exported.push(name);
       } catch (cause) {
-        const missing = missingOutputs(dir, name, layersFor(name), variantsFor(name));
+        const missing = missingOutputs(
+          dir,
+          name,
+          layersFor(name),
+          variantsFor(name),
+          itemsFor(name),
+        );
         if (missing.length > 0) throw cause;
         logger.warn(
           `aseprite: failed to export ${name} — ${cause instanceof Error ? cause.message : cause}`,
@@ -256,7 +302,13 @@ export default function aseprite(options: AsepriteOptions): Plugin {
     // Emit the exports as build assets so dist/ gets art/<name>.<ext>.
     generateBundle() {
       for (const name of spriteNames(dir)) {
-        for (const file of outputsFor(dir, name, layersFor(name), variantsFor(name))) {
+        for (const file of outputsFor(
+          dir,
+          name,
+          layersFor(name),
+          variantsFor(name),
+          itemsFor(name),
+        )) {
           if (!fs.existsSync(file)) continue;
           this.emitFile({
             type: 'asset',

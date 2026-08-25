@@ -35,7 +35,7 @@ each(sprite.layers, function(layer) saved[layer] = layer.isVisible end)
 
 local target = nil
 each(sprite.layers, function(layer)
-  if not layer.isGroup and layer.name == wanted then target = layer end
+  if layer.name == wanted then target = layer end
 end)
 
 if not target then
@@ -45,8 +45,19 @@ end
 
 each(sprite.layers, function(layer) layer.isVisible = false end)
 
--- The layer and every group containing it must be visible for it to render.
-local node = target
+-- The layer (or group), its descendants, and every group containing it must be
+-- visible for it to render. Supporting groups lets scene states contain
+-- independently editable product sublayers without changing the runtime
+-- export contract.
+local function reveal(layer)
+  layer.isVisible = true
+  if layer.isGroup then
+    for _, child in ipairs(layer.layers) do reveal(child) end
+  end
+end
+
+reveal(target)
+local node = target.parent
 while node do
   node.isVisible = true
   node = node.parent

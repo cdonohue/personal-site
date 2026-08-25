@@ -1,32 +1,91 @@
 ---
 import Layout from '../layouts/Layout.astro'
-import { toolCategories } from '../../../content'
+import Link from '../../../components/Link.astro'
+import { usesItems } from '../../../content'
+import { ROOM_ITEM_EXPORTS, usesItemPath } from '../scene/art'
+
+const sceneUseIds = new Set(Object.keys(ROOM_ITEM_EXPORTS))
+const sceneUses = usesItems.filter((item) => sceneUseIds.has(item.id))
+const additionalUses = usesItems.filter((item) => !sceneUseIds.has(item.id))
 ---
 
 <Layout title="Uses">
   <section class="mb-16">
-    <h2 data-role="page-title" class="mb-12">Tools &amp; Software</h2>
+    <h2 data-role="page-title" class="mb-4">Uses</h2>
+    <p class="text-muted mb-12 max-w-2xl leading-relaxed">
+      The hardware in my workspace, beginning with the things drawn into the pixel desk scene.
+    </p>
 
-    <div class="space-y-12">
+    <h3 data-role="section-label" class="text-muted mb-6">In the scene</h3>
+    <div class="mb-16 grid gap-x-6 gap-y-10 sm:grid-cols-2">
       {
-        toolCategories.map((category) => (
-          <div>
-            <h3 data-role="section-label" class="text-muted mb-6">
-              {category.title}
-            </h3>
-            <div class="space-y-6">
-              {category.items.map((item) => (
-                <div>
-                  <h4 data-role="item-title" class="mb-1">
-                    {item.name}
-                  </h4>
-                  <p class="text-muted leading-relaxed">{item.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+        sceneUses.map((item) => (
+          <Link href={item.href} class="uses-item block">
+            <span class="uses-art mb-5 flex h-36 items-center justify-center border border-line p-5">
+              <img
+                src={usesItemPath('/art', item.id)}
+                alt=""
+                class="h-3/4 w-4/5 object-contain"
+                loading="lazy"
+              />
+            </span>
+            <h4 data-role="item-title" class="mb-1">
+              {item.name} <span aria-hidden="true" class="text-muted">↗</span>
+            </h4>
+            <p class="text-muted leading-relaxed">{item.description}</p>
+          </Link>
         ))
       }
     </div>
+
+    <h3 data-role="section-label" class="text-muted mb-6">Also at the desk</h3>
+    <div class="border-t border-line pt-6">
+      {additionalUses.map((item) => (
+        <Link href={item.href} class="group block">
+          <h4 data-role="item-title" class="mb-1">
+            {item.name} <span aria-hidden="true" class="text-muted">↗</span>
+          </h4>
+          <p class="text-muted leading-relaxed">{item.description}</p>
+        </Link>
+      ))}
+    </div>
   </section>
 </Layout>
+
+<style>
+  :global(.uses-item) {
+    color: var(--color-ink);
+    text-decoration: none;
+  }
+
+  :global(.uses-item:hover h4) {
+    color: var(--color-accent);
+  }
+
+  :global(.uses-art) {
+    /*
+     * The source sprites use the room's charcoal palette, so this canvas stays
+     * light in both page themes. Letting it follow `--color-sunken` made the
+     * darkest objects disappear in dark mode.
+     */
+    background-color: #a0a0a0;
+    clip-path: polygon(
+      8px 0,
+      calc(100% - 8px) 0,
+      calc(100% - 8px) 8px,
+      100% 8px,
+      100% calc(100% - 8px),
+      calc(100% - 8px) calc(100% - 8px),
+      calc(100% - 8px) 100%,
+      8px 100%,
+      8px calc(100% - 8px),
+      0 calc(100% - 8px),
+      0 8px,
+      8px 8px
+    );
+  }
+
+  :global(.uses-art img) {
+    image-rendering: pixelated;
+  }
+</style>
