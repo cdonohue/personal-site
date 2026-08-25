@@ -1,5 +1,6 @@
-import { PLAY_TAGS, SCREENSAVER_TAGS, WORK_TAGS, zonedParts } from './scene/render'
-import { outfitFor, type Outfit } from './scene/outfits'
+import { zonedParts } from './scene/lighting.ts'
+import { outfitFor, type Outfit } from './scene/outfits.ts'
+import { PLAY_TAGS, SCREENSAVER_TAGS, WORK_TAGS } from './scene/screens.ts'
 
 /**
  * What the room is doing: whether anyone is at the desk, and what is on screen.
@@ -41,8 +42,18 @@ export const PRESENCE_CURVE: [hour: number, chance: number][] = [
 /** Chance of a work screen rather than a game, while someone is there. */
 const WORKING_CHANCE = 0.75
 const WORKING_CHANCE_OFF_HOURS = 0.25
+export const ROOM_VIEW_PLAY_CHANCE = 0.05
 
-const pick = <T>(from: readonly T[]): T => from[Math.floor(Math.random() * from.length)]
+const pick = <T>(from: readonly T[], random = Math.random): T =>
+  from[Math.floor(random() * from.length)]
+
+const ROOM_VIEW_SCREEN = 'room-view'
+const commonPlayScreens = PLAY_TAGS.filter((screen) => screen !== ROOM_VIEW_SCREEN)
+
+export const pickPlayScreen = (random = Math.random): string =>
+  random() < ROOM_VIEW_PLAY_CHANCE
+    ? ROOM_VIEW_SCREEN
+    : pick(commonPlayScreens, random)
 
 /**
  * Chance the desk is already up when you arrive.
@@ -130,7 +141,7 @@ export const roll = (now: Date, timeZone?: string): Activity => {
     // working. A game at two on a Tuesday is a better joke than a rule; it is
     // just less likely than the alternative.
     const chance = working ? WORKING_CHANCE : WORKING_CHANCE_OFF_HOURS
-    const screen = pick(Math.random() < chance ? WORK_TAGS : PLAY_TAGS)
+    const screen = Math.random() < chance ? pick(WORK_TAGS) : pickPlayScreen()
     return { presence: 'present', screen, posture, outfit }
   }
 

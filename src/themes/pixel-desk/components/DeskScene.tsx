@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
-import { SCREENSAVER_TAGS } from '../scene/render'
+import { SCREEN_DEFINITIONS, SCREENSAVER_TAGS } from '../scene/screens'
 import { roll, type Activity } from '../activity'
 import type { ToggleValues } from '../scene/toggles'
 import { REFRESH_MS, currentSky, lastKnownSky, visitorTimeZone, type Sky } from '../weather'
@@ -28,6 +28,18 @@ import { chooseTheme, isDark, watchSystem } from '../theme'
  */
 const SCENE_W = 192
 const SCENE_H = 108
+
+/**
+ * A valid `?screen=` value overrides the visit's random monitor choice.
+ *
+ * This component is client-only, so reading the current URL here cannot create
+ * a server/client mismatch. Unknown values are ignored rather than sent to the
+ * asset loader as invented filenames.
+ */
+const screenFromUrl = () => {
+  const requested = new URLSearchParams(window.location.search).get('screen')
+  return SCREEN_DEFINITIONS.find(({ name }) => name === requested)?.name
+}
 
 /** Touch targets below this get an invisible margin so small art stays tappable. */
 const MIN_TARGET_PX = 44
@@ -159,7 +171,7 @@ export default function DeskScene() {
    * Starts at the visit's random choice. In an empty room the monitor becomes
    * a picker from there, advancing through the canonical screensaver order.
    */
-  const [screen, setScreen] = useState(activity.screen)
+  const [screen, setScreen] = useState(() => screenFromUrl() ?? activity.screen)
   const [cableUnplugged, setCableUnplugged] = useState(false)
 
   const values = useMemo<Partial<ToggleValues>>(() => {

@@ -7,6 +7,7 @@
  */
 
 export type ScreenKind = 'work' | 'play' | 'screensaver'
+export type ScreenSource = 'sheet' | 'scene'
 
 export type ScreenEffects = {
   desk: 'default' | 'call'
@@ -18,6 +19,8 @@ export type ScreenEffects = {
 export type ScreenDefinition = {
   name: string
   kind: ScreenKind
+  /** Defaults to an exported `screen-<name>` sheet. */
+  source?: ScreenSource
   effects?: Partial<ScreenEffects>
 }
 
@@ -41,6 +44,7 @@ export const SCREEN_DEFINITIONS = [
     },
   },
   { name: 'game', kind: 'play' },
+  { name: 'room-view', kind: 'play', source: 'scene' },
   { name: 'cube', kind: 'screensaver' },
   { name: 'bounce', kind: 'screensaver' },
   { name: 'aquarium', kind: 'screensaver' },
@@ -69,3 +73,6 @@ export const effectsForScreen = (name: string): ScreenEffects => ({
   ...DEFAULT_EFFECTS,
   ...definitions.get(name)?.effects,
 })
+
+export const sourceForScreen = (name: string): ScreenSource =>
+  definitions.get(name)?.source ?? 'sheet'

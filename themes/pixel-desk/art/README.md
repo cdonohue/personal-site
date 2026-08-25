@@ -144,6 +144,7 @@ runtime plays it end to end.
 | `screen-ai-work` | 96 | 9600 | scene |
 | `screen-zoom-call` | 160 | 16000 | scene |
 | `screen-game` | 48 | 3360 | scene |
+| `room-view` | live | live | runtime scene feedback |
 | `screen-cube` | 32 | 2880 | screensaver |
 | `screen-bounce` | 80 | 7200 | screensaver |
 | `screen-aquarium` | 58 | 5220 | screensaver |
@@ -181,8 +182,8 @@ empty ones — which export identically, are invisible in the PNG, and are
 therefore a standing invitation to paint into the wrong layer. A new screen
 wants whatever it needs and nothing else.
 
-**Adding a screen is a file here and one entry in one list.** `render.ts` holds
-three, and no fourth place names a screen:
+**Adding a sheet-backed screen is a file here and one entry in one list.**
+`screens.ts` holds the three rotations, and no fourth place names a screen:
 
 | list | when it plays |
 |---|---|
@@ -190,9 +191,16 @@ three, and no fourth place names a screen:
 | `PLAY_TAGS` | somebody at the desk, likelier outside them |
 | `SCREENSAVER_TAGS` | nobody there |
 
-`src/activity.ts` picks from one of the three and hands the name over; nothing
+`room-view` is the deliberate exception to the file rule. It feeds the previous
+completed high-density room canvas back into the monitor, producing a live recursive
+scene without an Aseprite sheet or a second renderer. It belongs to the play rotation,
+where five percent of play-screen rolls select it as a rare easter egg.
+Use `/?screen=room-view` to bypass the roll and inspect it directly. The same
+override accepts any screen name in `SCREEN_DEFINITIONS`; unknown names are ignored.
+
+`src/themes/pixel-desk/activity.ts` picks from one of the three and hands the name over; nothing
 downstream cares which it got, because `MonitorPhase` is power only and the tag
-travels beside it. The split is in `render.ts` rather than in the schedule
+travels beside it. The split is in `screens.ts` rather than in the schedule
 because whether a drawing shows work is a fact about the drawing. *When* each
 gets used is the schedule's business, and that stays out there.
 
