@@ -38,8 +38,8 @@ export type DeskRoom = {
   slice(name: string): Rect | undefined;
   /** How far the desk has currently risen, in scene pixels. */
   deskOffset(): number;
-  /** Raise or lower the desk. It travels rather than jumping. */
-  toggleDesk(): void;
+  /** Raise or lower the desk while powered. Returns whether it accepted the command. */
+  toggleDesk(): boolean;
   /**
    * Pull the plug out of the wall, or push it back in.
    *
@@ -225,7 +225,7 @@ export const createDeskRoom = async (
       return simulation.deskOffset();
     },
     toggleDesk() {
-      simulation.toggleDesk(performance.now(), values.presence);
+      return simulation.toggleDesk(performance.now(), values.presence);
     },
     toggleCable() {
       simulation.toggleCable(performance.now(), values.presence);

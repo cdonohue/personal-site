@@ -144,8 +144,9 @@ export default function DevPanel() {
                 // Performs the change, sequence and all. Kept alongside the
                 // posture control because watching it happen and arriving in it
                 // are two different things to be able to check.
-                sceneRef.current?.toggleDesk()
-                setPostureState((current) => (current === 'seated' ? 'standing' : 'seated'))
+                if (sceneRef.current?.toggleDesk()) {
+                  setPostureState((current) => (current === 'seated' ? 'standing' : 'seated'))
+                }
               }}
             >
               play the stand / sit
