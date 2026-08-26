@@ -14,6 +14,7 @@ export const SHEET_ASSETS = {
   character: 'character',
   chair: 'chair',
   headphones: 'headphones',
+  ufo: 'ufo',
 } as const
 
 const DESK_TOP_COMMON = [

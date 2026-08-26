@@ -3,6 +3,7 @@ import type { Frame } from './aseprite';
 import { Glow } from './glow';
 import { WEATHER_CONDITIONS, type ToggleValues, type Weather } from './toggles';
 import { OUTFITS, inkStencil, recolour, type Outfit } from './outfits';
+import type { ShootingStarFrame, SkyEventFrame, UfoFrame } from './events';
 import { zonedParts } from './lighting';
 import {
   STANDING_TAG,
@@ -344,6 +345,8 @@ export type Assets = {
   callMic: HTMLImageElement;
   /** Character-registered overlay with one authored headset frame per pose. */
   headphones: Sheet;
+  /** Standalone sky-event sprite; its frames hover independently of the room. */
+  ufo: Sheet;
   /** One tileable frame per condition, scrolled and clipped to the glass. */
   weather: Sheet;
   /**
@@ -488,6 +491,7 @@ export const loadAssets = async (
       }),
       chair: loadSheet(artPath(basePath, SHEET_ASSETS.chair)),
       headphones: loadSheet(artPath(basePath, SHEET_ASSETS.headphones)),
+      ufo: loadSheet(artPath(basePath, SHEET_ASSETS.ufo)),
       dark: loadImage(`${roomLayerPath(basePath, 'dark')}.png`),
       callMic: loadImage(`${roomLayerPath(basePath, 'callMic')}.png`),
       deskLegsInner: loadImage(`${roomVariantPath(basePath, 'deskLegsInner')}.png`),
@@ -511,6 +515,7 @@ export const loadAssets = async (
     character,
     chair,
     headphones,
+    ufo,
     dark,
     deskLegsInner,
     deskLegsMid,
@@ -528,6 +533,7 @@ export const loadAssets = async (
     character,
     chair,
     headphones,
+    ufo,
     deskLegsInner,
     deskLegsMid,
     deskLegsFixed,
@@ -579,6 +585,8 @@ export const loadAssets = async (
 
 /** Offscreen scratch for clipping the sky to the glass. Reused every frame. */
 let skyBuffer: HTMLCanvasElement | null = null;
+/** Offscreen scratch for glass-clipped one-shot sky events. */
+let skyEventBuffer: HTMLCanvasElement | null = null;
 /** Offscreen scratch for dimming the character. Reused every frame. */
 let characterBuffer: HTMLCanvasElement | null = null;
 /** Offscreen scratch for dimming the mic pixels redrawn over the live screen. */
@@ -733,6 +741,97 @@ const drawSky = (
   context.globalAlpha = previous;
 };
 
+/** Draw a small diagonal streak behind the room and clipped to one window. */
+const drawShootingStar = (
+  context: CanvasRenderingContext2D,
+  assets: Assets,
+  star: ShootingStarFrame,
+) => {
+  if (!skyEventBuffer) skyEventBuffer = scratch(SCENE_WIDTH, SCENE_HEIGHT);
+  const buffer = skyEventBuffer.getContext('2d');
+  if (!buffer) return;
+
+  buffer.imageSmoothingEnabled = false;
+  buffer.globalCompositeOperation = 'source-over';
+  buffer.globalAlpha = 1;
+  buffer.clearRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+
+  const windowCentre = star.window === 'left' ? 40 : 152;
+  const fromX = windowCentre - star.direction * 27;
+  const toX = windowCentre + star.direction * 27;
+  const travelX = toX - fromX;
+  const x = fromX + travelX * star.progress;
+  const y = star.startY + star.fall * star.progress;
+
+  for (let index = star.trailLength; index >= 1; index -= 1) {
+    const tailProgress = star.progress - index * 0.012;
+    if (tailProgress < 0) continue;
+    const share = 1 - index / (star.trailLength + 1);
+    buffer.globalAlpha = share * 0.72;
+    buffer.fillStyle = '#b9d8e8';
+    buffer.fillRect(
+      Math.round(fromX + travelX * tailProgress),
+      Math.round(star.startY + star.fall * tailProgress),
+      1,
+      1,
+    );
+  }
+
+  buffer.globalAlpha = 1;
+  buffer.fillStyle = '#fffbe6';
+  buffer.fillRect(Math.round(x), Math.round(y), 1, 1);
+  buffer.globalCompositeOperation = 'destination-in';
+  buffer.drawImage(assets.glass, 0, 0);
+  buffer.globalCompositeOperation = 'source-over';
+  context.drawImage(skyEventBuffer, 0, 0);
+};
+
+/** Draw the UFO's independent sprite loop at the position owned by its event. */
+const drawUfo = (context: CanvasRenderingContext2D, assets: Assets, ufo: UfoFrame) => {
+  if (!skyEventBuffer) skyEventBuffer = scratch(SCENE_WIDTH, SCENE_HEIGHT);
+  const buffer = skyEventBuffer.getContext('2d');
+  if (!buffer) return;
+
+  buffer.imageSmoothingEnabled = false;
+  buffer.globalCompositeOperation = 'source-over';
+  buffer.globalAlpha = 1;
+  buffer.clearRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+
+  const centre = ufo.window === 'left' ? 40 : 152;
+  const easeOut = (value: number) => 1 - (1 - value) ** 3;
+  const easeIn = (value: number) => value ** 3;
+  let x = centre;
+  let y = ufo.y;
+  if (ufo.phase === 'enter') {
+    x = centre - ufo.direction * (1 - easeOut(ufo.progress)) * 40;
+  } else if (ufo.phase === 'exit' && ufo.exit === 'cross-right') {
+    // It vanishes behind the wall, crosses the room and reappears through the
+    // right glass before leaving the canvas. The mask supplies the occlusion.
+    x = centre + easeIn(ufo.progress) * (SCENE_WIDTH + 16 - centre);
+  } else if (ufo.phase === 'exit') {
+    y = ufo.y - easeIn(ufo.progress) * 64;
+  }
+
+  const frame = assets.ufo.frameAt(ufo.elapsed);
+  const drawX = Math.round(x);
+  const drawY = Math.round(y);
+  assets.ufo.draw(buffer, frame, drawX - 10, drawY - 6);
+
+  buffer.globalCompositeOperation = 'destination-in';
+  buffer.drawImage(assets.glass, 0, 0);
+  buffer.globalCompositeOperation = 'source-over';
+  context.drawImage(skyEventBuffer, 0, 0);
+};
+
+const drawSkyEvent = (
+  context: CanvasRenderingContext2D,
+  assets: Assets,
+  event: SkyEventFrame,
+) => {
+  if (event.kind === 'shooting-star') drawShootingStar(context, assets, event);
+  else drawUfo(context, assets, event);
+};
+
 /**
  * Where the monitor is in its power cycle. Power only.
  *
@@ -828,6 +927,8 @@ export type SceneState = {
   feedbackFrame?: HTMLCanvasElement;
   /** Deliberately low-resolution live camera frame, scaled into the monitor. */
   cameraFrame?: HTMLCanvasElement;
+  /** Active frame of the visit's one rare nighttime sky event. */
+  skyEvent?: SkyEventFrame;
 };
 
 /** Colon blinks once a second, lit for the first half. */
@@ -1044,6 +1145,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     chairOneShot,
     feedbackFrame,
     cameraFrame,
+    skyEvent,
   } = state;
   const effects = effectsForScreen(screenTag);
 
@@ -1065,6 +1167,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   // Moving sky goes straight on top of the static one, still behind everything
   // in the room, and clipped so it never reaches the mic arm or the desk.
   drawSky(context, assets, weather, elapsed, nightAmount);
+  if (skyEvent) drawSkyEvent(context, assets, skyEvent);
 
   /**
    * The desk, on top of the sky so it occludes the window.

@@ -1,0 +1,13 @@
+{
+  "frames": [
+    { "filename": "ufo 0", "frame": { "x": 0, "y": 0, "w": 20, "h": 12 }, "duration": 180 },
+    { "filename": "ufo 1", "frame": { "x": 20, "y": 0, "w": 20, "h": 12 }, "duration": 240 },
+    { "filename": "ufo 2", "frame": { "x": 40, "y": 0, "w": 20, "h": 12 }, "duration": 180 },
+    { "filename": "ufo 3", "frame": { "x": 60, "y": 0, "w": 20, "h": 12 }, "duration": 240 }
+  ],
+  "meta": {
+    "image": "ufo.png",
+    "size": { "w": 80, "h": 12 },
+    "scale": "1"
+  }
+}
