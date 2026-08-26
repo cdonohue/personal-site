@@ -49,6 +49,11 @@ const screenFromUrl = () => {
   return screen && sourceForScreen(screen) !== 'camera' ? screen : undefined
 }
 
+const skyEventFromUrl = (): 'shooting-star' | 'ufo' | undefined => {
+  const requested = new URLSearchParams(window.location.search).get('event')
+  return requested === 'shooting-star' || requested === 'ufo' ? requested : undefined
+}
+
 const [WEBCAM_X, WEBCAM_Y, WEBCAM_W, WEBCAM_H] = ROOM_ITEM_EXPORTS.webcam.crop
 const WEBCAM_BOUNDS: Rect = { x: WEBCAM_X, y: WEBCAM_Y, w: WEBCAM_W, h: WEBCAM_H }
 
@@ -178,6 +183,7 @@ export default function DeskScene() {
    * variety land — between visits rather than during one.
    */
   const [activity] = useState<Activity>(() => roll(new Date(), timeZone))
+  const [forcedSkyEvent] = useState(skyEventFromUrl)
   /**
    * Starts at the visit's random choice. In an empty room the monitor becomes
    * a picker from there, advancing through the canonical screensaver order.
@@ -286,8 +292,9 @@ export default function DeskScene() {
 
   const values = useMemo<Partial<ToggleValues>>(() => {
     return {
-      // The environment is still real. Only the room's occupancy is rolled.
-      lighting: 'auto',
+      // The environment is still real. An event URL forces night only so the
+      // requested sky event can be inspected without waiting for local sunset.
+      lighting: forcedSkyEvent ? 'night' : 'auto',
       weather: sky.condition,
       daylight: sky.daylight,
       // `present` and not `typing`: there is no typing pose yet, and a missing
@@ -302,7 +309,7 @@ export default function DeskScene() {
       roomLight: dark ? 'off' : 'on',
       clock,
     }
-  }, [activity, sky, dark, clock, screen])
+  }, [activity, sky, dark, clock, screen, forcedSkyEvent])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -316,6 +323,7 @@ export default function DeskScene() {
       timeZone,
       posture: activity.posture,
       outfit: activity.outfit,
+      skyEvent: forcedSkyEvent ?? 'random',
       // Cycling should be instant. Only empty-room visits pay to load the set.
       preloadScreens: activity.presence === 'away' ? SCREENSAVER_TAGS : [],
     })

@@ -8,6 +8,7 @@ import {
 } from './render';
 import type { Assets, Posture } from './render';
 import type { Outfit } from './outfits';
+import { SkyEventController, type SkyEventMode } from './events';
 import { sourceForScreen } from './screens';
 import { SceneSimulation } from './simulation';
 import { DEFAULT_VALUES, type ToggleValues } from './toggles';
@@ -111,6 +112,8 @@ export type DeskRoomOptions = {
    * host gets that for free but can override it.
    */
   reducedMotion?: boolean;
+  /** Random by default; a named event loops for URL-driven visual inspection. */
+  skyEvent?: SkyEventMode;
   /**
    * IANA zone the room keeps its hours in — the clock face, the day/night
    * curve, everything the scene derives from time.
@@ -159,6 +162,7 @@ export const createDeskRoom = async (
 
   const reducedMotion =
     options.reducedMotion ?? window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const skyEvent = new SkyEventController(options.skyEvent);
 
   // Four backing pixels per scene pixel keep the room's 192x108 coordinate
   // system intact while giving live canvas content inside the monitor enough
@@ -266,6 +270,7 @@ export const createDeskRoom = async (
       characterOneShot: frame.characterOneShot,
       feedbackFrame: feedbackReady ? feedbackFrame : undefined,
       cameraFrame: cameraReady ? cameraFrame : undefined,
+      skyEvent: skyEvent.frameAt(time - startedAt, frame.night, reducedMotion),
     });
 
     // Preserve the completed high-density canvas. The next frame scales this

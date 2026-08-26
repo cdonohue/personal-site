@@ -134,6 +134,30 @@ Masking at runtime put the sky over them.
 The glass mask itself is derived at runtime by diffing `clear-day` against
 `clear-night` — no authored asset, so it cannot go stale when the window moves.
 
+### `ufo.svg` — 20×12, four independent sky-event frames
+
+The UFO is not part of `room.aseprite` and does not share the room animation
+clock. Its four frames form an 80×12 horizontal sheet in `ufo.png`; `ufo.json`
+carries their individual durations. The frames move the craft up and down by a
+pixel while advancing its three underside lights. The sky-event controller
+owns only its entrance, hover and exit position.
+
+A UFO entering the left window while travelling right continues across the
+room: the glass mask hides it behind the wall and reveals it again in the right
+window. Every other approach leaves vertically through the top of its original
+window, avoiding a sideways path that could never reappear in visible glass.
+
+`ufo.svg` is the editable source for this deliberately tiny standalone sheet.
+Regenerate its committed PNG without opening Aseprite:
+
+```sh
+magick -background none ufo.svg PNG32:ufo.png
+```
+
+The UFO is a five-percent nighttime event and is mutually exclusive with the
+shooting star for a given visit. Use `/?event=ufo` to force night and loop its
+sequence for inspection. `/?event=shooting-star` does the same for the star.
+
 ### `screen-*.aseprite` — 46×26, the monitor
 
 **One file per screen, named after it.** No tags: the file is the name, and the
