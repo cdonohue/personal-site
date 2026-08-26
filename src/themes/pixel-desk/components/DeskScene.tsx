@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Rect } from '../scene/aseprite'
+import { ROOM_ITEM_EXPORTS } from '../scene/art'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
-import { SCREEN_DEFINITIONS, SCREENSAVER_TAGS } from '../scene/screens'
+import {
+  SCREEN_DEFINITIONS,
+  SCREENSAVER_TAGS,
+  canUseVisitorCamera,
+  sourceForScreen,
+} from '../scene/screens'
 import { roll, type Activity } from '../activity'
 import type { ToggleValues } from '../scene/toggles'
 import { REFRESH_MS, currentSky, lastKnownSky, visitorTimeZone, type Sky } from '../weather'
@@ -38,8 +44,13 @@ const SCENE_H = 108
  */
 const screenFromUrl = () => {
   const requested = new URLSearchParams(window.location.search).get('screen')
-  return SCREEN_DEFINITIONS.find(({ name }) => name === requested)?.name
+  const screen = SCREEN_DEFINITIONS.find(({ name }) => name === requested)?.name
+  // Camera permission must begin with a click, never a URL side effect.
+  return screen && sourceForScreen(screen) !== 'camera' ? screen : undefined
 }
+
+const [WEBCAM_X, WEBCAM_Y, WEBCAM_W, WEBCAM_H] = ROOM_ITEM_EXPORTS.webcam.crop
+const WEBCAM_BOUNDS: Rect = { x: WEBCAM_X, y: WEBCAM_Y, w: WEBCAM_W, h: WEBCAM_H }
 
 /** Touch targets below this get an invisible margin so small art stays tappable. */
 const MIN_TARGET_PX = 44
@@ -173,6 +184,105 @@ export default function DeskScene() {
    */
   const [screen, setScreen] = useState(() => screenFromUrl() ?? activity.screen)
   const [cableUnplugged, setCableUnplugged] = useState(false)
+  const [cameraActive, setCameraActive] = useState(false)
+  const [cameraError, setCameraError] = useState<string | null>(null)
+  const cameraStreamRef = useRef<MediaStream | null>(null)
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null)
+  const cameraRequestingRef = useRef(false)
+  const cameraRequestIdRef = useRef(0)
+  const previousScreenRef = useRef(screen)
+  const webcamAvailable = canUseVisitorCamera({
+    presence: activity.presence,
+    screen,
+    powered: !cableUnplugged,
+  })
+
+  const releaseCamera = useCallback(() => {
+    // Invalidates a permission request that may still be settling. If it later
+    // produces a stream, the request-id check below stops it immediately.
+    cameraRequestIdRef.current += 1
+    cameraRequestingRef.current = false
+    sceneRef.current?.setCameraSource()
+    cameraVideoRef.current?.pause()
+    if (cameraVideoRef.current) cameraVideoRef.current.srcObject = null
+    cameraStreamRef.current?.getTracks().forEach((track) => track.stop())
+    cameraVideoRef.current = null
+    cameraStreamRef.current = null
+  }, [])
+
+  const stopCamera = useCallback(() => {
+    releaseCamera()
+    setCameraActive(false)
+    setScreen(previousScreenRef.current)
+  }, [releaseCamera])
+
+  const toggleCamera = useCallback(async () => {
+    if (!webcamAvailable || cameraRequestingRef.current) return
+    if (cameraActive) {
+      stopCamera()
+      return
+    }
+
+    setCameraError(null)
+    cameraRequestingRef.current = true
+    const requestId = ++cameraRequestIdRef.current
+    let pendingStream: MediaStream | null = null
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Camera access is not supported in this browser.')
+      }
+
+      // Called directly from the webcam button so the browser can attach its
+      // permission prompt to an intentional user gesture.
+      pendingStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: false,
+      })
+      if (requestId !== cameraRequestIdRef.current) {
+        pendingStream.getTracks().forEach((track) => track.stop())
+        return
+      }
+
+      const video = document.createElement('video')
+      video.muted = true
+      video.playsInline = true
+      video.srcObject = pendingStream
+      await video.play()
+
+      if (requestId !== cameraRequestIdRef.current) {
+        video.pause()
+        video.srcObject = null
+        pendingStream.getTracks().forEach((track) => track.stop())
+        return
+      }
+
+      const scene = sceneRef.current
+      if (!scene) {
+        video.pause()
+        video.srcObject = null
+        pendingStream.getTracks().forEach((track) => track.stop())
+        return
+      }
+
+      previousScreenRef.current = screen
+      cameraStreamRef.current = pendingStream
+      cameraVideoRef.current = video
+      scene.setCameraSource(video)
+      setCameraActive(true)
+      setScreen('webcam')
+    } catch (error) {
+      pendingStream?.getTracks().forEach((track) => track.stop())
+      releaseCamera()
+      const denied = error instanceof DOMException && error.name === 'NotAllowedError'
+      setCameraError(
+        denied
+          ? 'Camera permission was declined. Click the webcam to try again.'
+          : 'The camera could not be started on this device.',
+      )
+    } finally {
+      if (requestId === cameraRequestIdRef.current) cameraRequestingRef.current = false
+    }
+  }, [cameraActive, releaseCamera, screen, stopCamera, webcamAvailable])
 
   const values = useMemo<Partial<ToggleValues>>(() => {
     return {
@@ -213,13 +323,13 @@ export default function DeskScene() {
         if (cancelled) return
         scene = created
         sceneRef.current = created
-        setSlices(
-          new Map(
-            ['light-switch', 'monitor-screen', 'clock-screen', 'desk-controls', 'power-outlet']
-              .map((name) => [name, created.slice(name)] as const)
-              .filter((entry): entry is [string, Rect] => Boolean(entry[1])),
-          ),
+        const nextSlices = new Map(
+          ['light-switch', 'monitor-screen', 'clock-screen', 'desk-controls', 'power-outlet']
+            .map((name) => [name, created.slice(name)] as const)
+            .filter((entry): entry is [string, Rect] => Boolean(entry[1])),
         )
+        nextSlices.set('webcam', WEBCAM_BOUNDS)
+        setSlices(nextSlices)
         created.start()
       })
       .catch((error) => {
@@ -234,12 +344,13 @@ export default function DeskScene() {
 
     return () => {
       cancelled = true
+      releaseCamera()
       scene?.stop()
       sceneRef.current = null
     }
     // Mounted once; `values` is the initial seed and updates go through set().
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [releaseCamera])
 
   useEffect(() => {
     sceneRef.current?.set(values)
@@ -295,7 +406,7 @@ export default function DeskScene() {
   if (failed) return null
 
   /** Slices that ride the desk, so their hit targets have to ride it too. */
-  const RIDES_THE_DESK = new Set(['monitor-screen', 'clock-screen', 'desk-controls'])
+  const RIDES_THE_DESK = new Set(['monitor-screen', 'clock-screen', 'desk-controls', 'webcam'])
 
   const hitBox = (slice: Rect, rides: boolean) => {
     const lift = rides ? Math.round(deskOffset) : 0
@@ -327,7 +438,13 @@ export default function DeskScene() {
         const scene = sceneRef.current
         if (!scene) return
         scene.toggleCable()
-        setCableUnplugged(scene.cableUnplugged())
+        const unplugged = scene.cableUnplugged()
+        setCableUnplugged(unplugged)
+        if (unplugged) {
+          releaseCamera()
+          setCameraActive(false)
+          setScreen((current) => current === 'webcam' ? previousScreenRef.current : current)
+        }
       },
     },
     {
@@ -341,6 +458,17 @@ export default function DeskScene() {
             slice: 'monitor-screen',
             label: `Show the next screensaver; currently ${screen}`,
             onClick: advanceScreensaver,
+          },
+        ]
+      : []),
+    // Last so its enlarged touch target wins where it overlaps the monitor's
+    // own enlarged target. The visible webcam is only eight pixels wide.
+    ...(webcamAvailable
+      ? [
+          {
+            slice: 'webcam',
+            label: cameraActive ? 'Stop camera preview' : 'Preview your camera on the monitor',
+            onClick: toggleCamera,
           },
         ]
       : []),
@@ -364,6 +492,22 @@ export default function DeskScene() {
           role="img"
           aria-label="Pixel-art illustration of my desk, with a monitor, a clock and a window onto the weather."
         />
+        {cameraError && (
+          <p
+            role="alert"
+            className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-paper px-2 py-1 text-xs text-ink"
+          >
+            {cameraError}
+          </p>
+        )}
+        {cameraActive && !cameraError && (
+          <p
+            role="status"
+            className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-paper px-2 py-1 text-xs text-ink"
+          >
+            LOCAL CAMERA PREVIEW · NOT RECORDING
+          </p>
+        )}
         {slices &&
           hotspots.map(({ slice, label, onClick }) => {
             const bounds = slices.get(slice)
