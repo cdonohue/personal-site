@@ -6,8 +6,8 @@
  * the renderer from rediscovering the same screen name in every draw pass.
  */
 
-export type ScreenKind = 'work' | 'play' | 'screensaver'
-export type ScreenSource = 'sheet' | 'scene'
+export type ScreenKind = 'work' | 'play' | 'screensaver' | 'interactive'
+export type ScreenSource = 'sheet' | 'scene' | 'camera'
 
 export type ScreenEffects = {
   desk: 'default' | 'call'
@@ -45,6 +45,12 @@ export const SCREEN_DEFINITIONS = [
   },
   { name: 'game', kind: 'play' },
   { name: 'room-view', kind: 'play', source: 'scene' },
+  {
+    name: 'webcam',
+    kind: 'interactive',
+    source: 'camera',
+    effects: { cameraIndicator: true },
+  },
   { name: 'cube', kind: 'screensaver' },
   { name: 'bounce', kind: 'screensaver' },
   { name: 'aquarium', kind: 'screensaver' },
@@ -62,7 +68,8 @@ const namesFor = (kind: ScreenKind) =>
 export const WORK_TAGS = namesFor('work')
 export const PLAY_TAGS = namesFor('play')
 export const SCREENSAVER_TAGS = namesFor('screensaver')
-export const SCREEN_TAGS = [...WORK_TAGS, ...PLAY_TAGS]
+export const INTERACTIVE_TAGS = namesFor('interactive')
+export const SCREEN_TAGS = [...WORK_TAGS, ...PLAY_TAGS, ...INTERACTIVE_TAGS]
 export const FALLBACK_SCREEN_TAG = WORK_TAGS[0]
 
 const definitions = new Map<string, ScreenDefinition>(
@@ -76,3 +83,14 @@ export const effectsForScreen = (name: string): ScreenEffects => ({
 
 export const sourceForScreen = (name: string): ScreenSource =>
   definitions.get(name)?.source ?? 'sheet'
+
+/** Host-facing gate for the visitor's real camera, kept beside its screen. */
+export const canUseVisitorCamera = ({
+  presence,
+  screen,
+  powered,
+}: {
+  presence: 'present' | 'away'
+  screen: string
+  powered: boolean
+}) => presence === 'away' && screen !== 'zoom-call' && powered

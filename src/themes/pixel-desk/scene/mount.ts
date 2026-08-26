@@ -58,6 +58,8 @@ export type DeskRoom = {
    * never calls this; live editing is the only reason it exists.
    */
   setOutfit(outfit: Outfit): void;
+  /** Supply or clear the live video element used by the interactive webcam screen. */
+  setCameraSource(source?: HTMLVideoElement): void;
   /**
    * Put the room straight into a posture, the way a page load does.
    *
@@ -177,6 +179,48 @@ export const createDeskRoom = async (
   feedbackContext.imageSmoothingEnabled = false;
   let feedbackReady = false;
 
+  const monitorAt = assets.room.slice('monitor-screen');
+  const cameraFrame = document.createElement('canvas');
+  cameraFrame.width = monitorAt.w;
+  cameraFrame.height = monitorAt.h;
+  const cameraContext = cameraFrame.getContext('2d');
+  if (!cameraContext) throw new Error('createDeskRoom: could not create the camera frame');
+  let cameraSource: HTMLVideoElement | undefined;
+
+  const updateCameraFrame = () => {
+    if (!cameraSource || cameraSource.readyState < 2 || !cameraSource.videoWidth) return false;
+
+    const sourceRatio = cameraSource.videoWidth / cameraSource.videoHeight;
+    const targetRatio = cameraFrame.width / cameraFrame.height;
+    const sourceWidth = sourceRatio > targetRatio
+      ? cameraSource.videoHeight * targetRatio
+      : cameraSource.videoWidth;
+    const sourceHeight = sourceRatio > targetRatio
+      ? cameraSource.videoHeight
+      : cameraSource.videoWidth / targetRatio;
+    const sourceX = (cameraSource.videoWidth - sourceWidth) / 2;
+    const sourceY = (cameraSource.videoHeight - sourceHeight) / 2;
+
+    cameraContext.save();
+    cameraContext.clearRect(0, 0, cameraFrame.width, cameraFrame.height);
+    // A local camera should behave like a mirror, not a security feed.
+    cameraContext.translate(cameraFrame.width, 0);
+    cameraContext.scale(-1, 1);
+    cameraContext.drawImage(
+      cameraSource,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      cameraFrame.width,
+      cameraFrame.height,
+    );
+    cameraContext.restore();
+    return true;
+  };
+
   let values: ToggleValues = { ...DEFAULT_VALUES, ...options.values };
   const timeZone = options.timeZone;
   const simulation = new SceneSimulation({
@@ -198,6 +242,7 @@ export const createDeskRoom = async (
   const step = (time: number) => {
     const now = new Date();
     const frame = simulation.step(time, now, values);
+    const cameraReady = updateCameraFrame();
 
     drawScene(context, assets, {
       elapsed: reducedMotion ? 0 : time - startedAt,
@@ -220,6 +265,7 @@ export const createDeskRoom = async (
       chairOneShot: frame.chairOneShot,
       characterOneShot: frame.characterOneShot,
       feedbackFrame: feedbackReady ? feedbackFrame : undefined,
+      cameraFrame: cameraReady ? cameraFrame : undefined,
     });
 
     // Preserve the completed high-density canvas. The next frame scales this
@@ -269,6 +315,9 @@ export const createDeskRoom = async (
     },
     setOutfit(next) {
       assets.dressCharacter(next);
+    },
+    setCameraSource(next) {
+      cameraSource = next;
     },
     setPosture(to) {
       simulation.setPosture(to, values.presence);

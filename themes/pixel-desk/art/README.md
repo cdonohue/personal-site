@@ -145,6 +145,7 @@ runtime plays it end to end.
 | `screen-zoom-call` | 160 | 16000 | scene |
 | `screen-game` | 48 | 3360 | scene |
 | `room-view` | live | live | runtime scene feedback |
+| `webcam` | live | live | permission-gated camera feedback |
 | `screen-cube` | 32 | 2880 | screensaver |
 | `screen-bounce` | 80 | 7200 | screensaver |
 | `screen-aquarium` | 58 | 5220 | screensaver |
@@ -196,7 +197,19 @@ completed high-density room canvas back into the monitor, producing a live recur
 scene without an Aseprite sheet or a second renderer. It belongs to the play rotation,
 where five percent of play-screen rolls select it as a rare easter egg.
 Use `/?screen=room-view` to bypass the roll and inspect it directly. The same
-override accepts any screen name in `SCREEN_DEFINITIONS`; unknown names are ignored.
+override accepts any non-camera screen name in `SCREEN_DEFINITIONS`; unknown names are ignored.
+
+`webcam` is interactive rather than scheduled. It is available only while the
+room is unoccupied and the desk has power: the empty workstation belongs to the
+visitor, while an occupied one belongs to the character. Clicking the webcam
+requests video-only camera permission, samples the local stream into the 46x26
+monitor grid, and mirrors it like a conventional self-view. The stream is
+neither recorded nor uploaded. Clicking the webcam again, unplugging the desk,
+or leaving the page stops every media track. The camera screen cannot be
+activated through the URL because permission must remain attached to a
+deliberate click.
+While active, the scene labels the mode `LOCAL CAMERA PREVIEW · NOT RECORDING`
+to distinguish the visitor's real stream from the fictional Zoom-call camera.
 
 `src/themes/pixel-desk/activity.ts` picks from one of the three and hands the name over; nothing
 downstream cares which it got, because `MonitorPhase` is power only and the tag

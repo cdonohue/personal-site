@@ -17,7 +17,7 @@ import {
   roomVariantPath,
   skyPath,
 } from './art';
-export { PLAY_TAGS, SCREEN_TAGS, SCREENSAVER_TAGS, WORK_TAGS } from './screens';
+export { INTERACTIVE_TAGS, PLAY_TAGS, SCREEN_TAGS, SCREENSAVER_TAGS, WORK_TAGS } from './screens';
 export { nightAmountAt, nightAmountFor, washFor, zonedParts } from './lighting';
 export {
   CHAIR_EXIT,
@@ -826,6 +826,8 @@ export type SceneState = {
   nightAmount: number;
   /** High-density previous room frame, scaled into the recursive live-scene screen. */
   feedbackFrame?: HTMLCanvasElement;
+  /** Deliberately low-resolution live camera frame, scaled into the monitor. */
+  cameraFrame?: HTMLCanvasElement;
 };
 
 /** Colon blinks once a second, lit for the first half. */
@@ -1041,6 +1043,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     characterOneShot,
     chairOneShot,
     feedbackFrame,
+    cameraFrame,
   } = state;
   const effects = effectsForScreen(screenTag);
 
@@ -1114,7 +1117,8 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   // Rides the desk, so the content has to move with the bezel around it.
   const screenAt = room.slice('monitor-screen');
   if (monitor.phase === 'lit') {
-    if (sourceForScreen(screenTag) === 'scene' && feedbackFrame) {
+    const source = sourceForScreen(screenTag);
+    if (source === 'scene' && feedbackFrame) {
       // The previous completed frame includes the character, clock and the last
       // recursive image. Scale the complete high-density canvas into the
       // monitor rather than cropping or rebuilding a low-resolution miniature.
@@ -1124,6 +1128,17 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
         0,
         feedbackFrame.width,
         feedbackFrame.height,
+        screenAt.x,
+        screenAt.y - deskRise,
+        screenAt.w,
+        screenAt.h,
+      );
+    } else if (source === 'camera' && cameraFrame) {
+      // The mount samples the video into a 46x26 canvas first. Drawing that
+      // canvas at one scene pixel per source pixel preserves the deliberately
+      // blocky camera image even though the room has a denser backing store.
+      context.drawImage(
+        cameraFrame,
         screenAt.x,
         screenAt.y - deskRise,
         screenAt.w,
