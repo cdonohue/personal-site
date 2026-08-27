@@ -80,6 +80,97 @@ export const OUTFITS: Outfit[] = [
     pants: { fill: '#202020', shade: '#202020' },
     shoes: { fill: '#353535', shade: '#353535' },
   },
+  {
+    name: 'powder-blue',
+    hat: { top: '#ded7c8', edge: '#9e9688', strap: '#41342e' },
+    shirt: { fill: '#91abc3', shade: '#60788f' },
+    pants: { fill: '#49352c', shade: '#2e211c' },
+    shoes: { fill: '#302622', shade: '#1e1816' },
+  },
+  {
+    name: 'olive-tobacco',
+    hat: { top: '#c7b38b', edge: '#8c7857', strap: '#35382d' },
+    shirt: { fill: '#687052', shade: '#454b37' },
+    pants: { fill: '#694a35', shade: '#432f23' },
+    shoes: { fill: '#352922', shade: '#211a16' },
+  },
+  {
+    name: 'oxblood-chocolate',
+    hat: { top: '#c8c0b4', edge: '#8e857a', strap: '#422a2b' },
+    shirt: { fill: '#7d3442', shade: '#50212b' },
+    pants: { fill: '#49342c', shade: '#2e211c' },
+    shoes: { fill: '#29201d', shade: '#191412' },
+  },
+  {
+    name: 'butter-brown',
+    hat: { top: '#29374b', edge: '#182435', strap: '#d4b85f' },
+    shirt: { fill: '#d8be68', shade: '#957d3d' },
+    pants: { fill: '#4b372d', shade: '#30231d' },
+    shoes: { fill: '#2d2521', shade: '#1c1714' },
+  },
+  {
+    name: 'rust-indigo',
+    hat: { top: '#28364a', edge: '#172336', strap: '#ae603f' },
+    shirt: { fill: '#b85f3e', shade: '#773b28' },
+    pants: { fill: '#29374c', shade: '#192335' },
+    shoes: { fill: '#49352b', shade: '#2e211b' },
+  },
+  {
+    name: 'teal-plum',
+    hat: { top: '#d5ccba', edge: '#988e7c', strap: '#2b3d3c' },
+    shirt: { fill: '#397878', shade: '#254f50' },
+    pants: { fill: '#453441', shade: '#2c222b' },
+    shoes: { fill: '#30272b', shade: '#1e191b' },
+  },
+  {
+    name: 'cream-denim',
+    hat: { top: '#786048', edge: '#4f3e30', strap: '#d7cab3' },
+    shirt: { fill: '#d9cfb9', shade: '#998e78' },
+    pants: { fill: '#38536f', shade: '#26394d' },
+    shoes: { fill: '#4a372b', shade: '#2f231c' },
+  },
+  {
+    name: 'camel-charcoal',
+    hat: { top: '#d8d0c2', edge: '#998f80', strap: '#403932' },
+    shirt: { fill: '#b08759', shade: '#765a3c' },
+    pants: { fill: '#3c4042', shade: '#282b2d' },
+    shoes: { fill: '#292321', shade: '#191615' },
+  },
+  {
+    name: 'chartreuse-charcoal',
+    hat: { top: '#41474c', edge: '#292f34', strap: '#a1b83a' },
+    shirt: { fill: '#a8bf3f', shade: '#6f7f29' },
+    pants: { fill: '#41464b', shade: '#292e32' },
+    shoes: { fill: '#282728', shade: '#191819' },
+  },
+  {
+    name: 'red-grape',
+    hat: { top: '#d1c4ae', edge: '#93856e', strap: '#52334f' },
+    shirt: { fill: '#c64e40', shade: '#823229' },
+    pants: { fill: '#5a365f', shade: '#3a233e' },
+    shoes: { fill: '#34252f', shade: '#21181e' },
+  },
+  {
+    name: 'cobalt-orange',
+    hat: { top: '#d0b168', edge: '#94783d', strap: '#2e4780' },
+    shirt: { fill: '#3c63b3', shade: '#284279' },
+    pants: { fill: '#a75532', shade: '#6c3722' },
+    shoes: { fill: '#352823', shade: '#211a16' },
+  },
+  {
+    name: 'virtual-pink-navy',
+    hat: { top: '#293852', edge: '#19263d', strap: '#c35c87' },
+    shirt: { fill: '#c65d89', shade: '#843d5b' },
+    pants: { fill: '#293952', shade: '#1a2639' },
+    shoes: { fill: '#302832', shade: '#1e191f' },
+  },
+  {
+    name: 'irish-green-plum',
+    hat: { top: '#d1c39f', edge: '#948560', strap: '#315e43' },
+    shirt: { fill: '#3f8d5b', shade: '#295d3d' },
+    pants: { fill: '#503850', shade: '#342434' },
+    shoes: { fill: '#30272e', shade: '#1e191d' },
+  },
 ];
 
 const hex = (value: string): [number, number, number] => [
@@ -136,22 +227,27 @@ const mix = (value: number): number => {
  * chance. A permutation gives every outfit exactly one turn per cycle and can
  * never repeat inside one.
  *
- * The swap handles the seam between cycles, which is the only place a repeat
- * can still happen. Swapping the first two entries cannot re-create the clash:
- * a permutation holds no duplicates, so the new first entry is by definition
- * not the one that just clashed. It also leaves the last entry alone for any
- * wardrobe of three or more, which is what keeps the previous cycle's ending
- * stable enough to compare against.
+ * The two halves stay on separate rails while their internal order changes.
+ * With fourteen outfits, that makes each rail one week long: an outfit in the
+ * first rail cannot appear in the second week, nor vice versa. The next
+ * fortnight shuffles both rails again, so the sequence is offset without ever
+ * falling back to a fixed Monday-through-Sunday uniform.
  */
 const orderFor = (block: number, n: number): number[] => {
-  const order = Array.from({ length: n }, (_, i) => i);
-  let seed = mix(block);
-  for (let i = n - 1; i > 0; i -= 1) {
-    seed = mix(seed);
-    const j = seed % (i + 1);
-    [order[i], order[j]] = [order[j], order[i]];
-  }
-  return order;
+  const shuffle = (order: number[], salt: number): number[] => {
+    let seed = mix(block ^ salt);
+    for (let i = order.length - 1; i > 0; i -= 1) {
+      seed = mix(seed);
+      const j = seed % (i + 1);
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    return order;
+  };
+
+  const split = Math.ceil(n / 2);
+  const first = Array.from({ length: split }, (_, i) => i);
+  const second = Array.from({ length: n - split }, (_, i) => i + split);
+  return [...shuffle(first, 0x51f15e), ...shuffle(second, 0xa17eaf)];
 };
 
 /**
@@ -174,9 +270,6 @@ export const outfitFor = (date: Date, timeZone?: string): Outfit => {
   const block = Math.floor(day / n);
   const position = ((day % n) + n) % n;
   const order = orderFor(block, n);
-
-  const previous = orderFor(block - 1, n);
-  if (order[0] === previous[n - 1]) [order[0], order[1]] = [order[1], order[0]];
 
   return OUTFITS[order[position]];
 };
