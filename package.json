@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro check && astro build",
+    "build": "astro check && astro build && node scripts/verify-build-art.ts",
     "test": "node --test src/themes/pixel-desk/scene/*.test.ts",
     "preview": "astro preview",
     "astro": "astro"

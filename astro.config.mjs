@@ -7,6 +7,7 @@ import {
   ROOM_EXPORT_LAYERS,
   ROOM_EXPORT_VARIANTS,
   ROOM_ITEM_EXPORTS,
+  SHEET_ASSETS,
 } from './src/themes/pixel-desk/scene/art.ts'
 
 /**
@@ -60,6 +61,7 @@ export default defineConfig({
         layers: { room: ROOM_EXPORT_LAYERS },
         variants: { room: ROOM_EXPORT_VARIANTS },
         items: { room: ROOM_ITEM_EXPORTS },
+        standaloneSheets: [SHEET_ASSETS.ufo],
       }),
     ],
   },
