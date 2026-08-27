@@ -22,6 +22,8 @@ const DEFAULT_ASEPRITE = '/Applications/Aseprite.app/Contents/MacOS/aseprite';
 const MIME: Record<string, string> = {
   '.png': 'image/png',
   '.json': 'application/json',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
 };
 
 export type AsepriteOptions = {
@@ -51,6 +53,8 @@ export type AsepriteOptions = {
   items?: Record<string, Record<string, { layers: readonly string[]; crop: readonly number[] }>>;
   /** Pre-exported PNG/JSON sheets whose editable source is not Aseprite. */
   standaloneSheets?: string[];
+  /** Other pre-authored runtime assets emitted unchanged beside the sheets. */
+  standaloneFiles?: string[];
 };
 
 const binaryFor = (options: AsepriteOptions) =>
@@ -192,6 +196,7 @@ export default function aseprite(options: AsepriteOptions): Plugin {
   const variantsFor = (name: string) => options.variants?.[name] ?? {};
   const itemsFor = (name: string) => options.items?.[name] ?? {};
   const standaloneSheets = options.standaloneSheets ?? [];
+  const standaloneFiles = options.standaloneFiles ?? [];
 
   let warnedMissingBinary = false;
   // Rollup's this.warn() is filtered out at Vite's default log level, which
@@ -320,6 +325,7 @@ export default function aseprite(options: AsepriteOptions): Plugin {
       const files = [
         ...asepriteOutputs,
         ...standaloneSheets.flatMap((name) => standaloneOutputs(dir, name)),
+        ...standaloneFiles.map((name) => path.join(dir, name)),
       ];
 
       for (const file of new Set(files)) {

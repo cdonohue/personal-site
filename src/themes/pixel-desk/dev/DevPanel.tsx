@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
+import { sceneEventFromSearch } from '../scene/events'
 import type { Posture } from '../scene/render'
 import { PLAY_TAGS, SCREENSAVER_TAGS, WORK_TAGS } from '../scene/render'
 import { OUTFITS, type Outfit } from '../scene/outfits'
@@ -86,6 +87,7 @@ export default function DevPanel() {
     createDeskRoom(canvas, {
       values,
       outfit,
+      sceneEvent: sceneEventFromSearch(window.location.search) ?? 'random',
       // Never inherit the visitor's setting here: reduced motion freezes the
       // loops, and a frozen scene is not what anyone opens this page to look at.
       reducedMotion: false,

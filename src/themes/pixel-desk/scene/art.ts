@@ -1,5 +1,5 @@
 import { WEATHER_CONDITIONS } from './toggles'
-export { SHEET_ASSETS } from './sheet-assets'
+export { EVENT_ASSETS, SHEET_ASSETS } from './sheet-assets'
 
 /**
  * The generated-art contract shared by the Node export pipeline and browser

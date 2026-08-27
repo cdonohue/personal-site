@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Rect } from '../scene/aseprite'
 import { ROOM_ITEM_EXPORTS } from '../scene/art'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
+import { sceneEventFromSearch } from '../scene/events'
 import {
   SCREEN_DEFINITIONS,
   SCREENSAVER_TAGS,
@@ -47,11 +48,6 @@ const screenFromUrl = () => {
   const screen = SCREEN_DEFINITIONS.find(({ name }) => name === requested)?.name
   // Camera permission must begin with a click, never a URL side effect.
   return screen && sourceForScreen(screen) !== 'camera' ? screen : undefined
-}
-
-const skyEventFromUrl = (): 'shooting-star' | 'ufo' | undefined => {
-  const requested = new URLSearchParams(window.location.search).get('event')
-  return requested === 'shooting-star' || requested === 'ufo' ? requested : undefined
 }
 
 const [WEBCAM_X, WEBCAM_Y, WEBCAM_W, WEBCAM_H] = ROOM_ITEM_EXPORTS.webcam.crop
@@ -183,7 +179,7 @@ export default function DeskScene() {
    * variety land — between visits rather than during one.
    */
   const [activity] = useState<Activity>(() => roll(new Date(), timeZone))
-  const [forcedSkyEvent] = useState(skyEventFromUrl)
+  const [forcedSceneEvent] = useState(() => sceneEventFromSearch(window.location.search))
   /**
    * Starts at the visit's random choice. In an empty room the monitor becomes
    * a picker from there, advancing through the canonical screensaver order.
@@ -294,7 +290,8 @@ export default function DeskScene() {
     return {
       // The environment is still real. An event URL forces night only so the
       // requested sky event can be inspected without waiting for local sunset.
-      lighting: forcedSkyEvent ? 'night' : 'auto',
+      lighting:
+        forcedSceneEvent === 'shooting-star' || forcedSceneEvent === 'ufo' ? 'night' : 'auto',
       weather: sky.condition,
       daylight: sky.daylight,
       // `present` and not `typing`: there is no typing pose yet, and a missing
@@ -309,7 +306,7 @@ export default function DeskScene() {
       roomLight: dark ? 'off' : 'on',
       clock,
     }
-  }, [activity, sky, dark, clock, screen, forcedSkyEvent])
+  }, [activity, sky, dark, clock, screen, forcedSceneEvent])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -323,7 +320,7 @@ export default function DeskScene() {
       timeZone,
       posture: activity.posture,
       outfit: activity.outfit,
-      skyEvent: forcedSkyEvent ?? 'random',
+      sceneEvent: forcedSceneEvent ?? 'random',
       // Cycling should be instant. Only empty-room visits pay to load the set.
       preloadScreens: activity.presence === 'away' ? SCREENSAVER_TAGS : [],
     })

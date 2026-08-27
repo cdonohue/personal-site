@@ -1,0 +1,21 @@
+{
+  "frames": [
+    {
+      "filename": "screen-jigsaw 0",
+      "frame": { "x": 0, "y": 0, "w": 184, "h": 104 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 184, "h": 104 },
+      "sourceSize": { "w": 184, "h": 104 },
+      "duration": 1000
+    }
+  ],
+  "meta": {
+    "app": "Codex image generation",
+    "version": "1",
+    "image": "screen-jigsaw.png",
+    "format": "RGBA8888",
+    "size": { "w": 184, "h": 104 },
+    "scale": "4"
+  }
+}

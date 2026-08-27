@@ -15,3 +15,9 @@ export const SHEET_ASSETS = {
   headphones: 'headphones',
   ufo: 'ufo',
 } as const
+
+/** Visit-scoped event assets emitted beside the ordinary sprite sheets. */
+export const EVENT_ASSETS = {
+  jigsawScreen: 'jigsaw',
+  jigsawAudio: 'jigsaw-voice.mp3',
+} as const
