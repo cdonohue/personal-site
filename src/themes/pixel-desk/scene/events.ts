@@ -1,4 +1,13 @@
-export type SkyEventMode = 'random' | 'shooting-star' | 'ufo' | 'off'
+export type SceneEventMode = 'random' | 'shooting-star' | 'ufo' | 'jigsaw' | 'off'
+export type ForcedSceneEventMode = Exclude<SceneEventMode, 'random' | 'off'>
+
+const FORCED_SCENE_EVENTS = ['shooting-star', 'ufo', 'jigsaw'] as const
+
+/** A known `?event=` value, shared by the site and development workbench. */
+export const sceneEventFromSearch = (search: string): ForcedSceneEventMode | undefined => {
+  const requested = new URLSearchParams(search).get('event')
+  return FORCED_SCENE_EVENTS.find((event) => event === requested)
+}
 
 export type ShootingStarFrame = {
   kind: 'shooting-star'
@@ -21,7 +30,15 @@ export type UfoFrame = {
   y: number
 }
 
-export type SkyEventFrame = ShootingStarFrame | UfoFrame
+export type JigsawFrame = {
+  kind: 'jigsaw'
+  phase: 'fade-in' | 'flicker' | 'reveal' | 'speak' | 'pause' | 'fade-out'
+  darkness: number
+  screenOpacity: number
+  faceOpacity: number
+}
+
+export type SceneEventFrame = ShootingStarFrame | UfoFrame | JigsawFrame
 
 type ShootingStarSchedule = Omit<ShootingStarFrame, 'kind' | 'progress'> & {
   kind: 'shooting-star'
@@ -34,10 +51,17 @@ type UfoSchedule = Pick<UfoFrame, 'kind' | 'window' | 'direction' | 'exit' | 'y'
   duration: number
 }
 
-type SkyEventSchedule = ShootingStarSchedule | UfoSchedule
+type JigsawSchedule = {
+  kind: 'jigsaw'
+  delay: number
+  duration: number
+}
+
+type SceneEventSchedule = ShootingStarSchedule | UfoSchedule | JigsawSchedule
 
 export const SHOOTING_STAR_CHANCE = 0.2
 export const UFO_CHANCE = 0.05
+export const JIGSAW_CHANCE = 0.01
 export const SHOOTING_STAR_DELAY_MIN = 5_000
 export const SHOOTING_STAR_DELAY_MAX = 30_000
 const SHOOTING_STAR_DURATION_MIN = 1_000
@@ -48,6 +72,22 @@ const UFO_ENTER_DURATION = 800
 const UFO_HOVER_DURATION = 2_400
 const UFO_EXIT_DURATION = 600
 const UFO_DURATION = UFO_ENTER_DURATION + UFO_HOVER_DURATION + UFO_EXIT_DURATION
+export const JIGSAW_DELAY_MIN = 20_000
+const JIGSAW_DELAY_MAX = 90_000
+const JIGSAW_FADE_IN_DURATION = 400
+const JIGSAW_FLICKER_DURATION = 600
+const JIGSAW_SPEECH_PAUSE_DURATION = 1_000
+// The supplied voice clip is 2.22 seconds; a small tail prevents the room
+// from recovering before its final syllable finishes.
+const JIGSAW_SPEECH_DURATION = 2_300
+const JIGSAW_FADE_OUT_DURATION = 800
+const JIGSAW_DURATION =
+  JIGSAW_FADE_IN_DURATION +
+  JIGSAW_FLICKER_DURATION +
+  JIGSAW_SPEECH_PAUSE_DURATION +
+  JIGSAW_SPEECH_DURATION +
+  JIGSAW_SPEECH_PAUSE_DURATION +
+  JIGSAW_FADE_OUT_DURATION
 const FULL_NIGHT = 0.95
 const FORCED_DELAY = 500
 const FORCED_PAUSE = 1_500
@@ -83,62 +123,202 @@ const ufoSchedule = (random: () => number, forced: boolean): UfoSchedule => {
   }
 }
 
-const schedule = (random: () => number, mode: SkyEventMode): SkyEventSchedule | undefined => {
+const jigsawSchedule = (random: () => number, forced: boolean): JigsawSchedule => ({
+  kind: 'jigsaw',
+  delay: forced ? FORCED_DELAY : between(random, JIGSAW_DELAY_MIN, JIGSAW_DELAY_MAX),
+  duration: JIGSAW_DURATION,
+})
+
+const schedule = (
+  random: () => number,
+  mode: SceneEventMode,
+  october: boolean,
+): SceneEventSchedule | undefined => {
   if (mode === 'shooting-star') return shootingStarSchedule(random, true)
   if (mode === 'ufo') return ufoSchedule(random, true)
+  if (mode === 'jigsaw') return jigsawSchedule(random, true)
   if (mode === 'off') return undefined
 
   const roll = random()
   if (roll < UFO_CHANCE) return ufoSchedule(random, false)
   if (roll < UFO_CHANCE + SHOOTING_STAR_CHANCE) return shootingStarSchedule(random, false)
+  if (october && roll < UFO_CHANCE + SHOOTING_STAR_CHANCE + JIGSAW_CHANCE) {
+    return jigsawSchedule(random, false)
+  }
   return undefined
 }
 
 /**
- * A visit-scoped, one-shot piece of sky choreography.
+ * A visit-scoped, one-shot piece of room choreography.
  *
  * Randomness is resolved at construction. `frameAt` is therefore deterministic
  * and safe to call from requestAnimationFrame without rerolling the event sixty
- * times a second. Natural events start their delay only once night is fully in;
- * the forced preview loops so it cannot be missed while inspecting the URL.
+ * times a second. Natural sky events start their delay only once night is fully
+ * in; room events count from the visit. Forced previews loop so they cannot be
+ * missed while inspecting the URL.
  */
-export class SkyEventController {
-  private readonly plan?: SkyEventSchedule
+export class SceneEventController {
+  private readonly plan?: SceneEventSchedule
   private readonly forced: boolean
   private nightStartedAt?: number
+  private jigsawInteractedAt?: number
   private finished = false
 
-  constructor(mode: SkyEventMode = 'random', random: () => number = Math.random) {
-    this.forced = mode === 'shooting-star' || mode === 'ufo'
-    this.plan = schedule(random, mode)
+  constructor(
+    mode: SceneEventMode = 'random',
+    random: () => number = Math.random,
+    now: Date = new Date(),
+  ) {
+    this.forced = mode !== 'random' && mode !== 'off'
+    this.plan = schedule(random, mode, now.getMonth() === 9)
   }
 
-  frameAt(elapsed: number, nightAmount: number, reducedMotion: boolean): SkyEventFrame | undefined {
+  jigsawSelected(): boolean {
+    return this.plan?.kind === 'jigsaw'
+  }
+
+  /**
+   * Arm a selected Jigsaw event with the visitor's first page interaction.
+   * Its delay begins here, not at page load, so the sound is permitted and the
+   * event cannot ambush the same click that enabled it.
+   */
+  interact(elapsed: number): void {
+    if (this.plan?.kind !== 'jigsaw') return
+    this.jigsawInteractedAt ??= elapsed
+  }
+
+  frameAt(
+    elapsed: number,
+    nightAmount: number,
+    reducedMotion: boolean,
+  ): SceneEventFrame | undefined {
     if (!this.plan || reducedMotion) return undefined
 
+    let interactionElapsed = elapsed
+    if (this.plan.kind === 'jigsaw') {
+      if (this.jigsawInteractedAt === undefined) return undefined
+      interactionElapsed = elapsed - this.jigsawInteractedAt
+    }
+
     if (this.forced) {
-      return this.frameFor(elapsed % (this.plan.delay + this.plan.duration + FORCED_PAUSE))
+      return this.frameFor(
+        interactionElapsed % (this.plan.delay + this.plan.duration + FORCED_PAUSE),
+      )
     }
 
     if (this.finished) return undefined
-    if (nightAmount < FULL_NIGHT) {
-      this.nightStartedAt = undefined
-      return undefined
+    let eventElapsed = interactionElapsed
+    if (this.plan.kind !== 'jigsaw') {
+      if (nightAmount < FULL_NIGHT) {
+        this.nightStartedAt = undefined
+        return undefined
+      }
+      this.nightStartedAt ??= elapsed
+      eventElapsed = elapsed - this.nightStartedAt
     }
 
-    this.nightStartedAt ??= elapsed
-    const nightElapsed = elapsed - this.nightStartedAt
-    if (nightElapsed > this.plan.delay + this.plan.duration) {
+    if (eventElapsed > this.plan.delay + this.plan.duration) {
       this.finished = true
       return undefined
     }
-    return this.frameFor(nightElapsed)
+    return this.frameFor(eventElapsed)
   }
 
-  private frameFor(elapsed: number): SkyEventFrame | undefined {
+  private frameFor(elapsed: number): SceneEventFrame | undefined {
     if (!this.plan) return undefined
     const progress = (elapsed - this.plan.delay) / this.plan.duration
     if (progress < 0 || progress > 1) return undefined
+
+    if (this.plan.kind === 'jigsaw') {
+      const eventElapsed = elapsed - this.plan.delay
+      if (eventElapsed < JIGSAW_FADE_IN_DURATION) {
+        const amount = eventElapsed / JIGSAW_FADE_IN_DURATION
+        return {
+          kind: 'jigsaw',
+          phase: 'fade-in',
+          darkness: amount,
+          screenOpacity: 0,
+          faceOpacity: 0,
+        }
+      }
+      if (eventElapsed < JIGSAW_FADE_IN_DURATION + JIGSAW_FLICKER_DURATION) {
+        const flickerElapsed = eventElapsed - JIGSAW_FADE_IN_DURATION
+        const screenOpacity =
+          flickerElapsed < 90
+            ? 0.85
+            : flickerElapsed < 170
+              ? 0.08
+              : flickerElapsed < 310
+                ? 0.55
+                : flickerElapsed < 390
+                  ? 0
+                  : flickerElapsed < 500
+                    ? 0.7
+                    : 1
+        return { kind: 'jigsaw', phase: 'flicker', darkness: 1, screenOpacity, faceOpacity: 0 }
+      }
+      if (
+        eventElapsed <
+        JIGSAW_FADE_IN_DURATION +
+          JIGSAW_FLICKER_DURATION +
+          JIGSAW_SPEECH_PAUSE_DURATION
+      ) {
+        return {
+          kind: 'jigsaw',
+          phase: 'reveal',
+          darkness: 1,
+          screenOpacity: 1,
+          faceOpacity: 1,
+        }
+      }
+      if (
+        eventElapsed <
+        JIGSAW_FADE_IN_DURATION +
+          JIGSAW_FLICKER_DURATION +
+          JIGSAW_SPEECH_PAUSE_DURATION +
+          JIGSAW_SPEECH_DURATION
+      ) {
+        return {
+          kind: 'jigsaw',
+          phase: 'speak',
+          darkness: 1,
+          screenOpacity: 1,
+          faceOpacity: 1,
+        }
+      }
+      if (
+        eventElapsed <
+        JIGSAW_FADE_IN_DURATION +
+          JIGSAW_FLICKER_DURATION +
+          JIGSAW_SPEECH_PAUSE_DURATION +
+          JIGSAW_SPEECH_DURATION +
+          JIGSAW_SPEECH_PAUSE_DURATION
+      ) {
+        return {
+          kind: 'jigsaw',
+          phase: 'pause',
+          darkness: 1,
+          screenOpacity: 1,
+          faceOpacity: 1,
+        }
+      }
+      const amount =
+        1 -
+        (eventElapsed -
+          JIGSAW_FADE_IN_DURATION -
+          JIGSAW_FLICKER_DURATION -
+          JIGSAW_SPEECH_PAUSE_DURATION -
+          JIGSAW_SPEECH_DURATION -
+          JIGSAW_SPEECH_PAUSE_DURATION) /
+          JIGSAW_FADE_OUT_DURATION
+      return {
+        kind: 'jigsaw',
+        phase: 'fade-out',
+        darkness: amount,
+        screenOpacity: amount,
+        faceOpacity: amount,
+      }
+    }
 
     if (this.plan.kind === 'ufo') {
       const eventElapsed = elapsed - this.plan.delay

@@ -3,7 +3,7 @@ import type { Frame } from './aseprite';
 import { Glow } from './glow';
 import { WEATHER_CONDITIONS, type ToggleValues, type Weather } from './toggles';
 import { OUTFITS, inkStencil, recolour, type Outfit } from './outfits';
-import type { ShootingStarFrame, SkyEventFrame, UfoFrame } from './events';
+import type { JigsawFrame, SceneEventFrame, ShootingStarFrame, UfoFrame } from './events';
 import { zonedParts } from './lighting';
 import {
   STANDING_TAG,
@@ -11,6 +11,7 @@ import {
 } from './state';
 import { FALLBACK_SCREEN_TAG, effectsForScreen, sourceForScreen } from './screens';
 import {
+  EVENT_ASSETS,
   SHEET_ASSETS,
   SKY_VARIANTS,
   artPath,
@@ -826,7 +827,7 @@ const drawUfo = (context: CanvasRenderingContext2D, assets: Assets, ufo: UfoFram
 const drawSkyEvent = (
   context: CanvasRenderingContext2D,
   assets: Assets,
-  event: SkyEventFrame,
+  event: Exclude<SceneEventFrame, JigsawFrame>,
 ) => {
   if (event.kind === 'shooting-star') drawShootingStar(context, assets, event);
   else drawUfo(context, assets, event);
@@ -927,8 +928,8 @@ export type SceneState = {
   feedbackFrame?: HTMLCanvasElement;
   /** Deliberately low-resolution live camera frame, scaled into the monitor. */
   cameraFrame?: HTMLCanvasElement;
-  /** Active frame of the visit's one rare nighttime sky event. */
-  skyEvent?: SkyEventFrame;
+  /** Active frame of the visit's one rare, visit-scoped scene event. */
+  sceneEvent?: SceneEventFrame;
 };
 
 /** Colon blinks once a second, lit for the first half. */
@@ -1145,7 +1146,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     chairOneShot,
     feedbackFrame,
     cameraFrame,
-    skyEvent,
+    sceneEvent,
   } = state;
   const effects = effectsForScreen(screenTag);
 
@@ -1167,7 +1168,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   // Moving sky goes straight on top of the static one, still behind everything
   // in the room, and clipped so it never reaches the mic arm or the desk.
   drawSky(context, assets, weather, elapsed, nightAmount);
-  if (skyEvent) drawSkyEvent(context, assets, skyEvent);
+  if (sceneEvent && sceneEvent.kind !== 'jigsaw') drawSkyEvent(context, assets, sceneEvent);
 
   /**
    * The desk, on top of the sky so it occludes the window.
@@ -1313,4 +1314,66 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     characterOneShot,
     chairOneShot,
   });
+
+  // Jigsaw owns the complete final composite: the room falls to black after
+  // every ordinary layer has drawn, then only the monitor content is restored.
+  // Drawing it here is what prevents the clock, LEDs, character or mic overlay
+  // from glowing through a blackout that is meant to be total.
+  if (sceneEvent?.kind === 'jigsaw') {
+    const previous = context.globalAlpha;
+    // Near-black, not absolute black: enough room survives to locate the desk
+    // and prove the face is inside the monitor rather than floating in space.
+    context.globalAlpha = sceneEvent.darkness * 0.84;
+    context.fillStyle = '#000';
+    context.fillRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+
+    if (monitor.phase === 'lit') {
+      const jigsaw = screens.get(EVENT_ASSETS.jigsawScreen);
+      if (jigsaw) {
+        context.globalAlpha = sceneEvent.screenOpacity;
+        context.fillStyle = '#18202b';
+        context.fillRect(screenAt.x, screenAt.y - deskRise, screenAt.w, screenAt.h);
+        const { rect } = jigsaw.frames[0];
+        const faceWidth = screenAt.w - 4;
+        const faceHeight = screenAt.h - 2;
+        const faceX = screenAt.x + (screenAt.w - faceWidth) / 2;
+        const faceY = screenAt.y - deskRise + (screenAt.h - faceHeight) / 2;
+        // This event deliberately uses the canvas's four backing pixels per
+        // scene pixel. The ordinary monitor animations remain chunky sprites;
+        // the generated face retains enough detail to read as a face rather
+        // than being pre-flattened into a 46x26 image first. A small inset
+        // leaves an even backlight frame around the image.
+        context.globalAlpha = sceneEvent.faceOpacity;
+        context.drawImage(
+          jigsaw.image,
+          rect.x,
+          rect.y,
+          rect.w,
+          rect.h,
+          faceX,
+          faceY,
+          faceWidth,
+          faceHeight,
+        );
+
+        if (sceneEvent.phase === 'speak') {
+          // Eight short mouth poses keep the line lively without making the
+          // entire jaw bob. Fractional scene coordinates become real pixels on
+          // the 4x backing canvas, so this can move more finely than the room.
+          const mouthPoses = [0, 0.55, 0.9, 0.45, 0, 0.75, 0.35, 0] as const;
+          const mouthOpen = mouthPoses[Math.floor(elapsed / 95) % mouthPoses.length];
+          if (mouthOpen > 0) {
+            const mouthX = faceX + faceWidth / 2 - 2.2;
+            const mouthY = faceY + faceHeight * 0.69;
+            context.fillStyle = '#220609';
+            context.fillRect(mouthX, mouthY, 4.4, mouthOpen);
+            context.fillStyle = '#b92f36';
+            context.fillRect(mouthX + 0.2, mouthY - 0.2, 4, 0.25);
+            context.fillRect(mouthX + 0.45, mouthY + mouthOpen - 0.05, 3.5, 0.22);
+          }
+        }
+      }
+    }
+    context.globalAlpha = previous;
+  }
 };

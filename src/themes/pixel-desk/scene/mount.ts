@@ -8,7 +8,8 @@ import {
 } from './render';
 import type { Assets, Posture } from './render';
 import type { Outfit } from './outfits';
-import { SkyEventController, type SkyEventMode } from './events';
+import { SceneEventController, type SceneEventMode } from './events';
+import { EVENT_ASSETS } from './sheet-assets';
 import { sourceForScreen } from './screens';
 import { SceneSimulation } from './simulation';
 import { DEFAULT_VALUES, type ToggleValues } from './toggles';
@@ -113,7 +114,7 @@ export type DeskRoomOptions = {
    */
   reducedMotion?: boolean;
   /** Random by default; a named event loops for URL-driven visual inspection. */
-  skyEvent?: SkyEventMode;
+  sceneEvent?: SceneEventMode;
   /**
    * IANA zone the room keeps its hours in — the clock face, the day/night
    * curve, everything the scene derives from time.
@@ -136,7 +137,7 @@ export const createDeskRoom = async (
   const initialScreen = options.values?.screen ?? DEFAULT_VALUES.screen;
   const assets: Assets = await loadAssets(
     basePath,
-    [initialScreen, ...(options.preloadScreens ?? [])],
+    [initialScreen, EVENT_ASSETS.jigsawScreen, ...(options.preloadScreens ?? [])],
     options.outfit,
   );
 
@@ -162,7 +163,72 @@ export const createDeskRoom = async (
 
   const reducedMotion =
     options.reducedMotion ?? window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const skyEvent = new SkyEventController(options.skyEvent);
+  const sceneEvent = new SceneEventController(options.sceneEvent);
+  const jigsawAudio = new Audio(`${basePath}/${EVENT_ASSETS.jigsawAudio}`);
+  const jigsawSelected = sceneEvent.jigsawSelected();
+  jigsawAudio.preload = jigsawSelected ? 'auto' : 'none';
+  jigsawAudio.volume = 0.7;
+  let jigsawAudioPlayed = false;
+  let jigsawAudioAttempted = false;
+  let jigsawAudioRunning = false;
+  let jigsawAudioReady = false;
+  let jigsawEventVisible = false;
+
+  const playJigsawAudio = () => {
+    if (!jigsawAudioReady || jigsawAudioPlayed) return;
+
+    // The visitor gesture started this element silently. Rewinding and
+    // unmuting an already-playing element does not make a second autoplay
+    // request, so the reveal remains synchronized even under strict policies.
+    if (jigsawAudioRunning) {
+      jigsawAudio.loop = false;
+      jigsawAudio.currentTime = 0;
+      jigsawAudio.muted = false;
+      jigsawAudioPlayed = true;
+      return;
+    }
+    if (jigsawAudioAttempted) return;
+
+    jigsawAudioAttempted = true;
+    jigsawAudio.currentTime = 0;
+    void jigsawAudio.play().then(() => {
+      jigsawAudioRunning = true;
+      jigsawAudioPlayed = true;
+    }).catch(() => {
+      // Opening a forced event URL is not a user gesture, so browsers may
+      // reject this first attempt. A pointer press on the scene retries it.
+    });
+  };
+
+  const unlockJigsawAudio = () => {
+    if (!jigsawSelected || reducedMotion) return;
+    sceneEvent.interact(performance.now() - startedAt);
+    if (jigsawAudioPlayed) return;
+
+    // If the reveal is already visible, the gesture starts the real clip.
+    if (jigsawAudioReady) {
+      jigsawAudioAttempted = false;
+      playJigsawAudio();
+      return;
+    }
+    if (jigsawAudioRunning || jigsawAudioAttempted) return;
+
+    // Keep the user-authorized media element running silently until the
+    // reveal. Looping matters because the event delay can exceed this clip.
+    jigsawAudioAttempted = true;
+    jigsawAudio.muted = true;
+    jigsawAudio.loop = true;
+    jigsawAudio.currentTime = 0;
+    void jigsawAudio.play().then(() => {
+      jigsawAudioRunning = true;
+      jigsawAudioAttempted = false;
+      playJigsawAudio();
+    }).catch(() => {
+      jigsawAudio.loop = false;
+      jigsawAudio.muted = false;
+      jigsawAudioAttempted = false;
+    });
+  };
 
   // Four backing pixels per scene pixel keep the room's 192x108 coordinate
   // system intact while giving live canvas content inside the monitor enough
@@ -247,6 +313,27 @@ export const createDeskRoom = async (
     const now = new Date();
     const frame = simulation.step(time, now, values);
     const cameraReady = updateCameraFrame();
+    const activeEvent = sceneEvent.frameAt(time - startedAt, frame.night, reducedMotion);
+
+    const nextJigsawEventVisible = activeEvent?.kind === 'jigsaw';
+    const nextJigsawAudioReady =
+      activeEvent?.kind === 'jigsaw' &&
+      activeEvent.phase === 'speak' &&
+      frame.monitor.phase === 'lit';
+    if (jigsawAudioReady && !nextJigsawAudioReady) {
+      jigsawAudio.pause();
+      jigsawAudio.currentTime = 0;
+      jigsawAudio.loop = false;
+      jigsawAudio.muted = false;
+      jigsawAudioRunning = false;
+    }
+    if (jigsawEventVisible && !nextJigsawEventVisible) {
+      jigsawAudioPlayed = false;
+      jigsawAudioAttempted = false;
+    }
+    jigsawEventVisible = nextJigsawEventVisible;
+    jigsawAudioReady = nextJigsawAudioReady;
+    playJigsawAudio();
 
     drawScene(context, assets, {
       elapsed: reducedMotion ? 0 : time - startedAt,
@@ -270,7 +357,7 @@ export const createDeskRoom = async (
       characterOneShot: frame.characterOneShot,
       feedbackFrame: feedbackReady ? feedbackFrame : undefined,
       cameraFrame: cameraReady ? cameraFrame : undefined,
-      skyEvent: skyEvent.frameAt(time - startedAt, frame.night, reducedMotion),
+      sceneEvent: activeEvent,
     });
 
     // Preserve the completed high-density canvas. The next frame scales this
@@ -330,12 +417,18 @@ export const createDeskRoom = async (
     start() {
       if (handle) return;
       startedAt = performance.now();
+      window.addEventListener('pointerdown', unlockJigsawAudio);
+      window.addEventListener('keydown', unlockJigsawAudio);
       handle = window.requestAnimationFrame(step);
     },
     stop() {
       if (!handle) return;
       window.cancelAnimationFrame(handle);
       handle = 0;
+      window.removeEventListener('pointerdown', unlockJigsawAudio);
+      window.removeEventListener('keydown', unlockJigsawAudio);
+      jigsawAudio.pause();
+      jigsawAudio.currentTime = 0;
     },
   };
 };
