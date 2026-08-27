@@ -49,6 +49,8 @@ export type AsepriteOptions = {
   variants?: Record<string, Record<string, { hide?: string[]; show?: string[] }>>;
   /** Tightly cropped product renders, emitted as `item-<name>.png`. */
   items?: Record<string, Record<string, { layers: readonly string[]; crop: readonly number[] }>>;
+  /** Pre-exported PNG/JSON sheets whose editable source is not Aseprite. */
+  standaloneSheets?: string[];
 };
 
 const binaryFor = (options: AsepriteOptions) =>
@@ -65,6 +67,10 @@ type Items = Record<string, { layers: readonly string[]; crop: readonly number[]
 
 const suffixed = (name: string, suffix: string) => `${name}.${suffix}.png`;
 const itemFile = (name: string) => `item-${name}.png`;
+const standaloneOutputs = (dir: string, name: string) => [
+  path.join(dir, `${name}.png`),
+  path.join(dir, `${name}.json`),
+];
 
 const outputsFor = (dir: string, name: string, layers: string[], variants: Variants, items: Items) => [
   path.join(dir, `${name}.png`),
@@ -185,6 +191,7 @@ export default function aseprite(options: AsepriteOptions): Plugin {
   const layersFor = (name: string) => options.layers?.[name] ?? [];
   const variantsFor = (name: string) => options.variants?.[name] ?? {};
   const itemsFor = (name: string) => options.items?.[name] ?? {};
+  const standaloneSheets = options.standaloneSheets ?? [];
 
   let warnedMissingBinary = false;
   // Rollup's this.warn() is filtered out at Vite's default log level, which
@@ -301,21 +308,29 @@ export default function aseprite(options: AsepriteOptions): Plugin {
 
     // Emit the exports as build assets so dist/ gets art/<name>.<ext>.
     generateBundle() {
-      for (const name of spriteNames(dir)) {
-        for (const file of outputsFor(
+      const asepriteOutputs = spriteNames(dir).flatMap((name) =>
+        outputsFor(
           dir,
           name,
           layersFor(name),
           variantsFor(name),
           itemsFor(name),
-        )) {
-          if (!fs.existsSync(file)) continue;
-          this.emitFile({
-            type: 'asset',
-            fileName: `${base.replace(/^\//, '')}/${path.basename(file)}`,
-            source: fs.readFileSync(file),
-          });
+        ),
+      );
+      const files = [
+        ...asepriteOutputs,
+        ...standaloneSheets.flatMap((name) => standaloneOutputs(dir, name)),
+      ];
+
+      for (const file of new Set(files)) {
+        if (!fs.existsSync(file)) {
+          throw new Error(`aseprite: required build asset is missing: ${file}`);
         }
+        this.emitFile({
+          type: 'asset',
+          fileName: `${base.replace(/^\//, '')}/${path.basename(file)}`,
+          source: fs.readFileSync(file),
+        });
       }
     },
   };

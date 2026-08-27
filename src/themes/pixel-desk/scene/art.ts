@@ -1,21 +1,10 @@
 import { WEATHER_CONDITIONS } from './toggles'
+export { SHEET_ASSETS } from './sheet-assets'
 
 /**
  * The generated-art contract shared by the Node export pipeline and browser
  * loader. This file deliberately imports neither environment.
  */
-
-export const SHEET_ASSETS = {
-  room: 'room',
-  power: 'screen-power',
-  digits: 'digits',
-  switchPlate: 'switch',
-  weather: 'weather',
-  character: 'character',
-  chair: 'chair',
-  headphones: 'headphones',
-  ufo: 'ufo',
-} as const
 
 const DESK_TOP_COMMON = [
   'clock',
