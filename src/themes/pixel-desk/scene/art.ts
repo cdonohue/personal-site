@@ -66,14 +66,27 @@ export const ROOM_ITEM_EXPORTS = {
   headphones: { layers: ['headphones-hanging'], crop: [30, 69, 14, 15] },
   'tidbyt-v2': { layers: ['clock'], crop: [124, 53, 23, 11] },
   microphone: { layers: ['microphone-parked'], crop: [141, 42, 6, 11] },
-  'elgato-wave-mic-arm': { layers: ['boom-arm-parked'], crop: [145, 35, 21, 28] },
+  'elgato-wave-mic-arm': {
+    layers: ['boom-arm-parked'],
+    crop: [145, 35, 21, 28],
+  },
   monitor: { layers: ['screen'], crop: [71, 27, 50, 31] },
   'monitor-arm': { layers: ['arm'], crop: [76, 36, 28, 27] },
   webcam: { layers: ['camera'], crop: [92, 22, 8, 5] },
   'audio-dac': { layers: ['fosi-k7'], crop: [57, 71, 12, 5] },
-  'oeveo-under-mount-139': { layers: ['oeveo-tray-left'], crop: [53, 69, 20, 8] },
+  'oeveo-under-mount-139': {
+    layers: ['oeveo-tray-left'],
+    crop: [53, 69, 20, 8],
+    targets: [
+      [53, 69, 20, 2],
+      [119, 69, 20, 2],
+    ],
+  },
   'caldigit-ts4': { layers: ['caldigit-ts4'], crop: [123, 71, 12, 5] },
-  'keychron-q2-max': { layers: ['keychron-q2-max'], crop: [86, 60, 20, 3] },
+  'keychron-q2-max': {
+    layers: ['keychron-q2-max'],
+    crop: [86, 60, 20, 3],
+  },
   'logitech-mx-master-4': {
     layers: ['logitech-mx-master-4'],
     crop: [109, 60, 5, 3],

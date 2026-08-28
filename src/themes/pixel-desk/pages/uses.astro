@@ -2,11 +2,23 @@
 import Layout from '../layouts/Layout.astro'
 import Link from '../../../components/Link.astro'
 import { usesItems } from '../../../content'
-import { ROOM_ITEM_EXPORTS, usesItemPath } from '../scene/art'
+import {
+  ROOM_ITEM_EXPORTS,
+  roomVariantPath,
+  skyPath,
+  usesItemPath,
+} from '../scene/art'
 
 const sceneUseIds = new Set(Object.keys(ROOM_ITEM_EXPORTS))
 const sceneUses = usesItems.filter((item) => sceneUseIds.has(item.id))
 const additionalUses = usesItems.filter((item) => !sceneUseIds.has(item.id))
+const mapLayers = [
+  `${skyPath('/art', 'clear-day')}.png`,
+  `${roomVariantPath('/art', 'deskLegsInner')}.png`,
+  `${roomVariantPath('/art', 'deskLegsMid')}.png`,
+  `${roomVariantPath('/art', 'deskLegsFixed')}.png`,
+  `${roomVariantPath('/art', 'deskTop')}.png`,
+]
 ---
 
 <Layout title="Uses">
@@ -17,26 +29,63 @@ const additionalUses = usesItems.filter((item) => !sceneUseIds.has(item.id))
     </p>
 
     <h3 data-role="section-label" class="text-muted mb-6">In the scene</h3>
-    <div class="mb-16 grid gap-x-6 gap-y-10 sm:grid-cols-2">
-      {
-        sceneUses.map((item) => (
-          <Link href={item.href} class="uses-item block">
-            <span class="uses-art mb-5 flex h-36 items-center justify-center border border-line p-5">
-              <img
-                src={usesItemPath('/art', item.id)}
-                alt=""
-                class="h-3/4 w-4/5 object-contain"
-                loading="lazy"
-              />
-            </span>
-            <h4 data-role="item-title" class="mb-1">
-              {item.name} <span aria-hidden="true" class="text-muted">↗</span>
-            </h4>
-            <p class="text-muted leading-relaxed">{item.description}</p>
-          </Link>
-        ))
-      }
-    </div>
+    <figure class="uses-map mb-16">
+      <div class="uses-map-scene relative">
+        <div class="uses-map-art absolute inset-0 overflow-hidden border border-line">
+          {mapLayers.map((src) => <img src={src} alt="" class="uses-map-layer" />)}
+        </div>
+        <nav aria-label="Hardware in the pixel desk scene">
+          {
+            sceneUses.flatMap((item) => {
+              const definition = ROOM_ITEM_EXPORTS[item.id as keyof typeof ROOM_ITEM_EXPORTS]
+              const hasMultiplePlacements = 'targets' in definition
+              const targets = hasMultiplePlacements ? definition.targets : [definition.crop]
+              return targets.map(([x, y, width, height], index) => {
+                const placement = targets.length > 1 ? ` ${index === 0 ? 'left' : 'right'}` : ''
+                return (
+                  <details
+                    name="uses-map-item"
+                    class={`uses-map-point ${y + height / 2 > 54 ? 'popover-top' : 'popover-bottom'}`}
+                  >
+                    <summary
+                      class={`uses-map-marker ${hasMultiplePlacements ? 'uses-map-marker-instance' : ''}`}
+                      style={`left: ${(x / 192) * 100}%; top: ${(y / 108) * 100}%; width: ${(width / 192) * 100}%; height: ${(height / 108) * 100}%; z-index: ${10000 - width * height};`}
+                      aria-label={`${item.name}${placement} product details`}
+                    >
+                      <img
+                        src={usesItemPath('/art', item.id)}
+                        alt=""
+                        class="uses-map-item"
+                        aria-hidden="true"
+                      />
+                    </summary>
+                    <div class="uses-map-popover">
+                      <button
+                        type="button"
+                        class="uses-popover-close"
+                        aria-label={`Close ${item.name} details`}
+                        data-close-uses-popover
+                      >
+                        ×
+                      </button>
+                      <p class="uses-popover-label text-muted mb-1">In the scene</p>
+                      <h4 data-role="item-title" class="mb-1">{item.name}</h4>
+                      <p class="text-muted mb-3 text-sm leading-relaxed">{item.description}</p>
+                      <Link href={item.href} class="uses-product-link">
+                        View product <span aria-hidden="true">↗</span>
+                      </Link>
+                    </div>
+                  </details>
+                )
+              })
+            })
+          }
+        </nav>
+      </div>
+      <figcaption class="text-muted mt-3 text-sm leading-relaxed">
+        Click an item in the scene to see what it is.
+      </figcaption>
+    </figure>
 
     <h3 data-role="section-label" class="text-muted mb-6">Also at the desk</h3>
     <div class="border-t border-line pt-6">
@@ -52,23 +101,24 @@ const additionalUses = usesItems.filter((item) => !sceneUseIds.has(item.id))
   </section>
 </Layout>
 
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-close-uses-popover]').forEach((button) => {
+    button.addEventListener('click', () => button.closest('details')?.removeAttribute('open'))
+  })
+</script>
+
 <style>
-  :global(.uses-item) {
-    color: var(--color-ink);
-    text-decoration: none;
+  .uses-map-scene,
+  .uses-map-art {
+    aspect-ratio: 192 / 108;
   }
 
-  :global(.uses-item:hover h4) {
-    color: var(--color-accent);
+  .uses-map-scene {
+    container-type: inline-size;
   }
 
-  :global(.uses-art) {
-    /*
-     * The source sprites use the room's charcoal palette, so this canvas stays
-     * light in both page themes. Letting it follow `--color-sunken` made the
-     * darkest objects disappear in dark mode.
-     */
-    background-color: #a0a0a0;
+  .uses-map-art {
+    background: #a0a0a0;
     clip-path: polygon(
       8px 0,
       calc(100% - 8px) 0,
@@ -85,7 +135,172 @@ const additionalUses = usesItems.filter((item) => !sceneUseIds.has(item.id))
     );
   }
 
-  :global(.uses-art img) {
+  .uses-map-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     image-rendering: pixelated;
+  }
+
+  .uses-map-point {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .uses-map-point[open] {
+    z-index: 20000;
+  }
+
+  .uses-map-marker {
+    --scene-pixel: 0.5208333333cqw;
+
+    position: absolute;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    list-style: none;
+    pointer-events: auto;
+  }
+
+  .uses-map-marker::before {
+    position: absolute;
+    inset: -0.3rem;
+    content: '';
+  }
+
+  .uses-map-marker-instance::before {
+    inset: -0.3rem 0 0;
+  }
+
+  .uses-map-marker-instance::after {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 400%;
+    outline: var(--scene-pixel) solid #ff896b;
+    opacity: 0;
+    pointer-events: none;
+    content: '';
+  }
+
+  .uses-map-item {
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    image-rendering: pixelated;
+  }
+
+  .uses-map-marker::-webkit-details-marker {
+    display: none;
+  }
+
+  .uses-map-marker:focus-visible {
+    outline: none;
+  }
+
+  .uses-map-marker:hover .uses-map-item,
+  .uses-map-marker:focus-visible .uses-map-item,
+  .uses-map-point[open] .uses-map-item {
+    opacity: 1;
+    filter:
+      drop-shadow(var(--scene-pixel) 0 0 #ff896b)
+      drop-shadow(calc(-1 * var(--scene-pixel)) 0 0 #ff896b)
+      drop-shadow(0 var(--scene-pixel) 0 #ff896b)
+      drop-shadow(0 calc(-1 * var(--scene-pixel)) 0 #ff896b);
+  }
+
+  .uses-map-marker-instance:hover,
+  .uses-map-marker-instance:focus-visible,
+  .uses-map-point[open] .uses-map-marker-instance {
+    outline: none;
+  }
+
+  .uses-map-marker-instance:hover::after,
+  .uses-map-marker-instance:focus-visible::after,
+  .uses-map-point[open] .uses-map-marker-instance::after {
+    opacity: 1;
+  }
+
+  .uses-map-marker-instance:hover .uses-map-item,
+  .uses-map-marker-instance:focus-visible .uses-map-item,
+  .uses-map-point[open] .uses-map-marker-instance .uses-map-item {
+    opacity: 0;
+    filter: none;
+  }
+
+  .uses-map-popover {
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    width: min(24rem, calc(100% - 2rem));
+    padding: 1rem 1.125rem;
+    transform: translateX(-50%);
+    border: 2px solid var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    box-shadow: 5px 5px 0 rgb(32 32 32 / 35%);
+    pointer-events: auto;
+  }
+
+  .uses-popover-close {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.55rem;
+    display: grid;
+    width: 1.75rem;
+    height: 1.75rem;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--color-muted);
+    cursor: pointer;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .uses-popover-close:hover,
+  .uses-popover-close:focus-visible {
+    color: var(--color-accent);
+    outline: 2px solid var(--color-accent);
+  }
+
+  .popover-top .uses-map-popover {
+    top: 1rem;
+  }
+
+  .popover-bottom .uses-map-popover {
+    bottom: 1rem;
+  }
+
+  .uses-popover-label {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  :global(.uses-product-link) {
+    color: var(--color-accent);
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    text-decoration: none;
+  }
+
+  :global(.uses-product-link:hover) {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  @media (max-width: 40rem) {
+    .uses-map-popover {
+      width: calc(100% - 1.5rem);
+      padding: 0.75rem 0.875rem;
+      box-shadow: 3px 3px 0 rgb(32 32 32 / 35%);
+    }
   }
 </style>
