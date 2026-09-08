@@ -10,6 +10,7 @@ import type { Assets, Posture } from './render';
 import type { Outfit } from './outfits';
 import { SceneEventController, type SceneEventMode } from './events';
 import { EVENT_ASSETS } from './sheet-assets';
+import { decorForDate, resolveDecor, type SceneDecorMode } from './decor';
 import { sourceForScreen } from './screens';
 import { SceneSimulation } from './simulation';
 import { DEFAULT_VALUES, type ToggleValues } from './toggles';
@@ -115,6 +116,8 @@ export type DeskRoomOptions = {
   reducedMotion?: boolean;
   /** Random by default; a named event loops for URL-driven visual inspection. */
   sceneEvent?: SceneEventMode;
+  /** Automatic by month unless URL-driven previews override one or more slots. */
+  decor?: SceneDecorMode;
   /**
    * IANA zone the room keeps its hours in — the clock face, the day/night
    * curve, everything the scene derives from time.
@@ -293,6 +296,9 @@ export const createDeskRoom = async (
 
   let values: ToggleValues = { ...DEFAULT_VALUES, ...options.values };
   const timeZone = options.timeZone;
+  const decor = options.decor && options.decor !== 'auto'
+    ? resolveDecor(new Date(), options.decor, timeZone)
+    : decorForDate(new Date(), timeZone);
   const simulation = new SceneSimulation({
     values,
     posture: options.posture,
@@ -338,6 +344,7 @@ export const createDeskRoom = async (
     drawScene(context, assets, {
       elapsed: reducedMotion ? 0 : time - startedAt,
       now,
+      decor,
       timeZone,
       screenTag: values.screen,
       reducedMotion,

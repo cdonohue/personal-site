@@ -1,6 +1,13 @@
 import { Sheet, loadImage, loadSheet } from './aseprite';
 import type { Frame } from './aseprite';
 import { Glow } from './glow';
+import {
+  DECOR_ART_LAYERS,
+  DECOR_DEFINITIONS,
+  candleGlowAlphaAt,
+  type DecorEffect,
+  type SceneDecor,
+} from './decor';
 import { WEATHER_CONDITIONS, type ToggleValues, type Weather } from './toggles';
 import { OUTFITS, inkStencil, recolour, type Outfit } from './outfits';
 import type { JigsawFrame, SceneEventFrame, ShootingStarFrame, UfoFrame } from './events';
@@ -15,6 +22,7 @@ import {
   SHEET_ASSETS,
   SKY_VARIANTS,
   artPath,
+  decorLayerPath,
   roomLayerPath,
   roomVariantPath,
   skyPath,
@@ -344,6 +352,8 @@ export type Assets = {
   callDeskTop: HTMLImageElement;
   /** Extended mic alone, used to restore its pixels over live screen content. */
   callMic: HTMLImageElement;
+  /** Authored decor layers, shared by shelf, wall, and future placement slots. */
+  decor: Record<string, HTMLImageElement>;
   /** Character-registered overlay with one authored headset frame per pose. */
   headphones: Sheet;
   /** Standalone sky-event sprite; its frames hover independently of the room. */
@@ -478,7 +488,7 @@ export const loadAssets = async (
   const wanted = [...new Set([FALLBACK_SCREEN_TAG, ...screens])].filter(
     (tag) => sourceForScreen(tag) === 'sheet',
   );
-  const [core, skyEntries, screenEntries, initialLogo] = await Promise.all([
+  const [core, decorEntries, skyEntries, screenEntries, initialLogo] = await Promise.all([
     resolveRecord({
       room: loadSheet(artPath(basePath, SHEET_ASSETS.room)),
       power: loadSheet(artPath(basePath, SHEET_ASSETS.power)),
@@ -501,6 +511,12 @@ export const loadAssets = async (
       deskTop: loadImage(`${roomVariantPath(basePath, 'deskTop')}.png`),
       callDeskTop: loadImage(`${roomVariantPath(basePath, 'callDeskTop')}.png`),
     }),
+    Promise.all(
+      DECOR_ART_LAYERS.map(async (layer) => [
+        layer,
+        await loadImage(`${decorLayerPath(basePath, layer)}.png`),
+      ] as const),
+    ),
     Promise.all(
       SKY_VARIANTS.map(async (sky) => [sky, await loadImage(`${skyPath(basePath, sky)}.png`)] as const),
     ),
@@ -541,6 +557,7 @@ export const loadAssets = async (
     deskTop,
     callDeskTop,
     callMic,
+    decor: Object.fromEntries(decorEntries),
     weather,
     glass: buildGlassMask(skies['clear-day'], skies['clear-night']),
     skies,
@@ -833,6 +850,50 @@ const drawSkyEvent = (
   else drawUfo(context, assets, event);
 };
 
+const drawDecorEffect = (
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  effect: DecorEffect,
+  elapsed: number,
+  reducedMotion: boolean,
+) => {
+  const previousFilter = context.filter;
+  const previousComposite = context.globalCompositeOperation;
+
+  if (effect === 'candle-flicker') {
+    context.filter = `opacity(${candleGlowAlphaAt(elapsed, reducedMotion)})`;
+    context.globalCompositeOperation = 'screen';
+  }
+
+  context.drawImage(image, 0, 0);
+  context.filter = previousFilter;
+  context.globalCompositeOperation = previousComposite;
+};
+
+/** Draw every selected slot from the same manifest that owns its exports. */
+const drawDecor = (
+  context: CanvasRenderingContext2D,
+  assets: Assets,
+  decor: SceneDecor,
+  lighting: 'room' | 'emissive',
+  elapsed: number,
+  reducedMotion: boolean,
+) => {
+  for (const decorId of Object.values(decor)) {
+    if (!decorId) continue;
+    const definition = DECOR_DEFINITIONS[decorId];
+    for (const part of definition.layers) {
+      if (('lighting' in part ? part.lighting : 'room') !== lighting) continue;
+      const image = assets.decor[part.layer];
+      if ('effect' in part && part.effect) {
+        drawDecorEffect(context, image, part.effect, elapsed, reducedMotion);
+      } else {
+        context.drawImage(image, 0, 0);
+      }
+    }
+  }
+};
+
 /**
  * Where the monitor is in its power cycle. Power only.
  *
@@ -860,6 +921,8 @@ export type SceneState = {
   /** Milliseconds into the monitor animation. */
   elapsed: number;
   now: Date;
+  /** One independently resolved decoration per scene placement slot. */
+  decor: SceneDecor;
   /** Zone the room keeps. Omitted, the scene runs on the viewer's own clock. */
   timeZone?: string;
   /**
@@ -1127,6 +1190,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   const {
     elapsed,
     now,
+    decor,
     reducedMotion,
     wash,
     lightsOn,
@@ -1169,6 +1233,7 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
   // in the room, and clipped so it never reaches the mic arm or the desk.
   drawSky(context, assets, weather, elapsed, nightAmount);
   if (sceneEvent && sceneEvent.kind !== 'jigsaw') drawSkyEvent(context, assets, sceneEvent);
+  drawDecor(context, assets, decor, 'room', elapsed, reducedMotion);
 
   /**
    * The desk, on top of the sky so it occludes the window.
@@ -1209,6 +1274,10 @@ export const drawScene = (context: CanvasRenderingContext2D, assets: Assets, sta
     context.drawImage(dark, 0, 0);
     context.globalAlpha = previous;
   }
+
+  // Decorations are independent authored layers. Their manifest controls
+  // back-to-front composition and opt-in effects such as the candle flicker.
+  drawDecor(context, assets, decor, 'emissive', elapsed, reducedMotion);
 
   // Everything below is self-lit and is drawn over the wash, so the monitor and
   // clock keep glowing while the room goes dark. In Aseprite the LIGHTING group

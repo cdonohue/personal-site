@@ -98,6 +98,19 @@ Layers exported separately, because each needs its own opacity at runtime:
 
 Product artwork in the static plate is organized beneath scene-level groups:
 
+- `BOOKSHELF` contains the permanent `bookshelf-frame` and `books` layers,
+  plus full-canvas `candle`, `skull-candle`, `skull-candle-glow`, and `snowman`
+  decor layers for the top display cubby. The permanent layers are included in
+  every room/weather variant. Decor layers are explicitly excluded, exported
+  independently, and selected by the runtime, so their visibility in the
+  working Aseprite file cannot accidentally make them permanent.
+- `scene/decor.ts` is the decor manifest. It assigns each decor item to a slot
+  (`shelf` or `wall`), lists its authored layers in back-to-front order, and
+  owns defaults, seasonal substitutions, URL validation, and optional effects.
+  The exporter, asset loader, renderer, and `/uses` map derive from that one
+  manifest. Add future wall art there rather than creating a second rendering
+  path. `?decor=<id>` remains the shelf preview shorthand; the composable form
+  is `?decor-shelf=<id>&decor-wall=<id>`.
 - `surface` contains two complete Oeveo tray layers, separate Fosi K7 and
   CalDigit TS4 device layers, and the desk controller. Tray backing pixels stay
   with the trays, including the pixels hidden behind each mounted device.
