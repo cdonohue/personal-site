@@ -3,6 +3,7 @@ import type { Rect } from '../scene/aseprite'
 import { ROOM_ITEM_EXPORTS } from '../scene/art'
 import { createDeskRoom, type DeskRoom } from '../scene/mount'
 import { sceneEventFromSearch } from '../scene/events'
+import { decorFromSearch } from '../scene/decor'
 import {
   SCREEN_DEFINITIONS,
   SCREENSAVER_TAGS,
@@ -180,6 +181,7 @@ export default function DeskScene() {
    */
   const [activity] = useState<Activity>(() => roll(new Date(), timeZone))
   const [forcedSceneEvent] = useState(() => sceneEventFromSearch(window.location.search))
+  const [forcedDecor] = useState(() => decorFromSearch(window.location.search))
   /**
    * Starts at the visit's random choice. In an empty room the monitor becomes
    * a picker from there, advancing through the canonical screensaver order.
@@ -321,6 +323,7 @@ export default function DeskScene() {
       posture: activity.posture,
       outfit: activity.outfit,
       sceneEvent: forcedSceneEvent ?? 'random',
+      decor: forcedDecor ?? 'auto',
       // Cycling should be instant. Only empty-room visits pay to load the set.
       preloadScreens: activity.presence === 'away' ? SCREENSAVER_TAGS : [],
     })

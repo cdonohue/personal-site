@@ -1,4 +1,5 @@
 import { WEATHER_CONDITIONS } from './toggles'
+import { DECOR_ART_LAYERS } from './decor'
 export { EVENT_ASSETS, SHEET_ASSETS } from './sheet-assets'
 
 /**
@@ -103,11 +104,18 @@ const deskExports = Object.fromEntries(
 const skyExports = Object.fromEntries(
   SKY_VARIANTS.map((sky) => [
     sky,
-    { hide: [...SKY_VARIANTS.filter((other) => other !== sky), ...DESK_LAYERS], show: [sky] },
+    {
+      hide: [
+        ...SKY_VARIANTS.filter((other) => other !== sky),
+        ...DESK_LAYERS,
+        ...DECOR_ART_LAYERS,
+      ],
+      show: [sky],
+    },
   ]),
 )
 
-export const ROOM_EXPORT_LAYERS = Object.values(ROOM_LAYER_EXPORTS)
+export const ROOM_EXPORT_LAYERS = [...Object.values(ROOM_LAYER_EXPORTS), ...DECOR_ART_LAYERS]
 export const ROOM_EXPORT_VARIANTS = { ...skyExports, ...deskExports }
 
 export const artPath = (basePath: string, name: string) => `${basePath}/${name}`
@@ -117,6 +125,9 @@ export const usesItemPath = (basePath: string, item: string) =>
 
 export const roomLayerPath = (basePath: string, layer: keyof typeof ROOM_LAYER_EXPORTS) =>
   artPath(basePath, `room.${ROOM_LAYER_EXPORTS[layer]}`)
+
+export const decorLayerPath = (basePath: string, layer: string) =>
+  artPath(basePath, `room.${layer}`)
 
 export const roomVariantPath = (basePath: string, variant: keyof typeof ROOM_VARIANT_EXPORTS) =>
   artPath(basePath, `room.${ROOM_VARIANT_EXPORTS[variant]}`)

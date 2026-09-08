@@ -4,10 +4,12 @@ import Link from '../../../components/Link.astro'
 import { usesItems } from '../../../content'
 import {
   ROOM_ITEM_EXPORTS,
+  decorLayerPath,
   roomVariantPath,
   skyPath,
   usesItemPath,
 } from '../scene/art'
+import { DECOR_DEFINITIONS } from '../scene/decor'
 
 const sceneUseIds = new Set(Object.keys(ROOM_ITEM_EXPORTS))
 const sceneUses = usesItems.filter((item) => sceneUseIds.has(item.id))
@@ -19,6 +21,12 @@ const mapLayers = [
   `${roomVariantPath('/art', 'deskLegsFixed')}.png`,
   `${roomVariantPath('/art', 'deskTop')}.png`,
 ]
+const decorLayers = Object.entries(DECOR_DEFINITIONS).flatMap(([decor, definition]) =>
+  definition.layers.map(({ layer }) => ({
+    decor,
+    src: `${decorLayerPath('/art', layer)}.png`,
+  })),
+)
 ---
 
 <Layout title="Uses">
@@ -33,6 +41,16 @@ const mapLayers = [
       <div class="uses-map-scene relative">
         <div class="uses-map-art absolute inset-0 overflow-hidden border border-line">
           {mapLayers.map((src) => <img src={src} alt="" class="uses-map-layer" />)}
+          {decorLayers.map(({ decor, src }) => (
+            <img
+              src={src}
+              alt=""
+              class="uses-map-layer"
+              data-uses-decor={decor}
+              aria-hidden="true"
+              hidden
+            />
+          ))}
         </div>
         <nav aria-label="Hardware in the pixel desk scene">
           {
@@ -102,6 +120,17 @@ const mapLayers = [
 </Layout>
 
 <script>
+  import { decorFromSearch, resolveDecor } from '../scene/decor'
+
+  const decor = resolveDecor(new Date(), decorFromSearch(window.location.search))
+  const visibleDecor = new Set<string>()
+  Object.values(decor).forEach((item) => {
+    if (item) visibleDecor.add(item)
+  })
+  document.querySelectorAll<HTMLElement>('[data-uses-decor]').forEach((layer) => {
+    layer.hidden = !visibleDecor.has(layer.dataset.usesDecor ?? '')
+  })
+
   document.querySelectorAll<HTMLButtonElement>('[data-close-uses-popover]').forEach((button) => {
     button.addEventListener('click', () => button.closest('details')?.removeAttribute('open'))
   })
