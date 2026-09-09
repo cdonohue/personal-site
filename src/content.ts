@@ -12,7 +12,6 @@ export type Job = {
   company: string
   /** Optional: an entry without one renders the company as plain text. */
   url?: string
-  date: string
   description: string
 }
 
@@ -52,48 +51,43 @@ export const jobs: Job[] = [
     title: 'Senior Software Engineer',
     company: 'Ramp',
     url: 'https://ramp.com',
-    date: 'April 2026 - Present',
     description:
-      'Tooling for managing vendors and spend, and the agentic experiences built on top of it.',
+      'Vendor management and spend products, including agentic workflows that make complex financial operations easier to understand and act on.',
   },
   {
     title: 'Staff Software Engineer',
     company: 'Droplet',
     url: 'https://droplet.io',
-    date: 'March 2024 - April 2026',
     description:
-      'Document workflow and PDF annotation tools for K-12 schools, and the design system underneath them.',
+      'Document workflows and PDF annotation tools for K–12 schools, supported by a design system that kept the product coherent as it grew.',
   },
   {
     title: 'Staff Software Engineer',
     company: 'Sleep Doctor',
     url: 'https://sleepdoctor.com',
-    date: 'April 2023 - March 2024',
-    description: 'Customer data platform and product recommendation engine serving 6M+ users.',
+    description:
+      'A customer data platform and product recommendation engine powering personalized experiences for more than six million users.',
   },
   {
-    title: 'Senior Software Engineer / Tech Lead',
+    title: 'Senior Software Engineer',
     company: 'Webflow',
     url: 'https://webflow.com',
-    date: 'November 2019 - April 2023',
     description:
-      'Authentication and content scoping enabling visual designers to build membership sites.',
+      'Authentication and content-access systems that let visual designers create and run membership sites without writing code.',
   },
   {
     title: 'Senior Software Engineer',
     company: 'Red Ventures',
     url: 'https://www.redventures.com',
-    date: 'November 2015 - November 2019',
     description:
-      'Embeddable widget platform with dynamic theming, running across hundreds of domains.',
+      'An embeddable, dynamically themed widget platform deployed across hundreds of domains.',
   },
   {
     title: 'Software Engineer',
     company: 'Apex Capital',
     url: 'https://www.apexcapitalcorp.com',
-    date: 'October 2008 - October 2015',
     description:
-      'Load board marketplace and credit check systems, and the design standards behind them.',
+      'A load-board marketplace, credit-checking systems, and the design standards connecting a growing suite of products.',
   },
 ]
 
@@ -102,103 +96,103 @@ export const usesItems: UseItem[] = [
   {
     id: 'standing-desk-frame',
     name: 'Autonomous Desk DIY',
-    description: 'The adjustable frame underneath the KARLBY desktop.',
+    description: 'The height-adjustable frame that turns the KARLBY countertop into a standing desk.',
     href: 'https://www.autonomous.ai/standing-desks/autonomous-desk-diy',
   },
   {
     id: 'desktop-surface',
     name: 'IKEA KARLBY',
-    description: 'A 74-inch walnut countertop used as the desktop surface.',
+    description: 'A 74-inch walnut countertop repurposed as a wide, warm desktop.',
     href: 'https://www.ikea.com/us/en/p/karlby-countertop-walnut-veneer-50335208/',
   },
   {
     id: 'macbook-pro',
     name: 'MacBook Pro',
-    description: 'The computer at the center of the setup.',
+    description: 'The computer driving the setup, docked vertically beside the desk.',
     href: 'https://www.apple.com/macbook-pro/',
   },
   {
     id: 'kuzy-laptop-vertical-stand',
     name: 'Kuzy Laptop Vertical Stand',
-    description: 'The stand holding the closed MacBook upright.',
+    description: 'Keeps the closed MacBook upright and out of the way while it is docked.',
     href: 'https://amzn.to/3SAslBc',
   },
   {
     id: 'monitor',
     name: 'Gigabyte M32U',
-    description: 'The main display.',
+    description: 'The single large display at the center of the workspace.',
     href: 'https://www.gigabyte.com/Monitor/M32U',
   },
   {
     id: 'monitor-arm',
     name: 'Ergotron LX',
-    description: 'The monitor arm that keeps the desktop clear.',
+    description: 'Suspends the display and leaves the desk beneath it usable.',
     href: 'https://amzn.to/4cVWUbt',
   },
   {
     id: 'webcam',
     name: 'Opal C1',
-    description: 'The camera perched above the display.',
+    description: 'A compact webcam perched above the display for calls.',
     href: 'https://op.al/',
   },
   {
     id: 'keychron-q2-max',
     name: 'Keychron Q2 Max',
-    description: 'The compact mechanical keyboard shown on the desk.',
+    description: 'The compact mechanical keyboard shown in the desk scene.',
     href: 'https://amzn.to/4xl8sgD',
   },
   {
     id: 'logitech-mx-master-4',
     name: 'Logitech MX Master 4',
-    description: 'The everyday mouse beside the keyboard.',
+    description: 'The everyday mouse beside the keyboard, with extra controls close at hand.',
     href: 'https://amzn.to/4xfW1Tm',
   },
   {
     id: 'microphone',
     name: 'Shure MV7',
-    description: 'The microphone that swings in for calls.',
+    description: 'A dynamic microphone that swings into place for calls and recording.',
     href: 'https://amzn.to/4y2S2cU',
   },
   {
     id: 'elgato-wave-mic-arm',
     name: 'Elgato Wave Mic Arm',
-    description: 'The articulated arm supporting the microphone.',
+    description: 'Brings the microphone into position for calls, then folds back out of the way.',
     href: 'https://amzn.to/4qAaTtr',
   },
   {
     id: 'headphones',
     name: 'beyerdynamic DT 900 PRO X',
-    description: 'Open-back headphones for work and calls.',
+    description: 'Open-back headphones for focused work, music, and calls.',
     href: 'https://amzn.to/4hV2Uow',
   },
   {
     id: 'audio-dac',
     name: 'Fosi Audio K7',
-    description: 'The DAC and headphone amplifier mounted under the left side.',
+    description: 'The under-desk DAC and amplifier that drives the headphones.',
     href: 'https://amzn.to/4qGc3DF',
   },
   {
     id: 'oeveo-under-mount-139',
     name: 'Oeveo Under Mount 139',
-    description: 'Used twice beneath the desk, mounting the Fosi K7 and CalDigit TS4.',
+    description: 'A pair of low-profile mounts: one for the Fosi K7 and one for the CalDigit TS4.',
     href: 'https://amzn.to/4gsmp5f',
   },
   {
     id: 'caldigit-ts4',
     name: 'CalDigit TS4',
-    description: 'The Thunderbolt dock mounted under the right side.',
+    description: 'The under-desk Thunderbolt dock connecting the MacBook to the rest of the setup.',
     href: 'https://amzn.to/4gsmAgV',
   },
   {
     id: 'tidbyt-v2',
     name: 'Tidbyt Gen 2',
-    description: 'The small pixel display keeping time on the desk.',
+    description: 'A small pixel display for time, weather, and ambient information.',
     href: 'https://tidbyt.com/products/tidbyt-gen-2',
   },
   {
     id: 'zsa-voyager',
     name: 'ZSA Voyager',
-    description: 'The split keyboard also in rotation.',
+    description: 'A low-profile split keyboard that trades the Q2 Max’s compact slab for two ergonomic halves.',
     href: 'https://www.zsa.io/voyager',
   },
 ]

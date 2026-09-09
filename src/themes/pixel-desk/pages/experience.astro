@@ -4,7 +4,10 @@ import Link from '../../../components/Link.astro'
 import { jobs } from '../../../content'
 ---
 
-<Layout title="Experience">
+<Layout
+  title="Experience"
+  description="Chad Donohue’s experience building product infrastructure, design systems, and customer-facing software."
+>
   <section class="mb-16">
     {/*
       This page used to go straight from the site name to job titles with
@@ -12,14 +15,14 @@ import { jobs } from '../../../content'
       Visually quiet, structurally the thing that makes the headings below a
       subsection rather than a second run of top-level ones.
     */}
-    <h2 data-role="section-label" class="text-muted mb-8">Experience</h2>
+    <h2 data-role="section-label" class="text-muted mb-4">Experience</h2>
+    <p class="text-muted mb-10 max-w-2xl leading-relaxed">
+      I build software across fintech, education, healthcare, and web design. The common thread is
+      foundational product work: the systems that make the next feature easier to build and the
+      whole product easier to understand.
+    </p>
 
     {/*
-      Company and date share one muted line under the title. The date used to be
-      pushed to the far right of the title's row, which left a lane of dead space
-      across every entry and split two facts that belong together. The company
-      then sat alone on the next line as a fragment.
-
       The company is a detail of the role rather than a heading under it: as an
       h4 it implied the description belonged to the company.
     */}
@@ -35,7 +38,7 @@ import { jobs } from '../../../content'
                 ) : (
                   job.company
                 )
-              } · {job.date}
+              }
             </p>
             <p class="pt-2 leading-relaxed">{job.description}</p>
           </article>
