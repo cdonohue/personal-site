@@ -44,7 +44,7 @@ test('decor art exports are derived and deduplicated from the registry', () => {
   ]);
 });
 
-test('the authored candle glow flickers irregularly within its filter range', () => {
+test('the authored candle glow flickers irregularly within its draw-alpha range', () => {
   assert.equal(candleGlowAlphaAt(0), 0.82);
   assert.equal(candleGlowAlphaAt(180), 0.58);
   assert.equal(candleGlowAlphaAt(250), 0.96);

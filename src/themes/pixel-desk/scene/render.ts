@@ -857,16 +857,19 @@ const drawDecorEffect = (
   elapsed: number,
   reducedMotion: boolean,
 ) => {
-  const previousFilter = context.filter;
+  const previousAlpha = context.globalAlpha;
   const previousComposite = context.globalCompositeOperation;
 
   if (effect === 'candle-flicker') {
-    context.filter = `opacity(${candleGlowAlphaAt(elapsed, reducedMotion)})`;
+    // Canvas filter opacity is not consistently implemented on iOS Safari.
+    // Multiplying globalAlpha produces the same result without relying on the
+    // optional Canvas Filters API.
+    context.globalAlpha = previousAlpha * candleGlowAlphaAt(elapsed, reducedMotion);
     context.globalCompositeOperation = 'screen';
   }
 
   context.drawImage(image, 0, 0);
-  context.filter = previousFilter;
+  context.globalAlpha = previousAlpha;
   context.globalCompositeOperation = previousComposite;
 };
 
