@@ -143,7 +143,7 @@ const CANDLE_FLICKER_DURATION = CANDLE_FLICKER.reduce(
 
 /**
  * Flickers the authored 20%-alpha glow at irregular intervals between 50% and
- * 100% filter strength, producing a final visible opacity between 10% and 20%.
+ * 100% draw alpha, producing a final visible opacity between 10% and 20%.
  */
 export const candleGlowAlphaAt = (elapsed: number, reducedMotion = false): number => {
   if (reducedMotion) return 0.75;

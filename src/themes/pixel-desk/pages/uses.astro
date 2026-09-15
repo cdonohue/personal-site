@@ -29,11 +29,15 @@ const decorLayers = Object.entries(DECOR_DEFINITIONS).flatMap(([decor, definitio
 )
 ---
 
-<Layout title="Uses">
+<Layout
+  title="Uses"
+  description="The hardware in Chad Donohue’s workspace, mapped to the interactive pixel desk scene."
+>
   <section class="mb-16">
     <h2 data-role="page-title" class="mb-4">Uses</h2>
     <p class="text-muted mb-12 max-w-2xl leading-relaxed">
-      The hardware in my workspace, beginning with the things drawn into the pixel desk scene.
+      This is the hardware behind both the pixel room and the workspace it represents. Click an
+      object in the scene to see what it is; the few things that stay off-screen are listed below.
     </p>
 
     <h3 data-role="section-label" class="text-muted mb-6">In the scene</h3>
@@ -101,11 +105,11 @@ const decorLayers = Object.entries(DECOR_DEFINITIONS).flatMap(([decor, definitio
         </nav>
       </div>
       <figcaption class="text-muted mt-3 text-sm leading-relaxed">
-        Click an item in the scene to see what it is.
+        Click a piece of hardware to see what it is and where to find it.
       </figcaption>
     </figure>
 
-    <h3 data-role="section-label" class="text-muted mb-6">Also at the desk</h3>
+    <h3 data-role="section-label" class="text-muted mb-6">Also in rotation</h3>
     <div class="border-t border-line pt-6">
       {additionalUses.map((item) => (
         <Link href={item.href} class="group block">
