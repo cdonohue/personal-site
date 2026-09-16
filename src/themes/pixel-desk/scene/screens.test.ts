@@ -4,10 +4,18 @@ import { pickPlayScreen, ROOM_VIEW_PLAY_CHANCE } from '../activity.ts'
 import {
   PLAY_TAGS,
   SCREEN_TAGS,
+  SCREENSAVER_TAGS,
   WORK_TAGS,
   canUseVisitorCamera,
+  isScreensaver,
   sourceForScreen,
 } from './screens.ts'
+
+test('the aerial collection participates in the screensaver rotation', () => {
+  assert.deepEqual(SCREENSAVER_TAGS.slice(-3), ['earth', 'desert', 'underwater'])
+  assert.equal(isScreensaver('earth'), true)
+  assert.equal(isScreensaver('ai-work'), false)
+})
 
 test('the recursive room screen participates in the random play rotation', () => {
   assert.ok(PLAY_TAGS.includes('room-view'))

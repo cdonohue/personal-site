@@ -8,6 +8,7 @@ import {
   SCREEN_DEFINITIONS,
   SCREENSAVER_TAGS,
   canUseVisitorCamera,
+  isScreensaver,
   sourceForScreen,
 } from '../scene/screens'
 import { roll, type Activity } from '../activity'
@@ -182,11 +183,16 @@ export default function DeskScene() {
   const [activity] = useState<Activity>(() => roll(new Date(), timeZone))
   const [forcedSceneEvent] = useState(() => sceneEventFromSearch(window.location.search))
   const [forcedDecor] = useState(() => decorFromSearch(window.location.search))
+  const [forcedScreen] = useState(screenFromUrl)
   /**
    * Starts at the visit's random choice. In an empty room the monitor becomes
    * a picker from there, advancing through the canonical screensaver order.
    */
-  const [screen, setScreen] = useState(() => screenFromUrl() ?? activity.screen)
+  const [screen, setScreen] = useState(() => forcedScreen ?? activity.screen)
+  // A screensaver preview is a preview of the whole idle state, not only the
+  // pixels on the monitor. Otherwise a work-hours visit seats the character in
+  // front of a screen that is supposed to mean nobody is there.
+  const presence = forcedScreen && isScreensaver(forcedScreen) ? 'away' : activity.presence
   const [cableUnplugged, setCableUnplugged] = useState(false)
   const [cameraActive, setCameraActive] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
@@ -196,7 +202,7 @@ export default function DeskScene() {
   const cameraRequestIdRef = useRef(0)
   const previousScreenRef = useRef(screen)
   const webcamAvailable = canUseVisitorCamera({
-    presence: activity.presence,
+    presence,
     screen,
     powered: !cableUnplugged,
   })
@@ -299,7 +305,7 @@ export default function DeskScene() {
       // `present` and not `typing`: there is no typing pose yet, and a missing
       // tag falls back to playing the whole sheet — which would cycle the empty
       // chair and flicker the person in and out.
-      presence: activity.presence,
+      presence,
       // Power. The roll supplies the first screen; an empty-room visitor may
       // advance it from there by clicking the monitor.
       monitor: 'on',
@@ -308,7 +314,7 @@ export default function DeskScene() {
       roomLight: dark ? 'off' : 'on',
       clock,
     }
-  }, [activity, sky, dark, clock, screen, forcedSceneEvent])
+  }, [presence, sky, dark, clock, screen, forcedSceneEvent])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -325,7 +331,7 @@ export default function DeskScene() {
       sceneEvent: forcedSceneEvent ?? 'random',
       decor: forcedDecor ?? 'auto',
       // Cycling should be instant. Only empty-room visits pay to load the set.
-      preloadScreens: activity.presence === 'away' ? SCREENSAVER_TAGS : [],
+      preloadScreens: presence === 'away' ? SCREENSAVER_TAGS : [],
     })
       .then((created) => {
         if (cancelled) return
@@ -401,7 +407,7 @@ export default function DeskScene() {
 
   const screensaverIndex = SCREENSAVER_TAGS.findIndex((tag) => tag === screen)
   const screensaverRunning =
-    activity.presence === 'away' && screensaverIndex >= 0 && !cableUnplugged
+    presence === 'away' && screensaverIndex >= 0 && !cableUnplugged
 
   const advanceScreensaver = useCallback(() => {
     setScreen((current) => {

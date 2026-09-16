@@ -60,6 +60,9 @@ export const SCREEN_DEFINITIONS = [
   { name: 'radar', kind: 'screensaver' },
   { name: 'comet', kind: 'screensaver' },
   { name: 'hypno', kind: 'screensaver' },
+  { name: 'earth', kind: 'screensaver' },
+  { name: 'desert', kind: 'screensaver' },
+  { name: 'underwater', kind: 'screensaver' },
 ] as const satisfies readonly ScreenDefinition[]
 
 const namesFor = (kind: ScreenKind) =>
@@ -71,6 +74,9 @@ export const SCREENSAVER_TAGS = namesFor('screensaver')
 export const INTERACTIVE_TAGS = namesFor('interactive')
 export const SCREEN_TAGS = [...WORK_TAGS, ...PLAY_TAGS, ...INTERACTIVE_TAGS]
 export const FALLBACK_SCREEN_TAG = WORK_TAGS[0]
+
+export const isScreensaver = (name: string): boolean =>
+  SCREENSAVER_TAGS.some((screensaver) => screensaver === name)
 
 const definitions = new Map<string, ScreenDefinition>(
   SCREEN_DEFINITIONS.map((screen) => [screen.name, screen]),
