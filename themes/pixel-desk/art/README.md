@@ -192,6 +192,9 @@ runtime plays it end to end.
 | `screen-radar` | 48 | 3600 | screensaver |
 | `screen-comet` | 48 | 3600 | screensaver |
 | `screen-hypno` | 100 | 7500 | screensaver |
+| `screen-earth` | 96 | 9600 | screensaver |
+| `screen-desert` | 96 | 9600 | screensaver |
+| `screen-underwater` | 59 | 9600 | screensaver |
 | `screen-power` | 13 | 585 | transitions, tagged `power-on` / `power-off` |
 
 These were one 269-frame sheet until the width forced the issue. An Aseprite
@@ -214,11 +217,19 @@ the last frame of `power-off` is the exact colour of the dark plate in
 `room.png`, and `power-on` is that read backwards.
 
 **Each file carries only the layers it draws with.** `screen-ai-work` has `bg`,
-`chat` and `browser`; the rest are one flat `bg`. Carving them out of the
+`chat` and `browser`; the rest use one flat background layer. Carving them out of the
 combined sheet took every layer along, so each screensaver arrived holding two
 empty ones — which export identically, are invisible in the PNG, and are
 therefore a standing invitation to paint into the wrong layer. A new screen
 wants whatever it needs and nothing else.
+
+The three aerial screensavers translate the slow visual grammar of Apple TV's
+Earth, Landscape and Underwater categories into original 46×26 scenes. They
+are not reduced copies of Apple's footage. Each runs for 9.6 seconds: a
+rotating Earth limb, laterally drifting desert dunes, and rising jellyfish.
+Repeated source frames are intentionally folded
+into longer frame durations by the GIF-to-Aseprite import, which keeps the
+movement slow without asking the runtime to draw redundant frames.
 
 **Adding a sheet-backed screen is a file here and one entry in one list.**
 `screens.ts` holds the three rotations, and no fourth place names a screen:
