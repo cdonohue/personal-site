@@ -259,9 +259,10 @@ const decorLayers = Object.entries(DECOR_DEFINITIONS).flatMap(([decor, definitio
     filter: none;
   }
 
+  /* Above every marker, including the item it describes. */
   .uses-map-popover {
     position: absolute;
-    z-index: 2;
+    z-index: 10001;
     left: 50%;
     width: min(24rem, calc(100% - 2rem));
     padding: 1rem 1.125rem;
@@ -323,10 +324,19 @@ const decorLayers = Object.entries(DECOR_DEFINITIONS).flatMap(([decor, definitio
     text-underline-offset: 0.2em;
   }
 
+  /* At phone width an in-scene card hides the whole room, so it hangs below the scene instead. */
   @media (max-width: 40rem) {
+    .popover-top .uses-map-popover,
+    .popover-bottom .uses-map-popover {
+      top: calc(100% + 0.5rem);
+      bottom: auto;
+    }
+
     .uses-map-popover {
-      width: calc(100% - 1.5rem);
+      left: 0;
+      width: 100%;
       padding: 0.75rem 0.875rem;
+      transform: none;
       box-shadow: 3px 3px 0 rgb(32 32 32 / 35%);
     }
   }
