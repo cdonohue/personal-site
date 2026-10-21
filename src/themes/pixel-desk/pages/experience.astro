@@ -22,24 +22,13 @@ import { jobs } from '../../../content'
       other teams and features depend on.
     </p>
 
-    {/*
-      The company is a detail of the role rather than a heading under it: as an
-      h4 it implied the description belonged to the company.
-    */}
     <div class="space-y-10">
       {
         jobs.map((job) => (
           <article class="space-y-1">
-            <h3 data-role="item-title">{job.title}</h3>
-            <p data-role="item-meta" class="text-muted">
-              {
-                job.url ? (
-                  <Link href={job.url}>{job.company}</Link>
-                ) : (
-                  job.company
-                )
-              }
-            </p>
+            <h3 data-role="item-title">
+              {job.url ? <Link href={job.url}>{job.company}</Link> : job.company}
+            </h3>
             <p class="pt-2 leading-relaxed">{job.description}</p>
           </article>
         ))

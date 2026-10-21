@@ -15,9 +15,12 @@ export type Job = {
   description: string
 }
 
+export const useCategories = ['Computer & display', 'Input', 'Audio & video', 'Desk'] as const
+
 export type UseItem = {
   id: string
   name: string
+  category: (typeof useCategories)[number]
   description: string
   href: string
 }
@@ -91,107 +94,124 @@ export const jobs: Job[] = [
   },
 ]
 
-/** Physical hardware in the workspace. Themes decide how to group and present it. */
+/** Physical hardware in the workspace, listed on the uses page by category. */
 export const usesItems: UseItem[] = [
   {
     id: 'standing-desk-frame',
     name: 'Autonomous Desk DIY',
+    category: 'Desk',
     description: 'The height-adjustable frame that turns the KARLBY countertop into a standing desk.',
     href: 'https://www.autonomous.ai/standing-desks/autonomous-desk-diy',
   },
   {
     id: 'desktop-surface',
     name: 'IKEA KARLBY',
+    category: 'Desk',
     description: 'A 74-inch walnut countertop repurposed as a wide, warm desktop.',
     href: 'https://www.ikea.com/us/en/p/karlby-countertop-walnut-veneer-50335208/',
   },
   {
     id: 'macbook-pro',
     name: 'MacBook Pro',
+    category: 'Computer & display',
     description: 'The computer driving the setup, docked vertically beside the desk.',
     href: 'https://www.apple.com/macbook-pro/',
   },
   {
     id: 'kuzy-laptop-vertical-stand',
     name: 'Kuzy Laptop Vertical Stand',
+    category: 'Desk',
     description: 'Keeps the closed MacBook upright and out of the way while it is docked.',
     href: 'https://amzn.to/3SAslBc',
   },
   {
     id: 'monitor',
     name: 'Gigabyte M32U',
+    category: 'Computer & display',
     description: 'The single large display at the center of the workspace.',
     href: 'https://www.gigabyte.com/Monitor/M32U',
   },
   {
     id: 'monitor-arm',
     name: 'Ergotron LX',
+    category: 'Desk',
     description: 'Suspends the display and leaves the desk beneath it usable.',
     href: 'https://amzn.to/4cVWUbt',
   },
   {
     id: 'webcam',
     name: 'Opal C1',
+    category: 'Audio & video',
     description: 'A compact webcam perched above the display for calls.',
     href: 'https://op.al/',
   },
   {
     id: 'keychron-q2-max',
     name: 'Keychron Q2 Max',
-    description: 'The compact mechanical keyboard shown in the desk scene.',
+    category: 'Input',
+    description: 'A compact mechanical keyboard with a solid aluminum case.',
     href: 'https://amzn.to/4xl8sgD',
   },
   {
     id: 'logitech-mx-master-4',
     name: 'Logitech MX Master 4',
+    category: 'Input',
     description: 'The everyday mouse beside the keyboard, with extra controls close at hand.',
     href: 'https://amzn.to/4xfW1Tm',
   },
   {
     id: 'microphone',
     name: 'Shure MV7',
+    category: 'Audio & video',
     description: 'A dynamic microphone that swings into place for calls and recording.',
     href: 'https://amzn.to/4y2S2cU',
   },
   {
     id: 'elgato-wave-mic-arm',
     name: 'Elgato Wave Mic Arm',
+    category: 'Desk',
     description: 'Brings the microphone into position for calls, then folds back out of the way.',
     href: 'https://amzn.to/4qAaTtr',
   },
   {
     id: 'headphones',
     name: 'beyerdynamic DT 900 PRO X',
+    category: 'Audio & video',
     description: 'Open-back headphones for focused work, music, and calls.',
     href: 'https://amzn.to/4hV2Uow',
   },
   {
     id: 'audio-dac',
     name: 'Fosi Audio K7',
+    category: 'Audio & video',
     description: 'The under-desk DAC and amplifier that drives the headphones.',
     href: 'https://amzn.to/4qGc3DF',
   },
   {
     id: 'oeveo-under-mount-139',
     name: 'Oeveo Under Mount 139',
+    category: 'Desk',
     description: 'A pair of low-profile mounts: one for the Fosi K7 and one for the CalDigit TS4.',
     href: 'https://amzn.to/4gsmp5f',
   },
   {
     id: 'caldigit-ts4',
     name: 'CalDigit TS4',
+    category: 'Computer & display',
     description: 'The under-desk Thunderbolt dock connecting the MacBook to the rest of the setup.',
     href: 'https://amzn.to/4gsmAgV',
   },
   {
     id: 'tidbyt-v2',
     name: 'Tidbyt Gen 2',
+    category: 'Desk',
     description: 'A small pixel display for time, weather, and ambient information.',
     href: 'https://tidbyt.com/products/tidbyt-gen-2',
   },
   {
     id: 'zsa-voyager',
     name: 'ZSA Voyager',
+    category: 'Input',
     description: 'A low-profile split keyboard that trades the Q2 Max’s compact slab for two ergonomic halves.',
     href: 'https://www.zsa.io/voyager',
   },
