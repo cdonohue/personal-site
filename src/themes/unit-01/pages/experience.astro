@@ -1,0 +1,52 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Link from '../../../components/Link.astro'
+import { jobs } from '../../../content'
+
+const pad = (n: number) => String(n).padStart(2, '0')
+---
+
+<Layout
+  title="Experience"
+  description="Chad Donohue’s experience building product infrastructure, design systems, and customer-facing software."
+>
+  <section>
+    <h2 class="page-title">Experience</h2>
+    <p class="page-lead">
+      My work spans fintech, education, healthcare, and web design, with a focus on the foundations
+      beneath the product. I shape design systems, frontend architecture, and core workflows that
+      other teams and features depend on.
+    </p>
+  </section>
+
+  {/*
+    One rule-topped panel per role, numbered in reading order. The role is the
+    panel's label; the company is the heading, because it is what a reader
+    scans for.
+  */}
+  <div class="panel-grid">
+    {
+      jobs.map((job, index) => (
+        <article class="u-panel">
+          <header class="u-panel__head">
+            <span class="u-label">
+              <b>{pad(index + 1)}</b> {job.title}
+            </span>
+          </header>
+          <div class="u-panel__body">
+            <h3 class="item-title">
+              {job.url ? (
+                <Link href={job.url} class="text-link">
+                  {job.company}
+                </Link>
+              ) : (
+                job.company
+              )}
+            </h3>
+            <p class="muted">{job.description}</p>
+          </div>
+        </article>
+      ))
+    }
+  </div>
+</Layout>

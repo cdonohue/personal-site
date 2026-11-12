@@ -168,6 +168,18 @@ export default function DeskScene() {
   const [dark, setDark] = useState(isDark)
   useEffect(() => watchSystem(setDark), [])
 
+  // A theme can also be chosen outside the room — a switch in the page chrome,
+  // say. Every writer goes through `theme.ts`, which sets this attribute, so
+  // watching it keeps the lamp in step with whichever control was worked.
+  useEffect(() => {
+    const observer = new MutationObserver(() => setDark(isDark()))
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
+    return () => observer.disconnect()
+  }, [])
+
   /**
    * The room's state for this visit, rolled once and then left alone.
    *

@@ -1,0 +1,108 @@
+---
+import { navigation, siteName } from '../../../content'
+import Link from '../../../components/Link.astro'
+
+/**
+ * The masthead: the name set heavy as the image, a Dark switch, and the nav as
+ * a row of numbered keys.
+ *
+ * The active item is derived from the request path on the server and marked
+ * with aria-current, which is what the stylesheet keys off.
+ *
+ * The Dark switch writes through `pixel-desk/theme.ts`, the same module the
+ * scene's light switch uses, so whichever control is worked the room's lamp and
+ * the page agree. It has to work on every page, which is why this ships a few
+ * lines of script on pages that otherwise send none.
+ */
+
+/** Trailing slashes vary by host and by how a link was written, so normalise. */
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
+
+const isCurrent = (to: string, end?: boolean) => {
+  const target = to.replace(/\/+$/, '') || '/'
+  return end ? path === target : path === target || path.startsWith(`${target}/`)
+}
+
+const pad = (n: number) => String(n).padStart(2, '0')
+---
+
+<header class="masthead">
+  <div class="masthead__top">
+    <h1 class="masthead__name">
+      <Link href="/">{siteName}</Link>
+    </h1>
+    <button
+      type="button"
+      role="switch"
+      aria-checked="false"
+      class="u-switch"
+      data-theme-switch
+    >
+      <span class="u-label">Dark</span>
+      <span class="u-switch__track"><span class="u-switch__thumb"></span></span>
+      <span class="u-switch__state" data-theme-state>OFF</span>
+    </button>
+    <script is:inline>
+      /*
+       * Set the switch before first paint so it never shows OFF on a dark
+       * page. Mirrors theme.ts: a stored attribute wins, else the system.
+       */
+      ;(function () {
+        var root = document.documentElement
+        var chosen = root.getAttribute('data-theme')
+        var dark = chosen
+          ? chosen === 'dark'
+          : window.matchMedia('(prefers-color-scheme: dark)').matches
+        var sw = document.querySelector('[data-theme-switch]')
+        sw.setAttribute('aria-checked', String(dark))
+        sw.querySelector('[data-theme-state]').textContent = dark ? 'ON' : 'OFF'
+      })()
+    </script>
+  </div>
+  <nav class="nav" aria-label="Site">
+    {
+      navigation.map(({ label, to, end }, index) => (
+        <Link
+          href={to}
+          class="nav__opt"
+          aria-current={isCurrent(to, end) ? 'page' : undefined}
+        >
+          <span class="nav__text">
+            <span class="u-index">{pad(index + 1)}</span>
+            {label}
+          </span>
+          <span class="u-led" aria-hidden="true" />
+        </Link>
+      ))
+    }
+  </nav>
+</header>
+
+<script>
+  import { chooseTheme, isDark, watchSystem } from '../../pixel-desk/theme'
+
+  const toggle = document.querySelector<HTMLButtonElement>('[data-theme-switch]')
+  const state = toggle?.querySelector<HTMLElement>('[data-theme-state]')
+
+  const sync = () => {
+    if (!toggle || !state) return
+    const dark = isDark()
+    toggle.setAttribute('aria-checked', String(dark))
+    state.textContent = dark ? 'ON' : 'OFF'
+  }
+
+  toggle?.addEventListener('click', () => {
+    chooseTheme(!isDark())
+    sync()
+  })
+
+  // The scene's light switch writes the same attribute; follow it.
+  new MutationObserver(sync).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  })
+
+  // A change of system appearance clears the stored choice: last act wins.
+  watchSystem(sync)
+  sync()
+</script>

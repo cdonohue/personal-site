@@ -18,9 +18,17 @@ there are no rewrite rules to configure and no client-side routing to get wrong.
 src/components/             theme-neutral components
 src/content.ts              everything the site says about jobs, tools and links
 src/pages/                  thin route selectors for the active full-site theme
-src/themes/pixel-desk/      the complete pixel-desk theme and its workbench
-themes/pixel-desk/art/      its Aseprite sources and exports (see its README)
+src/themes/unit-01/         the active theme: Unit 01 layout, styles and pages
+src/themes/pixel-desk/      the pixel scene, its workbench, and the earlier theme
+themes/unit-01/design-system/  the Unit 01 brand book, tokens and icons
+themes/pixel-desk/art/      the scene's Aseprite sources and exports (see its README)
 ```
+
+The active theme is **Unit 01**, and it wraps the pixel desk rather than
+replacing it: the home page frames `DeskScene` as the system's black Display,
+and Uses builds its hardware map from the same art exports. The scene itself,
+its art and its runtime are untouched. The pixel-desk pages still exist, so
+switching back is three import lines in `src/pages/`.
 
 The route files deliberately contain only an import and a render. A theme can
 take over the whole site by supplying its own pages, layout, styles and visual
@@ -106,6 +114,23 @@ names**. `themes/pixel-desk/art/README.md` documents that contract and the
 reasoning behind the art itself, including the parts that failed first.
 
 ## Design
+
+The site uses **Unit 01**: pocket hardware read like a museum wall. Black,
+white and one orange; Libre Franklin for every word and IBM Plex Mono only for
+numbers a machine counts; sections open with a 2px rule rather than sitting in
+boxes; the nav is a row of square numbered keys whose current page inverts to
+ink with its LED lit — the screen's one orange. The brand book and canonical
+tokens are in `themes/unit-01/design-system/`; `src/themes/unit-01/styles.css`
+carries them as CSS variables with the same names (`--ink`, `--signal`, …).
+
+Gallery (light) and Night (dark) follow the system until a choice is made.
+Both the header's Dark switch and the scene's light switch write the one value
+in `src/themes/pixel-desk/theme.ts`, so the lamp and the page always agree, and
+the scene watches the `data-theme` attribute to follow a change made outside it.
+
+### The pixel-desk theme
+
+What follows describes the earlier pixel-desk theme, kept in the repository.
 
 One accent, two typefaces, one size of body text.
 
