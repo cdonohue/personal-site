@@ -126,22 +126,25 @@ body {
 
 /*
  * ── Shell ─────────────────────────────────────────────────────
- * The same frame every Unit 01 app uses: a title bar, then modules on a grid.
- * Narrow: title, the index as a row of keys, the page, Elsewhere last.
- * Wide: the index and Elsewhere stack in a left column beside the page.
+ * Fluid in tiers, like the apps: each tier decides which form the navigation
+ * takes, and the grid areas change with it so the two never disagree.
+ *
+ *   phone  (< 720)    title bar with a menu key; Elsewhere ends the page
+ *   medium (720–1099) the page keys sit inline in the title bar
+ *   wide   (≥ 1100)   the index and Elsewhere become a left column
  */
 .shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "head" "index" "main" "else";
-  gap: var(--space-6);
+  grid-template-areas: "head" "main" "else";
+  gap: var(--space-8);
   max-width: 1440px;
   margin-inline: auto;
   padding: var(--space-4) var(--space-4) var(--space-12);
 }
 
 .head { grid-area: head; }
-.side-index { grid-area: index; }
+.side-index { grid-area: index; display: none; }
 .side-else { grid-area: else; }
 .main {
   grid-area: main;
@@ -152,19 +155,24 @@ body {
   gap: var(--space-8);
 }
 
-@container shell (min-width: 820px) {
+@container shell (min-width: 720px) {
+  .shell { padding: var(--space-6) var(--space-6) var(--space-12); }
+}
+
+@container shell (min-width: 1100px) {
   .shell {
     grid-template-columns: 240px minmax(0, 1fr);
     grid-template-rows: auto auto 1fr;
     grid-template-areas: "head head" "index main" "else main";
-    column-gap: var(--space-4);
+    column-gap: var(--space-6);
     row-gap: var(--space-6);
     padding: var(--space-8) var(--space-8) var(--space-12);
   }
+  .side-index { display: block; }
   .side-else { align-self: start; }
 }
 
-@container shell (min-width: 1180px) {
+@container shell (min-width: 1280px) {
   .shell { grid-template-columns: 280px minmax(0, 1fr); }
 }
 
@@ -203,8 +211,64 @@ body {
   gap: var(--space-6);
 }
 
-@container shell (max-width: 599px) {
-  .head .head__role { display: none; }
+.head {
+  position: relative;
+}
+
+.head .head__role { display: none; }
+
+/* Medium: the page keys, inline in the bar. */
+.head .head__nav { display: none; }
+
+@container shell (min-width: 720px) {
+  .head .head__nav {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    margin-left: auto;
+  }
+  .head__nav .keyrow {
+    height: 36px;
+    min-width: 128px;
+  }
+  .head .menu { display: none; }
+}
+
+/* Wide: the left column takes over, and the bar has room for the role. */
+@container shell (min-width: 1100px) {
+  .head .head__nav { display: none; }
+  .head .head__role { display: inline-flex; }
+}
+
+/* Phone: a menu key opening a sheet of page keys under the bar. */
+.menu__key {
+  width: 40px;
+  height: 40px;
+  list-style: none;
+}
+
+.menu__key::-webkit-details-marker { display: none; }
+.menu__key .u-icon { width: 20px; height: 20px; }
+.menu__close,
+.menu[open] .menu__open { display: none; }
+.menu[open] .menu__close { display: block; }
+.menu[open] .menu__key {
+  background: var(--ink);
+  color: var(--chassis);
+  transform: translateY(2px);
+  box-shadow: var(--shadow-key-pressed);
+}
+
+.menu__sheet {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  padding: var(--space-3) 0 var(--space-4);
+  border-top: 2px solid var(--rule);
+  border-bottom: 1px solid var(--line);
+  background: var(--chassis);
 }
 
 /* ── Primitives ────────────────────────────────────────────── */
@@ -359,24 +423,13 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Narrow: the index is a row of three keys under the title. */
-@container shell (max-width: 819px) {
-  .side-index .u-panel__head { display: none; }
-  .side-index { border-top: 0; }
-  .side-index .keylist {
+/* Below the wide tier, Elsewhere ends the page as a row of keys. */
+@container shell (max-width: 1099px) {
+  .side-else .keylist {
     flex-direction: row;
     gap: 2px;
   }
-  .side-index .keyrow {
-    flex: 1 1 0;
-    min-width: 0;
-    height: 40px;
-    padding: 0 var(--space-2);
-  }
-}
-
-@container shell (max-width: 419px) {
-  .side-index .keyrow__value { display: none; }
+  .side-else .keyrow { flex: 1 1 0; min-width: 0; }
 }
 
 /* ── Panel: rules, not boxes ───────────────────────────────── */
@@ -433,8 +486,6 @@ body {
   padding: var(--space-3);
 }
 
-.u-display__row--foot { padding-top: var(--space-3); }
-
 .u-display__label {
   display: inline-flex;
   align-items: center;
@@ -462,13 +513,24 @@ body {
   .u-display__label--extra { display: none; }
 }
 
-/* The scene, edge to edge inside the screen's bezel. */
-.stage { padding: 0 var(--space-3); }
-.stage > .u-display__row { padding-inline: 0; }
-.stage astro-island > div { margin-bottom: 0; }
-.stage > astro-island,
-.stage > .uses-map-scene { margin-bottom: var(--space-3); }
-.stage > .u-display__row--foot { padding-top: 0; }
+/*
+ * The pixel scene, bare on the wall. It brings its own stepped edge, so it
+ * gets no frame, only the caption row the Uses map hangs under it.
+ */
+.scene {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.scene astro-island > div { margin-bottom: 0; }
+
+.scene__caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+}
 
 /* A small screen holding one word: the current company. */
 .now {
@@ -583,4 +645,18 @@ body {
   *::after {
     transition: none !important;
   }
+}
+
+/* The smallest screens: let the name wrap and keep only the controls. */
+@container shell (max-width: 359px) {
+  .shell { padding-inline: var(--space-2); }
+  .head { gap: var(--space-2); }
+  .hero__value { padding: 0 var(--space-3) var(--space-3); }
+  .hero__number { font-size: 64px; }
+  .head__title { white-space: normal; }
+  .head__index,
+  .u-switch .u-label { display: none; }
+  .head__meta { gap: var(--space-3); }
+  .side-else .keyrow { padding: 0 var(--space-2); }
+  .side-else .keyrow .u-icon { display: none; }
 }

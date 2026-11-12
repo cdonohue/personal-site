@@ -1,9 +1,20 @@
 ---
 import { siteName } from '../../../content'
 import Link from '../../../components/Link.astro'
+import Icon from './Icon.astro'
+import NavKeys from './NavKeys.astro'
 
 /**
- * The title bar, set the way every Unit 01 screen opens: a small mono index,
+ * The title bar. Its navigation changes form with the space it has:
+ *
+ * - phone: a menu key that opens a sheet of page keys, so the title bar stays
+ *   one line and the scene is above the fold
+ * - tablet and laptop: the page keys inline in the bar
+ * - wide: nothing here; the index is the left column (Sidebar)
+ *
+ * The menu is a <details>, so it works before and without script.
+ *
+ * It is set the way every Unit 01 screen opens: a small mono index,
  * the name as heavy type, and the meta and Dark switch on the right.
  *
  * The Dark switch writes through `pixel-desk/theme.ts`, the same module the
@@ -24,6 +35,7 @@ const { index } = Astro.props
     <span class="head__index">{index}</span>
     <Link href="/">{siteName}</Link>
   </h1>
+  <NavKeys class="head__nav" />
   <div class="head__meta">
     <span class="u-label head__role">Software engineer · Houston</span>
     <button type="button" role="switch" aria-checked="false" class="u-switch" data-theme-switch>
@@ -43,6 +55,15 @@ const { index } = Astro.props
         document.querySelector('[data-theme-switch]').setAttribute('aria-checked', String(dark))
       })()
     </script>
+    <details class="menu">
+      <summary class="u-key menu__key" aria-label="Menu">
+        <Icon name="menu" class="menu__open" />
+        <Icon name="close" class="menu__close" />
+      </summary>
+      <div class="menu__sheet">
+        <NavKeys />
+      </div>
+    </details>
   </div>
 </header>
 

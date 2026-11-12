@@ -10,17 +10,12 @@ const current = jobs[0]
 
 <Layout index="01">
   {/*
-    The pixel scene is the screen's one big Display: unchanged inside, framed as
-    the black LCD every Unit 01 screen is built around. client:only for the
+    The pixel scene is the page's centrepiece, set straight on the wall with no
+    frame of its own: it already has an edge. client:only for the
     reasons in the pixel-desk page — it reads the visitor's clock and the
     weather on mount, so there is nothing to prerender.
   */}
-  <section class="u-display stage" aria-label="Desk">
-    <div class="u-display__row" aria-hidden="true">
-      <span class="u-display__label">Desk</span>
-      <span class="u-display__label u-display__label--extra">Houston</span>
-      <span class="u-display__label">Live <span class="u-led is-lit"></span></span>
-    </div>
+  <section class="scene" aria-label="Desk">
     <DeskScene client:only="react" />
   </section>
 

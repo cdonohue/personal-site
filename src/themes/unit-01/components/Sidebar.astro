@@ -2,43 +2,22 @@
 import { elsewhere, navigation } from '../../../content'
 import Link from '../../../components/Link.astro'
 import Icon from './Icon.astro'
+import NavKeys from './NavKeys.astro'
 
 /**
- * The left column: the site index as a stack of keys, and the outbound links
- * below it. On narrow screens the index becomes a row of keys under the title
- * and Elsewhere drops to the end of the page (see the grid areas in
- * styles.css), which is why the two are separate blocks.
- *
- * The current page inverts to ink and lights its LED — the screen's one orange.
+ * The wide-screen left column: the index as a stack of keys, then the
+ * outbound links. Narrower than that, the index lives in the title bar (see
+ * SiteHeader) and Elsewhere drops to the end of the page as a row of keys —
+ * which is why the two are separate grid items.
  */
-const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
-
-const isCurrent = (to: string, end?: boolean) => {
-  const target = to.replace(/\/+$/, '') || '/'
-  return end ? path === target : path === target || path.startsWith(`${target}/`)
-}
-
-const pad = (n: number) => String(n).padStart(2, '0')
 ---
 
 <section class="u-panel side-index">
   <header class="u-panel__head">
     <span class="u-label">Index</span>
-    <span class="u-label">{pad(navigation.length)}</span>
+    <span class="u-label">{String(navigation.length).padStart(2, '0')}</span>
   </header>
-  <nav class="keylist" aria-label="Site">
-    {
-      navigation.map(({ label, to, end }, i) => (
-        <Link href={to} class="keyrow" aria-current={isCurrent(to, end) ? 'page' : undefined}>
-          <span class="keyrow__label">
-            <span class="u-led" aria-hidden="true" />
-            {label}
-          </span>
-          <span class="keyrow__value">{pad(i + 1)}</span>
-        </Link>
-      ))
-    }
-  </nav>
+  <NavKeys />
 </section>
 
 <section class="u-panel side-else">

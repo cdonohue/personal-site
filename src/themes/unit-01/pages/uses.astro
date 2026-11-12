@@ -41,14 +41,11 @@ const decorLayers = Object.entries(DECOR_DEFINITIONS).flatMap(([decor, definitio
   description="The hardware in Chad Donohue’s workspace, mapped to the interactive pixel desk scene."
 >
   {/*
-    The map is the screen's Display: the room drawn from its own exports, each
-    piece of hardware a hit target cut from its item export.
+    The map is the page's centrepiece, set bare like the home page scene: the
+    room drawn from its own exports, each piece of hardware a hit target cut
+    from its item export.
   */}
-  <figure class="u-display stage" aria-labelledby="in-scene-title">
-    <div class="u-display__row">
-      <h2 class="u-display__label" id="in-scene-title">Uses · in the scene</h2>
-      <span class="u-display__label">{String(sceneUses.length).padStart(2, '0')} items</span>
-    </div>
+  <figure class="scene" aria-labelledby="in-scene-title">
     <div class="uses-map-scene relative">
       <div class="uses-map-art absolute inset-0 overflow-hidden">
         {mapLayers.map((src) => <img src={src} alt="" class="uses-map-layer" />)}
@@ -113,8 +110,9 @@ const decorLayers = Object.entries(DECOR_DEFINITIONS).flatMap(([decor, definitio
             }
           </nav>
     </div>
-    <figcaption class="u-display__row u-display__row--foot">
-      <span class="u-display__label">Select a piece of hardware</span>
+    <figcaption class="scene__caption">
+      <h2 class="u-label" id="in-scene-title"><b>Uses</b> Select a piece of hardware</h2>
+      <span class="u-label">{String(sceneUses.length).padStart(2, '0')} items</span>
     </figcaption>
   </figure>
 

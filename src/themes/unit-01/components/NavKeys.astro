@@ -1,0 +1,43 @@
+---
+import { navigation } from '../../../content'
+import Link from '../../../components/Link.astro'
+
+/**
+ * The site index as keys. The header, the phone menu and the desktop column
+ * each render it in their own form, and CSS shows exactly one of them for the
+ * width at hand, so there is never more than one visible nav.
+ *
+ * The current page inverts to ink, sits pressed and lights its LED — the
+ * screen's one orange. Derived from the request path on the server.
+ */
+interface Props {
+  /** Accessible name; only one instance is ever displayed at a time. */
+  label?: string
+  class?: string
+}
+
+const { label = 'Site', class: className } = Astro.props
+
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
+
+const isCurrent = (to: string, end?: boolean) => {
+  const target = to.replace(/\/+$/, '') || '/'
+  return end ? path === target : path === target || path.startsWith(`${target}/`)
+}
+
+const pad = (n: number) => String(n).padStart(2, '0')
+---
+
+<nav class:list={['keylist', className]} aria-label={label}>
+  {
+    navigation.map(({ label, to, end }, i) => (
+      <Link href={to} class="keyrow" aria-current={isCurrent(to, end) ? 'page' : undefined}>
+        <span class="keyrow__label">
+          <span class="u-led" aria-hidden="true" />
+          {label}
+        </span>
+        <span class="keyrow__value">{pad(i + 1)}</span>
+      </Link>
+    ))
+  }
+</nav>
