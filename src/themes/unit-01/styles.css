@@ -107,15 +107,16 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  scrollbar-gutter: stable;
 }
 
+/* The shell's container is the body, so the shell itself can change shape. */
 body {
+  container: shell / inline-size;
   background: var(--chassis);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 15px;
+  line-height: 22px;
 }
 
 :where(a, button, summary, [role="switch"]):focus-visible {
@@ -123,121 +124,87 @@ body {
   outline-offset: 2px;
 }
 
-/* ── Shell ─────────────────────────────────────────────────── */
-.site {
-  container: site / inline-size;
-  width: 100%;
-  max-width: 1040px;
+/*
+ * ── Shell ─────────────────────────────────────────────────────
+ * The same frame every Unit 01 app uses: a title bar, then modules on a grid.
+ * Narrow: title, the index as a row of keys, the page, Elsewhere last.
+ * Wide: the index and Elsewhere stack in a left column beside the page.
+ */
+.shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "index" "main" "else";
+  gap: var(--space-6);
+  max-width: 1440px;
   margin-inline: auto;
-  padding: var(--space-6) var(--space-4) var(--space-12);
+  padding: var(--space-4) var(--space-4) var(--space-12);
 }
 
-@container site (min-width: 600px) {
-  .site-main {
-    gap: var(--space-12);
-  }
-}
-
-.site-main {
+.head { grid-area: head; }
+.side-index { grid-area: index; }
+.side-else { grid-area: else; }
+.main {
+  grid-area: main;
+  container: main / inline-size;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
 }
 
-/* ── Masthead ──────────────────────────────────────────────── */
-.masthead {
-  display: grid;
-  gap: var(--space-4);
-  margin-bottom: var(--space-8);
+@container shell (min-width: 820px) {
+  .shell {
+    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: "head head" "index main" "else main";
+    column-gap: var(--space-4);
+    row-gap: var(--space-6);
+    padding: var(--space-8) var(--space-8) var(--space-12);
+  }
+  .side-else { align-self: start; }
 }
 
-.masthead__top {
+@container shell (min-width: 1180px) {
+  .shell { grid-template-columns: 280px minmax(0, 1fr); }
+}
+
+/* ── Title bar ─────────────────────────────────────────────── */
+.head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
+  min-height: 40px;
 }
 
-/* Heavy type is the image; there is no logo. */
-.masthead__name {
-  font: 800 clamp(32px, 7cqi, 64px) / 0.95 var(--font-sans);
-  letter-spacing: -0.035em;
+.head__title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font: 800 clamp(22px, 4.2cqi, 34px) / 1 var(--font-sans);
+  letter-spacing: -0.025em;
+  white-space: nowrap;
 }
 
-.masthead__name a {
+.head__title a {
   color: inherit;
   text-decoration: none;
 }
 
-/*
- * The nav is a Selector row: square key blocks with 2px gaps, the current page
- * inverted to ink with its LED lit. That lit LED is the screen's one orange.
- */
-.nav {
-  display: flex;
-  gap: 2px;
+.head__index {
+  font: 500 9px / 12px var(--font-mono);
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
 }
 
-.nav__opt {
-  flex: 1 1 0;
-  min-width: 0;
+.head__meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  height: 40px;
-  padding: 0 var(--space-3);
-  background: var(--key);
-  color: var(--ink);
-  font: 700 11px / 14px var(--font-sans);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-decoration: none;
-  white-space: nowrap;
-  box-shadow: var(--shadow-key);
-  transition:
-    transform 60ms linear,
-    box-shadow 60ms linear;
+  gap: var(--space-6);
 }
 
-.nav__opt:active {
-  transform: translateY(2px);
-  box-shadow: var(--shadow-key-pressed);
-}
-
-.nav__opt[aria-current="page"] {
-  background: var(--ink);
-  color: var(--chassis);
-  transform: translateY(2px);
-  box-shadow: var(--shadow-key-pressed);
-}
-
-.nav__opt[aria-current="page"] .u-led {
-  background: var(--signal);
-}
-
-.nav__opt:focus-visible {
-  outline-offset: -4px;
-  outline-color: var(--signal);
-}
-
-.nav__text {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-@container site (max-width: 399px) {
-  .nav__opt {
-    justify-content: center;
-    padding: 0 var(--space-2);
-  }
-  .nav__opt .u-index,
-  .nav__opt .u-led {
-    display: none;
-  }
+@container shell (max-width: 599px) {
+  .head .head__role { display: none; }
 }
 
 /* ── Primitives ────────────────────────────────────────────── */
@@ -256,13 +223,6 @@ body {
   color: var(--ink);
 }
 
-/* Key indices and the like: numbers a machine counts. */
-.u-index {
-  font: 500 9px / 12px var(--font-mono);
-  letter-spacing: 0.1em;
-  opacity: 0.75;
-}
-
 .u-led {
   display: inline-block;
   flex: none;
@@ -272,9 +232,16 @@ body {
   background: var(--line);
 }
 
+.u-icon {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  flex: none;
+}
+
 /*
- * Switch. Per the system its "on" track is signal, but here the nav's lit LED
- * already owns the screen's one orange, so the throw is shown in ink instead.
+ * Switch. Per the system its "on" track is signal, but the index's lit LED
+ * already owns the screen's one orange, so the throw is shown in ink.
  */
 .u-switch {
   appearance: none;
@@ -309,19 +276,10 @@ body {
   transition: left 80ms linear;
 }
 
-.u-switch[aria-checked="true"] .u-switch__track {
-  background: var(--ink);
-}
-
+.u-switch[aria-checked="true"] .u-switch__track { background: var(--ink); }
 .u-switch[aria-checked="true"] .u-switch__thumb {
   left: 20px;
   background: var(--chassis);
-}
-
-.u-switch__state {
-  min-width: 3ch;
-  font: 500 11px / 14px var(--font-mono);
-  letter-spacing: 0.06em;
 }
 
 .u-key {
@@ -336,9 +294,7 @@ body {
   color: var(--ink);
   box-shadow: var(--shadow-key);
   cursor: pointer;
-  transition:
-    transform 60ms linear,
-    box-shadow 60ms linear;
+  transition: transform 60ms linear, box-shadow 60ms linear;
 }
 
 .u-key:active {
@@ -346,16 +302,81 @@ body {
   box-shadow: var(--shadow-key-pressed);
 }
 
-.u-key--sm {
-  width: 32px;
-  height: 32px;
+.u-key--sm { width: 32px; height: 32px; }
+
+/*
+ * ── Key list ──────────────────────────────────────────────────
+ * Full-width keys with a label left and a mono value or glyph right, like the
+ * presets column in the apps. The current page inverts to ink, sits pressed,
+ * and lights its LED.
+ */
+.keylist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
-.u-icon {
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
-  flex: none;
+.keyrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  height: 44px;
+  padding: 0 var(--space-3);
+  background: var(--key);
+  color: var(--ink);
+  box-shadow: var(--shadow-key);
+  font: 700 11px / 14px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 60ms linear, box-shadow 60ms linear;
+}
+
+.keyrow:active,
+.keyrow[aria-current="page"] {
+  transform: translateY(2px);
+  box-shadow: var(--shadow-key-pressed);
+}
+
+.keyrow[aria-current="page"] {
+  background: var(--ink);
+  color: var(--chassis);
+}
+
+.keyrow[aria-current="page"] .u-led { background: var(--signal); }
+
+.keyrow__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  overflow: hidden;
+}
+
+.keyrow__value {
+  font: 500 13px / 16px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Narrow: the index is a row of three keys under the title. */
+@container shell (max-width: 819px) {
+  .side-index .u-panel__head { display: none; }
+  .side-index { border-top: 0; }
+  .side-index .keylist {
+    flex-direction: row;
+    gap: 2px;
+  }
+  .side-index .keyrow {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 40px;
+    padding: 0 var(--space-2);
+  }
+}
+
+@container shell (max-width: 419px) {
+  .side-index .keyrow__value { display: none; }
 }
 
 /* ── Panel: rules, not boxes ───────────────────────────────── */
@@ -370,7 +391,7 @@ body {
   justify-content: space-between;
   align-items: baseline;
   gap: var(--space-3);
-  padding: var(--space-2) 0 var(--space-4);
+  padding: var(--space-2) 0 var(--space-3);
 }
 
 .u-panel__head > .u-label:first-child {
@@ -385,12 +406,23 @@ body {
   gap: var(--space-4);
 }
 
-/* ── Display: the black screen the scene sits in ───────────── */
+.modules {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8) var(--space-4);
+}
+
+@container main (min-width: 640px) {
+  .modules--2-1 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+}
+
+/* ── Display ───────────────────────────────────────────────── */
 .u-display {
+  display: flex;
+  flex-direction: column;
   background: var(--lcd);
   color: var(--lcd-ink);
   border: 1px solid var(--line);
-  padding: var(--space-2);
 }
 
 .u-display__row {
@@ -398,98 +430,151 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: var(--space-3);
-  padding: 0 var(--space-1) var(--space-2);
+  padding: var(--space-3);
 }
+
+.u-display__row--foot { padding-top: var(--space-3); }
 
 .u-display__label {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font: 500 11px / 14px var(--font-mono);
+  font: 400 11px / 14px var(--font-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--lcd-muted);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.u-display__label b {
-  font-weight: 500;
-  color: var(--lcd-ink);
+.u-display__unit {
+  font: 400 13px / 16px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lcd-muted);
 }
 
-/* Lit on the screen, not orange: the screen is not the live control. */
-.u-display .u-led.is-lit {
-  background: var(--lcd-ink);
+/* Lit on the screen rather than orange: the screen is not the live control. */
+.u-display .u-led.is-lit { background: var(--lcd-ink); }
+
+@container main (max-width: 479px) {
+  .u-display__label--extra { display: none; }
 }
 
-/* The scene island carries its own bottom margin for the old column. */
-.u-display astro-island > div {
-  margin-bottom: 0;
+/* The scene, edge to edge inside the screen's bezel. */
+.stage { padding: 0 var(--space-3); }
+.stage > .u-display__row { padding-inline: 0; }
+.stage astro-island > div { margin-bottom: 0; }
+.stage > astro-island,
+.stage > .uses-map-scene { margin-bottom: var(--space-3); }
+.stage > .u-display__row--foot { padding-top: 0; }
+
+/* A small screen holding one word: the current company. */
+.now {
+  gap: var(--space-4);
+  padding: var(--space-3);
+  min-height: 120px;
+  justify-content: space-between;
 }
 
-/* ── Type ──────────────────────────────────────────────────── */
-.page-title {
-  font: 800 clamp(40px, 9cqi, 72px) / 0.95 var(--font-sans);
+.now__company {
+  font: 800 clamp(32px, 16cqi, 48px) / 1 var(--font-sans);
   letter-spacing: -0.035em;
 }
 
-.page-lead {
-  max-width: 40rem;
-  margin-top: var(--space-4);
-  color: var(--ink-muted);
-  font-size: 17px;
-  line-height: 26px;
+.now__company a {
+  color: inherit;
+  text-decoration: none;
 }
 
-.item-title {
+.now__company a:hover { color: var(--signal); }
+
+/* The key number, set heavy. */
+.hero { min-height: clamp(200px, 32cqi, 320px); }
+
+.hero__value {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: 0 var(--space-6) var(--space-6);
+}
+
+.hero__number {
+  font: 800 clamp(96px, 22cqi, 200px) / 0.8 var(--font-sans);
+  letter-spacing: -0.045em;
+}
+
+/* ── Type ──────────────────────────────────────────────────── */
+.prose { max-width: 40rem; }
+
+.lead {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.muted { color: var(--ink-muted); }
+
+/*
+ * ── Rows ──────────────────────────────────────────────────────
+ * A numbered list on hairlines: index, name and role, then the description.
+ * Side by side once the panel is wide enough to hold both.
+ */
+.rows { list-style: none; }
+
+.row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-4) 0;
+}
+
+.row + .row { border-top: 1px solid var(--line); }
+.row:first-child { padding-top: var(--space-1); }
+
+.rows--compact .row { grid-template-columns: minmax(0, 1fr); }
+
+.row__index {
+  font: 500 13px / 26px var(--font-mono);
+  color: var(--ink-muted);
+}
+
+.row__name {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.row__text { grid-column: 2; max-width: 40rem; }
+.rows--compact .row__text { grid-column: 1; }
+
+@container (min-width: 720px) {
+  .row { grid-template-columns: 32px minmax(0, 2fr) minmax(0, 3fr); }
+  .row__text { grid-column: 3; }
+}
+
+.row__title {
   font: 700 22px / 26px var(--font-sans);
   letter-spacing: -0.01em;
 }
 
-.muted {
-  color: var(--ink-muted);
+.row__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: inherit;
+  text-decoration: none;
 }
 
-.small {
-  font-size: 13px;
-  line-height: 18px;
-}
-
-.prose {
-  max-width: 40rem;
-}
-
-/*
- * Links in running text: ink with a heavy rule under them. Hover fills them
- * with signal — orange as a fill, never as text on white.
- */
-.prose a,
-.text-link {
-  color: var(--ink);
-  font-weight: 700;
-  text-decoration-line: underline;
+.row__link .u-icon { transition: transform 60ms linear; }
+.row__link:hover .u-icon { transform: translateX(3px); }
+.row__link:hover {
+  text-decoration: underline;
   text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
-}
-
-.prose a:hover,
-.text-link:hover {
-  background: var(--signal);
-  color: var(--on-signal);
-  text-decoration-color: var(--on-signal);
-}
-
-/* ── Grid of panels ────────────────────────────────────────── */
-.panel-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-8) var(--space-6);
-}
-
-@container site (min-width: 720px) {
-  .panel-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  text-underline-offset: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,52 +1,67 @@
 ---
 import Layout from '../layouts/Layout.astro'
 import Link from '../../../components/Link.astro'
+import Icon from '../components/Icon.astro'
 import { jobs } from '../../../content'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 ---
 
 <Layout
+  index="02"
   title="Experience"
   description="Chad Donohue’s experience building product infrastructure, design systems, and customer-facing software."
 >
-  <section>
-    <h2 class="page-title">Experience</h2>
-    <p class="page-lead">
+  {/* Type as the image: the screen's key number, set heavy on the Display. */}
+  <section class="u-display hero" aria-labelledby="experience-title">
+    <div class="u-display__row">
+      <h2 class="u-display__label" id="experience-title">Experience</h2>
+      <span class="u-display__label u-display__label--extra">Fintech · Education · Healthcare · Web</span>
+    </div>
+    <div class="hero__value">
+      <span class="hero__number">{pad(jobs.length)}</span>
+      <span class="u-display__unit">Roles</span>
+    </div>
+  </section>
+
+  <section class="u-panel" aria-labelledby="summary-title">
+    <header class="u-panel__head">
+      <h3 class="u-label" id="summary-title"><b>01</b> Summary</h3>
+    </header>
+    <p class="lead prose">
       My work spans fintech, education, healthcare, and web design, with a focus on the foundations
       beneath the product. I shape design systems, frontend architecture, and core workflows that
       other teams and features depend on.
     </p>
   </section>
 
-  {/*
-    One rule-topped panel per role, numbered in reading order. The role is the
-    panel's label; the company is the heading, because it is what a reader
-    scans for.
-  */}
-  <div class="panel-grid">
-    {
-      jobs.map((job, index) => (
-        <article class="u-panel">
-          <header class="u-panel__head">
-            <span class="u-label">
-              <b>{pad(index + 1)}</b> {job.title}
-            </span>
-          </header>
-          <div class="u-panel__body">
-            <h3 class="item-title">
-              {job.url ? (
-                <Link href={job.url} class="text-link">
-                  {job.company}
-                </Link>
-              ) : (
-                job.company
-              )}
-            </h3>
-            <p class="muted">{job.description}</p>
-          </div>
-        </article>
-      ))
-    }
-  </div>
+  <section class="u-panel" aria-labelledby="roles-title">
+    <header class="u-panel__head">
+      <h3 class="u-label" id="roles-title"><b>02</b> Roles</h3>
+      <span class="u-label">Newest first</span>
+    </header>
+    <ol class="rows">
+      {
+        jobs.map((job, index) => (
+          <li class="row">
+            <span class="row__index">{pad(index + 1)}</span>
+            <div class="row__name">
+              <h4 class="row__title">
+                {job.url ? (
+                  <Link href={job.url} class="row__link">
+                    {job.company}
+                    <Icon name="arrow-right" />
+                  </Link>
+                ) : (
+                  job.company
+                )}
+              </h4>
+              <span class="u-label">{job.title}</span>
+            </div>
+            <p class="row__text muted">{job.description}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
 </Layout>

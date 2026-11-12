@@ -36,38 +36,33 @@ const decorLayers = Object.entries(DECOR_DEFINITIONS).flatMap(([decor, definitio
 ---
 
 <Layout
+  index="03"
   title="Uses"
   description="The hardware in Chad Donohue’s workspace, mapped to the interactive pixel desk scene."
 >
-  <section>
-    <h2 class="page-title">Uses</h2>
-    <p class="page-lead">
-      This is the hardware behind both the pixel room and the workspace it represents. Click an
-      object in the scene to see what it is; the few things that stay off-screen are listed below.
-    </p>
-  </section>
-
-  <section class="u-panel" aria-labelledby="in-scene-title">
-    <header class="u-panel__head">
-      <h3 class="u-label" id="in-scene-title"><b>01</b> In the scene</h3>
-      <span class="u-label">{String(sceneUses.length).padStart(2, '0')} items</span>
-    </header>
-    <figure class="u-panel__body">
-      <div class="u-display">
-        <div class="uses-map-scene relative">
-          <div class="uses-map-art absolute inset-0 overflow-hidden">
-            {mapLayers.map((src) => <img src={src} alt="" class="uses-map-layer" />)}
-            {decorLayers.map(({ decor, src }) => (
-              <img
-                src={src}
-                alt=""
-                class="uses-map-layer"
-                data-uses-decor={decor}
-                aria-hidden="true"
-                hidden
-              />
-            ))}
-          </div>
+  {/*
+    The map is the screen's Display: the room drawn from its own exports, each
+    piece of hardware a hit target cut from its item export.
+  */}
+  <figure class="u-display stage" aria-labelledby="in-scene-title">
+    <div class="u-display__row">
+      <h2 class="u-display__label" id="in-scene-title">Uses · in the scene</h2>
+      <span class="u-display__label">{String(sceneUses.length).padStart(2, '0')} items</span>
+    </div>
+    <div class="uses-map-scene relative">
+      <div class="uses-map-art absolute inset-0 overflow-hidden">
+        {mapLayers.map((src) => <img src={src} alt="" class="uses-map-layer" />)}
+        {decorLayers.map(({ decor, src }) => (
+          <img
+            src={src}
+            alt=""
+            class="uses-map-layer"
+            data-uses-decor={decor}
+            aria-hidden="true"
+            hidden
+          />
+        ))}
+      </div>
           <nav aria-label="Hardware in the pixel desk scene">
             {
               sceneUses.flatMap((item) => {
@@ -117,35 +112,47 @@ const decorLayers = Object.entries(DECOR_DEFINITIONS).flatMap(([decor, definitio
               })
             }
           </nav>
-        </div>
-      </div>
-      <figcaption class="muted small">
-        Click a piece of hardware to see what it is and where to find it.
-      </figcaption>
-    </figure>
-  </section>
+    </div>
+    <figcaption class="u-display__row u-display__row--foot">
+      <span class="u-display__label">Select a piece of hardware</span>
+    </figcaption>
+  </figure>
 
-  <section class="u-panel" aria-labelledby="rotation-title">
-    <header class="u-panel__head">
-      <h3 class="u-label" id="rotation-title"><b>02</b> Also in rotation</h3>
-      <span class="u-label">{String(additionalUses.length).padStart(2, '0')} items</span>
-    </header>
-    <ul class="uses-list">
-      {
-        additionalUses.map((item) => (
-          <li>
-            <Link href={item.href} class="uses-row">
-              <h4 class="item-title">
-                {item.name}
-                <Icon name="arrow-right" class="uses-row-icon" />
-              </h4>
-              <p class="muted">{item.description}</p>
-            </Link>
-          </li>
-        ))
-      }
-    </ul>
-  </section>
+  <div class="modules modules--2-1">
+    <section class="u-panel" aria-labelledby="about-uses-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="about-uses-title"><b>01</b> About</h3>
+      </header>
+      <p class="lead prose">
+        This is the hardware behind both the pixel room and the workspace it represents. Click an
+        object in the scene to see what it is; the few things that stay off-screen are listed here.
+      </p>
+    </section>
+
+    <section class="u-panel" aria-labelledby="rotation-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="rotation-title"><b>02</b> Also in rotation</h3>
+        <span class="u-label">{String(additionalUses.length).padStart(2, '0')}</span>
+      </header>
+      <ul class="rows rows--compact">
+        {
+          additionalUses.map((item) => (
+            <li class="row">
+              <div class="row__name">
+                <h4 class="row__title">
+                  <Link href={item.href} class="row__link">
+                    {item.name}
+                    <Icon name="arrow-right" />
+                  </Link>
+                </h4>
+              </div>
+              <p class="row__text muted">{item.description}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </div>
 </Layout>
 
 <script>
@@ -345,42 +352,6 @@ const decorLayers = Object.entries(DECOR_DEFINITIONS).flatMap(([decor, definitio
   :global(.uses-product-link:hover) {
     background: var(--signal);
     color: var(--on-signal);
-  }
-
-  .uses-list {
-    list-style: none;
-  }
-
-  .uses-list li + li {
-    border-top: 1px solid var(--line);
-  }
-
-  :global(.uses-row) {
-    display: block;
-    padding: var(--space-4) 0;
-    color: inherit;
-    text-decoration: none;
-  }
-
-  .uses-list .item-title {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    margin-bottom: var(--space-1);
-  }
-
-  :global(.uses-row-icon) {
-    transition: transform 60ms linear;
-  }
-
-  :global(.uses-row:hover .uses-row-icon) {
-    transform: translateX(4px);
-  }
-
-  :global(.uses-row:hover .item-title) {
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 3px;
   }
 
   @media (max-width: 40rem) {

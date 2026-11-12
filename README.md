@@ -118,8 +118,11 @@ reasoning behind the art itself, including the parts that failed first.
 The site uses **Unit 01**: pocket hardware read like a museum wall. Black,
 white and one orange; Libre Franklin for every word and IBM Plex Mono only for
 numbers a machine counts; sections open with a 2px rule rather than sitting in
-boxes; the nav is a row of square numbered keys whose current page inverts to
-ink with its LED lit — the screen's one orange. The brand book and canonical
+boxes. Pages use the apps' frame: a heavy title bar, the index and outbound
+links as a column of keys on the left (a row under the title on phones), and
+one big black Display as each page's centrepiece — the desk on Home, the
+hardware map on Uses. The current page's key inverts to ink with its LED lit,
+the screen's one orange. The brand book and canonical
 tokens are in `themes/unit-01/design-system/`; `src/themes/unit-01/styles.css`
 carries them as CSS variables with the same names (`--ink`, `--signal`, …).
 

@@ -1,5 +1,6 @@
 ---
 import SiteHeader from '../components/SiteHeader.astro'
+import Sidebar from '../components/Sidebar.astro'
 import '../styles.css'
 
 interface Props {
@@ -7,10 +8,13 @@ interface Props {
   title?: string
   /** Page-specific summary for search results and link previews. */
   description?: string
+  /** The page's number in the index, shown before the name. */
+  index: string
 }
 
 const {
   title,
+  index,
   description = 'Chad Donohue is a software engineer building thoughtful products, design systems, and frontend architecture.',
 } = Astro.props
 ---
@@ -45,9 +49,10 @@ const {
     </script>
   </head>
   <body>
-    <div class="site">
-      <SiteHeader />
-      <main class="site-main">
+    <div class="shell">
+      <SiteHeader index={index} />
+      <Sidebar />
+      <main class="main">
         <slot />
       </main>
     </div>
