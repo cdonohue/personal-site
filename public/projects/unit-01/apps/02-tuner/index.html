@@ -586,6 +586,11 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
 
   /* ── Listening: mic → YIN pitch detection ── */
   var listening = false, stream = null, analyser = null, buf = null, raf = 0, lastDetect = 0, history = [], trace = [];
+  /* Only a page that can never reach a mic is blocked for good: no
+     getUserMedia at all (an insecure page, or an old browser), or a frame
+     whose permissions policy forbids it. Everything else — a dismissed
+     prompt, a mic in use, one plugged in later — is a failed attempt that
+     Listen can retry, so it never disables the key. */
   var micBlocked = !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) ||
     (document.featurePolicy && document.featurePolicy.allowsFeature && !document.featurePolicy.allowsFeature('microphone'));
   function markMicBlocked(msg) {
@@ -594,7 +599,23 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
     $('listen').setAttribute('aria-label', 'Microphone unavailable here');
     if (toneMidi == null) $('statusOut').textContent = msg;
   }
-  if (micBlocked) markMicBlocked('Mic blocked here · tones only');
+  function micFailed(msg) {
+    $('listen').setAttribute('aria-pressed', 'false'); $('listenText').textContent = 'Retry';
+    $('listen').removeAttribute('aria-label');
+    if (toneMidi == null) { $('modeOut').textContent = 'Idle'; $('statusOut').textContent = msg; }
+  }
+  /* Say which failure it was; they need different fixes. */
+  function micError(err) {
+    var name = err && err.name;
+    if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'PermissionDeniedError')
+      return 'Mic not allowed · check site settings';
+    if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError')
+      return 'No mic found · connect one, Retry';
+    if (name === 'NotReadableError' || name === 'TrackStartError' || name === 'AbortError')
+      return 'Mic busy or off in system settings';
+    return 'Mic could not start · Retry';
+  }
+  if (micBlocked) markMicBlocked(!window.isSecureContext ? 'Mic needs https · tones only' : 'Mic blocked here · tones only');
 
   function yin(x, sr) {
     var half = x.length >> 1, minT = Math.max(2, Math.floor(sr / 1400)), maxT = Math.min(half - 2, Math.floor(sr / 35));
@@ -632,19 +653,36 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
     while (trace.length && now - trace[0].t > 4000) trace.shift();
     $('traceLine').setAttribute('points', trace.map(function (p) { return (200 - (now - p.t) / 20).toFixed(1) + ',' + (50 - clamp(p.c, -50, 50)).toFixed(1); }).join(' '));
   }
+  var starting = false;
   function startListen() {
-    if (micBlocked || !audio()) return;
-    stopTone();
-    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(function (s) {
+    if (micBlocked || starting || !audio()) return;
+    stopTone(); starting = true;
+    if (toneMidi == null) $('statusOut').textContent = 'Asking for the mic…';
+    /* Raw signal for pitch: no echo cancelling, noise gating or gain riding.
+       These are hints, but a few devices still refuse the set, so fall back
+       to a plain request rather than reporting no mic. */
+    var raw = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } };
+    navigator.mediaDevices.getUserMedia(raw).catch(function (err) {
+      if (err && (err.name === 'OverconstrainedError' || err.name === 'TypeError' || err.name === 'NotSupportedError'))
+        return navigator.mediaDevices.getUserMedia({ audio: true });
+      throw err;
+    }).then(function (s) {
       stream = s; var src = ctx.createMediaStreamSource(s);
       analyser = ctx.createAnalyser(); analyser.fftSize = 4096; buf = new Float32Array(analyser.fftSize); src.connect(analyser);
+      /* Safari can suspend a context made before the mic started; a
+         suspended context feeds the analyser silence, which reads as a mic
+         that hears nothing. Resume it now that the stream is live. */
+      if (ctx.state !== 'running') ctx.resume();
       listening = true; history = []; trace = [];
       $('listen').setAttribute('aria-pressed', 'true'); $('listenText').textContent = 'Stop';
       $('modeOut').textContent = 'Listen'; $('statusOut').textContent = 'Listening · play a note';
       raf = requestAnimationFrame(loop);
-    }, function (err) {
-      markMicBlocked(err && err.name === 'NotAllowedError' ? 'Mic not allowed · tones only' : 'No mic found · tones only');
-    });
+      /* Unplugging the mic ends the track; drop back to Retry. */
+      s.getAudioTracks().forEach(function (t) { t.addEventListener('ended', function () { if (listening) { stopListen(); micFailed('Mic disconnected · Retry'); } }); });
+    }).catch(function (err) {
+      if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+      micFailed(micError(err));
+    }).then(function () { starting = false; });
   }
   function stopListen() {
     listening = false; cancelAnimationFrame(raf);
