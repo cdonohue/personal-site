@@ -1,0 +1,98 @@
+/**
+ * Unit 01 components, as the apps use them.
+ *
+ * Taken verbatim from the handoff's shared base (`shared/unit01-base.css`, the
+ * vanilla port every app is built on), with Field and the Display's value and
+ * meter from the design system's own `components/bundle.css`. The specimens on
+ * the Components page are therefore the real components rather than drawings
+ * of them. Tokens are in styles.css.
+ *
+ * Exceptions to verbatim: the global box-sizing/html/body rules are left out
+ * (the explorer's chrome owns those), and `.u-key--sm` is 40px as specified.
+ */
+
+:where(button, input, [role="slider"]):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.u-label { display: inline-flex; gap: var(--space-2); align-items: baseline; font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); white-space: nowrap; }
+.u-label b { font-weight: 700; color: var(--ink); }
+.u-value { font-family: var(--font-mono); font-size: 13px; line-height: 16px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
+.u-led { display: inline-block; width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--line); flex: none; }
+.u-key .u-led, .u-selector__opt .u-led { background: var(--line); }
+.is-on > .u-led, .u-led.is-lit { background: var(--signal); }
+
+.u-key { appearance: none; position: relative; display: inline-flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+  min-width: 0; padding: var(--space-2); border: 0; border-radius: var(--radius-0); background: var(--key); color: var(--ink);
+  font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; text-align: left;
+  box-shadow: var(--shadow-key); cursor: pointer; transition: transform 60ms linear, box-shadow 60ms linear; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.u-key:active, .u-key.is-hit, .u-key[aria-pressed="true"] { transform: translateY(2px); box-shadow: var(--shadow-key-pressed); }
+.u-key--ink { background: var(--ink); color: var(--chassis); }
+.u-key--signal { background: var(--signal); color: var(--on-signal); }
+.u-key--blue { background: var(--blue); color: var(--on-blue); }
+.u-key--yellow { background: var(--yellow); color: var(--on-yellow); }
+.u-key__top { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: var(--space-1); }
+.u-key__index { font-family: var(--font-mono); font-weight: 500; font-size: 9px; line-height: 12px; letter-spacing: .1em; opacity: .75; }
+.u-key__glyph { align-self: center; display: flex; }
+.u-key__glyph svg { width: 22px; height: 22px; fill: currentColor; }
+.u-key--sm { width: 40px; height: 40px; padding: 0; align-items: center; justify-content: center; font-size: 15px; letter-spacing: 0; }
+
+.u-panel { background: transparent; border: 0; border-top: 2px solid var(--rule); border-radius: var(--radius-0); min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
+.u-panel__head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-2) 0 var(--space-3); }
+.u-panel__head .u-label:first-child { font-size: 13px; line-height: 16px; color: var(--ink); }
+.u-panel__body { padding: 0 0 var(--space-2); display: flex; flex-direction: column; gap: var(--space-4); flex: 1; }
+
+.u-display { background: var(--lcd); color: var(--lcd-ink); border: 1px solid var(--line); border-radius: var(--radius-0); font-family: var(--font-mono); }
+.u-display__label { font-size: 11px; line-height: 14px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--lcd-muted); white-space: nowrap; }
+.u-display__unit { font-size: 13px; line-height: 16px; color: var(--lcd-muted); text-transform: uppercase; letter-spacing: .08em; }
+
+.u-selector { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.u-selector__row { display: flex; gap: 2px; border-radius: var(--radius-0); }
+.u-selector__opt { appearance: none; flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: 40px; padding: 0 var(--space-2);
+  background: var(--key); color: var(--ink); border: 0; font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.u-selector__opt:first-child { border-left: 0; }
+.u-selector__opt.is-on { background: var(--ink); color: var(--chassis); }
+.u-selector__opt:focus-visible { outline-offset: -4px; }
+
+.u-switch { appearance: none; display: inline-flex; align-items: center; gap: var(--space-3); padding: var(--space-1) 0; background: none; border: 0; color: var(--ink); cursor: pointer; }
+.u-switch__track { position: relative; width: 40px; height: 20px; background: var(--panel-sunk); border: 1px solid var(--ink); border-radius: var(--radius-sm); flex: none; }
+.u-switch__thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 14px; background: var(--ink); border-radius: var(--radius-sm); transition: left 80ms linear; }
+.u-switch[aria-checked="true"] .u-switch__track { background: var(--signal); }
+.u-switch[aria-checked="true"] .u-switch__thumb { left: 20px; background: var(--on-signal); }
+.u-switch__state { font-family: var(--font-sans); font-size: 11px; font-weight: 700; letter-spacing: .06em; min-width: 3ch; }
+
+.u-fader { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.u-fader__head { display: flex; justify-content: space-between; align-items: baseline; }
+.u-fader__input { appearance: none; -webkit-appearance: none; width: 100%; height: 28px; margin: 0; background: transparent; cursor: ew-resize; }
+.u-fader__input::-webkit-slider-runnable-track { height: 4px; background: linear-gradient(to right, var(--signal) var(--t), var(--panel-sunk) var(--t)); border: 1px solid var(--ink); }
+.u-fader__input::-moz-range-track { height: 4px; background: linear-gradient(to right, var(--signal) var(--t), var(--panel-sunk) var(--t)); border: 1px solid var(--ink); }
+.u-fader__input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 28px; margin-top: -13px; background: var(--ink); border: 0; border-radius: var(--radius-sm); }
+.u-fader__input::-moz-range-thumb { width: 14px; height: 28px; background: var(--ink); border: 0; border-radius: var(--radius-sm); }
+
+.u-knob { display: inline-flex; flex-direction: column; align-items: center; gap: var(--space-1); }
+.u-knob__dial { border-radius: var(--radius-full); cursor: grab; touch-action: none; line-height: 0; }
+.u-knob__tick { stroke: var(--line); stroke-width: 1.5; }
+.u-knob__track { fill: none; stroke: var(--panel-sunk); stroke-width: 3; }
+.u-knob__arc { fill: none; stroke: var(--signal); stroke-width: 3; }
+.u-knob__cap { fill: var(--panel); stroke: var(--ink); stroke-width: 1.5; }
+.u-knob__ind { stroke: var(--ink); stroke-width: 3; stroke-linecap: square; }
+.u-knob__foot { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.u-knob__dial.is-turning { outline: 1px dashed var(--ink-muted); outline-offset: 3px; }
+:where(input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]), select, textarea) { font-size: max(16px, 1rem); }
+
+/* From components/bundle.css */
+:where(.u-key, .u-knob__dial, .u-switch, .u-selector__opt, .u-field__input, .u-fader__input):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.u-key__text { display: block; }
+.u-display__top { display: flex; justify-content: space-between; gap: var(--space-4); }
+.u-display__label { font-size: 11px; line-height: 14px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--lcd-muted); }
+.u-display__value { display: flex; align-items: baseline; gap: var(--space-2); margin-top: var(--space-2); }
+.u-display__num { font-size: 40px; line-height: 40px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.u-display__num.is-signal { color: var(--signal); }
+.u-display__unit { font-size: 13px; line-height: 16px; color: var(--lcd-muted); text-transform: uppercase; letter-spacing: .08em; }
+.u-display__meter { display: flex; gap: 2px; margin-top: var(--space-3); }
+.u-display__seg { flex: 1; height: 6px; background: var(--lcd-dim); }
+.u-display__seg.is-lit { background: var(--lcd-ink); }
+.u-display__seg.is-signal { background: var(--signal); }
+.u-field { display: flex; flex-direction: column; gap: var(--space-1); min-width: 220px; }
+.u-field__input { box-sizing: border-box; height: 40px; padding: 0 var(--space-3); background: var(--panel-sunk); color: var(--ink); border: 0; border-bottom: 2px solid var(--ink); border-radius: var(--radius-0);
+  font-family: var(--font-sans); font-size: 16px; line-height: 22px; }
+.u-field__input--mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.u-field__input::placeholder { color: var(--ink-muted); }
+.u-field__hint { font-size: 13px; line-height: 18px; color: var(--ink-muted); }

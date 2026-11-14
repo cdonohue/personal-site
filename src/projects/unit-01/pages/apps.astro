@@ -1,0 +1,151 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Link from '../../../components/Link.astro'
+import Icon from '../components/Icon.astro'
+import { appHref, apps } from '../catalogue'
+
+/*
+ * The 24 apps, each a self-contained page served as handed off from
+ * public/projects/unit-01/apps/. They fill their window and adapt through
+ * container queries, so they open full-page rather than in a frame.
+ */
+const pad = (n: number) => String(n).padStart(2, '0')
+---
+
+<Layout index="03" title="Apps">
+  <section class="u-display hero" aria-labelledby="apps-title">
+    <div class="u-display__row">
+      <h2 class="u-display__label" id="apps-title">Apps</h2>
+      <span class="u-display__label u-display__label--extra">Each one works · open any</span>
+    </div>
+    <div class="hero__value">
+      <span class="hero__number">{pad(apps.length)}</span>
+      <span class="u-display__unit">Apps</span>
+    </div>
+  </section>
+
+  <section class="u-panel" aria-labelledby="about-apps-title">
+    <header class="u-panel__head">
+      <h3 class="u-label" id="about-apps-title"><b>01</b> About</h3>
+    </header>
+    <p class="lead prose">
+      Small tools built entirely from the system’s components. Each one adapts from a 200px square
+      to a desktop, works with the keyboard, and keeps its state in this browser only.
+    </p>
+  </section>
+
+  <section class="u-panel" aria-labelledby="suite-title">
+    <header class="u-panel__head">
+      <h3 class="u-label" id="suite-title"><b>02</b> Suite</h3>
+      <span class="u-label">{pad(apps.length)}</span>
+    </header>
+    <ul class="tiles">
+      {
+        apps.map((app, i) => (
+          <li>
+            <Link href={appHref(app)} class="tile">
+              <span class="tile__top">
+                <span class="tile__index">{pad(i + 1)}</span>
+                <Icon name="arrow-right" class="tile__icon" />
+              </span>
+              <span class="tile__name">{app.name}</span>
+              <span class="tile__idea">{app.idea}</span>
+              <span class="tile__features">{app.features}</span>
+              {app.note && <span class="tile__note">{app.note}</span>}
+            </Link>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</Layout>
+
+<style>
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+    gap: var(--space-2);
+    list-style: none;
+  }
+
+  .tiles li {
+    display: flex;
+  }
+
+  /* A large key: square, keycap edge, presses when you press it. */
+  :global(.tile) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+    min-height: 200px;
+    padding: var(--space-3);
+    background: var(--key);
+    color: var(--ink);
+    box-shadow: var(--shadow-key);
+    text-decoration: none;
+    transition:
+      transform 60ms linear,
+      box-shadow 60ms linear;
+  }
+
+  :global(.tile:active) {
+    transform: translateY(2px);
+    box-shadow: var(--shadow-key-pressed);
+  }
+
+  :global(.tile:hover) {
+    background: var(--ink);
+    color: var(--chassis);
+  }
+
+  :global(.tile:hover .tile__features),
+  :global(.tile:hover .tile__note) {
+    color: inherit;
+    opacity: 0.75;
+  }
+
+  .tile__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .tile__index {
+    font: 500 11px / 14px var(--font-mono);
+    letter-spacing: 0.1em;
+  }
+
+  :global(.tile__icon) {
+    transition: transform 60ms linear;
+  }
+
+  :global(.tile:hover .tile__icon) {
+    transform: translateX(3px);
+  }
+
+  .tile__name {
+    margin-top: var(--space-4);
+    font: 800 28px / 1 var(--font-sans);
+    letter-spacing: -0.03em;
+  }
+
+  .tile__idea {
+    font-size: 15px;
+    line-height: 20px;
+  }
+
+  .tile__features {
+    margin-top: auto;
+    color: var(--ink-muted);
+    font-size: 13px;
+    line-height: 18px;
+  }
+
+  .tile__note {
+    font: 700 11px / 14px var(--font-sans);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+</style>

@@ -1,34 +1,23 @@
 @import "tailwindcss";
 
 /**
- * Unit 01 — the site's design system.
+ * Unit 01 — the explorer's chrome and tokens.
+ *
+ * Tailwind is imported for its preflight reset only; nothing here uses its
+ * utilities.
  *
  * Pocket hardware read like a museum wall: black, white, one orange; Libre
  * Franklin for every word and IBM Plex Mono only for numbers a machine counts;
  * 2px rules instead of boxes; square keys with a 2px keycap edge.
  *
  * The canonical reference (brand book, tokens.json, icons) lives in
- * `themes/unit-01/design-system/`. Variable names match it exactly — `--ink`,
- * `--signal`, `--chassis` — so anything written against the system ports
- * without renaming.
+ * `projects/unit-01/design-system/`. Variable names match it exactly — `--ink`,
+ * `--signal`, `--chassis` — so the component styles in components.css and the
+ * apps under public/ use the same names.
  *
  * Two themes: Gallery (white wall) and Night (black wall). Absent a stored
- * choice the page follows the system; `data-theme` on <html> overrides it. The
- * pixel scene's light switch and the header's Dark switch both write that
- * attribute through `pixel-desk/theme.ts`, so the lamp and the wall agree.
+ * choice the page follows the system; `data-theme` on <html> overrides it.
  */
-
-/*
- * The pixel scene is styled with Tailwind utilities (`text-ink`, `bg-paper`,
- * `outline-ink`). `inline` makes those utilities resolve to the live Unit 01
- * variables, so they follow Gallery and Night without a second palette.
- */
-@theme inline {
-  --color-ink: var(--ink);
-  --color-paper: var(--chassis);
-  --color-muted: var(--ink-muted);
-  --color-line: var(--line);
-}
 
 /* ── Tokens: Gallery ───────────────────────────────────────── */
 :root {
@@ -44,6 +33,10 @@
   --signal: #ff5a1f;
   --signal-text: #a83400;
   --on-signal: #000000;
+  --blue: #3a63d8;
+  --on-blue: #ffffff;
+  --yellow: #f5c400;
+  --on-yellow: #111111;
   --lcd: #0b0b0b;
   --lcd-ink: #f2f2ef;
   --lcd-muted: #8f8f8a;
@@ -144,7 +137,10 @@ body {
 }
 
 .head { grid-area: head; }
-.side-index { grid-area: index; display: none; }
+.side-index { grid-area: index; }
+/* Qualified so the Panel's own display (components.css, loaded later) cannot
+   reveal the column below the wide tier. */
+.shell .side-index { display: none; }
 .side-else { grid-area: else; }
 .main {
   grid-area: main;
@@ -168,7 +164,7 @@ body {
     row-gap: var(--space-6);
     padding: var(--space-8) var(--space-8) var(--space-12);
   }
-  .side-index { display: block; }
+  .shell .side-index { display: flex; }
   .side-else { align-self: start; }
 }
 
@@ -241,9 +237,12 @@ body {
 }
 
 /* Phone: a menu key opening a sheet of page keys under the bar. */
-.menu__key {
+.head .menu__key {
   width: 40px;
   height: 40px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
   list-style: none;
 }
 
@@ -260,6 +259,9 @@ body {
 }
 
 .menu__sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   position: absolute;
   z-index: 50;
   top: calc(100% + var(--space-2));
@@ -304,69 +306,14 @@ body {
 }
 
 /*
- * Switch. Per the system its "on" track is signal, but the index's lit LED
- * already owns the screen's one orange, so the throw is shown in ink.
+ * The Dark switch in the title bar. The system's Switch lights signal when on
+ * (see components.css), but the index's lit LED already owns the screen's one
+ * orange, so this one throws in ink.
  */
-.u-switch {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-1) 0;
-  border: 0;
-  background: none;
-  color: var(--ink);
-  cursor: pointer;
-}
+.u-switch--ink[aria-checked="true"] .u-switch__track { background: var(--ink); }
+.u-switch--ink[aria-checked="true"] .u-switch__thumb { background: var(--chassis); }
 
-.u-switch__track {
-  position: relative;
-  flex: none;
-  width: 40px;
-  height: 20px;
-  background: var(--panel-sunk);
-  border: 1px solid var(--ink);
-  border-radius: var(--radius-sm);
-}
-
-.u-switch__thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 14px;
-  background: var(--ink);
-  border-radius: var(--radius-sm);
-  transition: left 80ms linear;
-}
-
-.u-switch[aria-checked="true"] .u-switch__track { background: var(--ink); }
-.u-switch[aria-checked="true"] .u-switch__thumb {
-  left: 20px;
-  background: var(--chassis);
-}
-
-.u-key {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-0);
-  background: var(--key);
-  color: var(--ink);
-  box-shadow: var(--shadow-key);
-  cursor: pointer;
-  transition: transform 60ms linear, box-shadow 60ms linear;
-}
-
-.u-key:active {
-  transform: translateY(2px);
-  box-shadow: var(--shadow-key-pressed);
-}
-
-.u-key--sm { width: 32px; height: 32px; }
+.u-icon--back { transform: scaleX(-1); }
 
 /*
  * ── Key list ──────────────────────────────────────────────────
@@ -429,6 +376,7 @@ body {
     flex-direction: row;
     gap: 2px;
   }
+  .side-else .keyrow { justify-content: flex-start; }
   .side-else .keyrow { flex: 1 1 0; min-width: 0; }
 }
 
@@ -445,6 +393,14 @@ body {
   align-items: baseline;
   gap: var(--space-3);
   padding: var(--space-2) 0 var(--space-3);
+}
+
+.u-panel__head {
+  flex-wrap: wrap;
+}
+
+.u-panel__head .u-label {
+  white-space: normal;
 }
 
 .u-panel__head > .u-label:first-child {
@@ -513,45 +469,6 @@ body {
   .u-display__label--extra { display: none; }
 }
 
-/*
- * The pixel scene, bare on the wall. It brings its own stepped edge, so it
- * gets no frame, only the caption row the Uses map hangs under it.
- */
-.scene {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.scene astro-island > div { margin-bottom: 0; }
-
-.scene__caption {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-3);
-}
-
-/* A small screen holding one word: the current company. */
-.now {
-  gap: var(--space-4);
-  padding: var(--space-3);
-  min-height: 120px;
-  justify-content: space-between;
-}
-
-.now__company {
-  font: 800 clamp(32px, 16cqi, 48px) / 1 var(--font-sans);
-  letter-spacing: -0.035em;
-}
-
-.now__company a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.now__company a:hover { color: var(--signal); }
-
 /* The key number, set heavy. */
 .hero { min-height: clamp(200px, 32cqi, 320px); }
 
@@ -579,6 +496,38 @@ body {
 }
 
 .muted { color: var(--ink-muted); }
+
+.small {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+/*
+ * Links in running text: ink with a heavy rule under them. Hover fills them
+ * with signal — orange as a fill, never as text on white.
+ */
+.text-link {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.text-link:hover {
+  background: var(--signal);
+  color: var(--on-signal);
+  text-decoration-color: var(--on-signal);
+}
+
+/* A row of keys that shares the width, e.g. "continue" links. */
+.keylist--row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.keylist--row .keyrow { flex: 1 1 180px; }
 
 /*
  * ── Rows ──────────────────────────────────────────────────────
@@ -623,6 +572,11 @@ body {
   letter-spacing: -0.01em;
 }
 
+.row__title--sm {
+  font-size: 17px;
+  line-height: 24px;
+}
+
 .row__link {
   display: inline-flex;
   align-items: center;
@@ -652,7 +606,7 @@ body {
   .shell { padding-inline: var(--space-2); }
   .head { gap: var(--space-2); }
   .hero__value { padding: 0 var(--space-3) var(--space-3); }
-  .hero__number { font-size: 64px; }
+  .hero__number { font-size: clamp(36px, 22cqi, 64px); }
   .head__title { white-space: normal; }
   .head__index,
   .u-switch .u-label { display: none; }

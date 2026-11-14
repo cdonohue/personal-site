@@ -1,22 +1,20 @@
 ---
-import { navigation } from '../../../content'
 import Link from '../../../components/Link.astro'
+import { sections } from '../catalogue'
 
 /**
- * The site index as keys. The header, the phone menu and the desktop column
- * each render it in their own form, and CSS shows exactly one of them for the
- * width at hand, so there is never more than one visible nav.
+ * The explorer's sections as keys. The header, the phone menu and the wide
+ * left column each render it in their own form, and CSS shows exactly one of
+ * them for the width at hand, so there is never more than one visible nav.
  *
- * The current page inverts to ink, sits pressed and lights its LED — the
+ * The current section inverts to ink, sits pressed and lights its LED — the
  * screen's one orange. Derived from the request path on the server.
  */
 interface Props {
-  /** Accessible name; only one instance is ever displayed at a time. */
-  label?: string
   class?: string
 }
 
-const { label = 'Site', class: className } = Astro.props
+const { class: className } = Astro.props
 
 const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
 
@@ -28,9 +26,9 @@ const isCurrent = (to: string, end?: boolean) => {
 const pad = (n: number) => String(n).padStart(2, '0')
 ---
 
-<nav class:list={['keylist', className]} aria-label={label}>
+<nav class:list={['keylist', className]} aria-label="Unit 01">
   {
-    navigation.map(({ label, to, end }, i) => (
+    sections.map(({ label, to, end }, i) => (
       <Link href={to} class="keyrow" aria-current={isCurrent(to, end) ? 'page' : undefined}>
         <span class="keyrow__label">
           <span class="u-led" aria-hidden="true" />

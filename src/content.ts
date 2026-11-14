@@ -22,6 +22,16 @@ export type UseItem = {
   href: string
 }
 
+export type Project = {
+  name: string
+  /** One line: what it is. */
+  summary: string
+  description: string
+  href: string
+  /** Short facts shown beside the project, e.g. what it contains. */
+  facts: string[]
+}
+
 export type ElsewhereLink = {
   label: string
   href: string
@@ -37,6 +47,18 @@ export const navigation = [
   { label: 'Home', to: '/', end: true },
   { label: 'Experience', to: '/experience' },
   { label: 'Uses', to: '/uses' },
+  { label: 'Projects', to: '/projects' },
+]
+
+export const projects: Project[] = [
+  {
+    name: 'Unit 01',
+    summary: 'A design system for small personal apps that work like pocket hardware.',
+    description:
+      'Keycaps, knobs and a little LCD, set in stark black and white with heavy Franklin type, bold rules and one hot orange for whatever is live. Ten components, two themes, and twenty-four working apps built from them.',
+    href: '/projects/unit-01/',
+    facts: ['10 components', '24 apps', '2 themes'],
+  },
 ]
 
 /** Was duplicated in two pages and hardcoded in a third. */

@@ -1,0 +1,665 @@
+---
+import Layout from '../layouts/Layout.astro'
+
+/*
+ * Every Unit 01 component, live. The markup and classes are the ones the apps
+ * use (styles in components.css), and the script below wires them the way the
+ * apps do — the knob gesture is the canonical knobDrag from the handoff.
+ */
+
+const icons: [string, string][] = [
+  ['play', 'M7 4l13 8-13 8z'],
+  ['stop', 'M5 5h14v14H5z'],
+  ['record', 'M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z'],
+  ['plus', 'M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z'],
+  ['minus', 'M4 11h16v2H4z'],
+  ['arrow-right', 'M4 11h11.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H4z'],
+  ['menu', 'M4 6h16v2H4zM4 11h16v2H4zM4 16h10v2H4z'],
+  ['close', 'M6.4 5L12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z'],
+]
+
+const segments = Array.from({ length: 16 }, (_, i) => i)
+---
+
+<Layout index="02" title="Components">
+  <section class="u-display hero" aria-labelledby="components-title">
+    <div class="u-display__row">
+      <h2 class="u-display__label" id="components-title">Components</h2>
+      <span class="u-display__label u-display__label--extra">Live · work any of them</span>
+    </div>
+    <div class="hero__value">
+      <span class="hero__number">10</span>
+      <span class="u-display__unit">Components</span>
+    </div>
+  </section>
+
+  <div class="specs">
+    <!-- 01 Key -->
+    <section class="u-panel spec spec--wide" aria-labelledby="key-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="key-title"><b>01</b> Key</h3>
+        <span class="u-label">button</span>
+      </header>
+      <div class="u-panel__body">
+        <div class="spec__stage">
+          <button type="button" class="u-key spec-key">
+            <span class="u-key__top"><span class="u-key__index">01</span></span>
+            <span class="u-key__text">Mode</span>
+          </button>
+          <button type="button" class="u-key u-key--ink spec-key">
+            <span class="u-key__top"><span class="u-key__index">02</span></span>
+            <span class="u-key__text">Reset</span>
+          </button>
+          <button type="button" class="u-key u-key--signal spec-key spec-key--wide" aria-label="Play">
+            <span class="u-key__top"><span class="u-key__index">Space</span></span>
+            <span class="u-key__glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg></span>
+            <span class="u-key__text">Play</span>
+          </button>
+          <button type="button" class="u-key u-key--blue spec-key">
+            <span class="u-key__top"><span class="u-key__index">T</span></span>
+            <span class="u-key__text">Tap</span>
+          </button>
+          <button type="button" class="u-key u-key--yellow spec-key">
+            <span class="u-key__top"><span class="u-key__index">H</span></span>
+            <span class="u-key__text">Hold</span>
+          </button>
+          <button type="button" class="u-key spec-key" aria-pressed="false" data-latch>
+            <span class="u-key__top"><span class="u-key__index">06</span><span class="u-led"></span></span>
+            <span class="u-key__text">Loop</span>
+          </button>
+        </div>
+        <ul class="spec__notes">
+          <li>A square block with a 2px keycap edge and no outline. Pressed, it drops 2px and the edge collapses.</li>
+          <li>Plain for most actions, ink for strong ones, blue and yellow for modifiers, and signal for the one live action on the screen.</li>
+          <li>Latching keys carry an LED and <code>aria-pressed</code>. Loop latches.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 02 Led -->
+    <section class="u-panel spec" aria-labelledby="led-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="led-title"><b>02</b> Led</h3>
+        <span class="u-label">status</span>
+      </header>
+      <div class="u-panel__body">
+        <div class="spec__stage spec__stage--list">
+          <span class="led-row"><span class="u-led"></span><span class="u-label">Off</span></span>
+          <span class="led-row"><span class="u-led is-lit"></span><span class="u-label">Live</span></span>
+          <span class="led-row"><span class="u-led" style="background: var(--blue)"></span><span class="u-label">Shift</span></span>
+          <span class="led-row"><span class="u-led" style="background: var(--yellow)"></span><span class="u-label">Hold</span></span>
+          <span class="led-row"><span class="u-led" style="background: var(--ink)"></span><span class="u-label">Armed</span></span>
+        </div>
+        <ul class="spec__notes">
+          <li>A 6px dot. Unlit is the line colour; lit is signal, or a function colour.</li>
+          <li>Never meaning by colour alone: always beside a label.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 03 Label -->
+    <section class="u-panel spec" aria-labelledby="label-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="label-title"><b>03</b> Label</h3>
+        <span class="u-label">text</span>
+      </header>
+      <div class="u-panel__body">
+        <div class="spec__stage spec__stage--list">
+          <span class="u-label"><b>01</b> Tempo</span>
+          <span class="u-label">Beats / bar</span>
+          <span class="u-label" style="color: var(--signal-text)">Recording</span>
+        </div>
+        <ul class="spec__notes">
+          <li>Franklin 700 at 11px, uppercase, tracked. One or two words, no punctuation.</li>
+          <li>A bold index numbers modules in reading order. Orange text uses <code>signal-text</code>.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 04 Panel -->
+    <section class="u-panel spec" aria-labelledby="panel-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="panel-title"><b>04</b> Panel</h3>
+        <span class="u-label">region</span>
+      </header>
+      <div class="u-panel__body">
+        <div class="spec__stage spec__stage--block">
+          <div class="u-panel">
+            <div class="u-panel__head">
+              <span class="u-label"><b>02</b> Tempo</span>
+              <span class="u-label">20–300</span>
+            </div>
+            <div class="u-panel__body"><p class="muted small">Rule on top, title left, meta right, contents on the wall.</p></div>
+          </div>
+        </div>
+        <ul class="spec__notes">
+          <li>No fill, border or shadow: a 2px rule and a numbered title. Every panel on this page is one.</li>
+          <li>Each is a container, so what is inside adapts to the panel’s own width.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 05 Display -->
+    <section class="u-panel spec spec--wide" aria-labelledby="display-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="display-title"><b>05</b> Display</h3>
+        <span class="u-label">readout</span>
+      </header>
+      <div class="u-panel__body">
+        <div class="spec__stage spec__stage--block">
+          <div class="u-display demo-display">
+            <div class="u-display__top">
+              <span class="u-display__label">Local time</span>
+              <span class="u-display__label" data-clock-zone>—</span>
+            </div>
+            <div class="u-display__value">
+              <span class="u-display__num" data-clock>00:00:00</span>
+            </div>
+            <div class="u-display__meter" aria-hidden="true">
+              {segments.map(() => <span class="u-display__seg" data-seg />)}
+            </div>
+          </div>
+        </div>
+        <ul class="spec__notes">
+          <li>The black screen, in both themes. A label row, one big mono number and an optional segmented meter.</li>
+          <li>For the one or two numbers a screen is about, never paragraphs. This one is your clock; the meter fills across each minute.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 06 Knob -->
+    <section class="u-panel spec" aria-labelledby="knob-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="knob-title"><b>06</b> Knob</h3>
+        <span class="u-label">slider</span>
+      </header>
+      <div class="u-panel__body">
+        <div class="spec__stage">
+          <div class="u-knob" data-knob data-label="Volume" data-value="64"></div>
+          <div class="u-knob" data-knob data-label="Tone" data-value="30"></div>
+          <div class="u-knob" data-knob data-label="Swing" data-value="0"></div>
+        </div>
+        <ul class="spec__notes">
+          <li>Turn it like a dial from the ring, or slide up or right from the centre. Shift is fine control; the wheel and arrow keys step.</li>
+          <li>270° of travel, a signal arc for the value, and a zero-padded mono readout.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 07 Fader -->
+    <section class="u-panel spec" aria-labelledby="fader-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="fader-title"><b>07</b> Fader</h3>
+        <span class="u-label">range</span>
+      </header>
+      <div class="u-panel__body">
+        <div class="spec__stage spec__stage--block">
+          <label class="u-fader">
+            <span class="u-fader__head"><span class="u-label">BPM</span><span class="u-value" data-fader-value>120</span></span>
+            <input class="u-fader__input" type="range" min="20" max="300" step="1" value="120" data-fader />
+          </label>
+        </div>
+        <ul class="spec__notes">
+          <li>A styled native range: an outlined track filled signal up to the thumb, and a flat ink thumb.</li>
+          <li>For values with a long, linear range. Knobs suit tight spaces.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 08 Switch -->
+    <section class="u-panel spec" aria-labelledby="switch-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="switch-title"><b>08</b> Switch</h3>
+        <span class="u-label">switch</span>
+      </header>
+      <div class="u-panel__body">
+        <div class="spec__stage spec__stage--list">
+          <button type="button" class="u-switch" role="switch" aria-checked="true" data-switch>
+            <span class="u-switch__track" aria-hidden="true"><span class="u-switch__thumb"></span></span>
+            <span class="u-label">Flash on 1</span>
+          </button>
+          <button type="button" class="u-switch" role="switch" aria-checked="false" data-switch>
+            <span class="u-switch__track" aria-hidden="true"><span class="u-switch__thumb"></span></span>
+            <span class="u-label">Sound subdivs</span>
+          </button>
+        </div>
+        <ul class="spec__notes">
+          <li>A slide switch for settings that take effect at once. On lights the track in signal.</li>
+          <li>The only component with 2px corners.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 09 Selector -->
+    <section class="u-panel spec" aria-labelledby="selector-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="selector-title"><b>09</b> Selector</h3>
+        <span class="u-label">radiogroup</span>
+      </header>
+      <div class="u-panel__body">
+        <div class="spec__stage spec__stage--block">
+          <div class="u-selector">
+            <span class="u-label" id="sub-label">Subdivision</span>
+            <div class="u-selector__row" role="radiogroup" aria-labelledby="sub-label" data-selector>
+              <button type="button" class="u-selector__opt is-on" role="radio" aria-checked="true" tabindex="0"><span class="u-led"></span>1/4</button>
+              <button type="button" class="u-selector__opt" role="radio" aria-checked="false" tabindex="-1"><span class="u-led"></span>1/8</button>
+              <button type="button" class="u-selector__opt" role="radio" aria-checked="false" tabindex="-1"><span class="u-led"></span>Trip</button>
+              <button type="button" class="u-selector__opt" role="radio" aria-checked="false" tabindex="-1"><span class="u-led"></span>1/16</button>
+            </div>
+          </div>
+        </div>
+        <ul class="spec__notes">
+          <li>One of two to five modes, as joined square keys. The chosen one inverts to ink and lights its LED.</li>
+          <li>Arrow keys move and select.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 10 Field -->
+    <section class="u-panel spec" aria-labelledby="field-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="field-title"><b>10</b> Field</h3>
+        <span class="u-label">input</span>
+      </header>
+      <div class="u-panel__body">
+        <div class="spec__stage spec__stage--block">
+          <label class="u-field">
+            <span class="u-label">Session name</span>
+            <input class="u-field__input" type="text" placeholder="Morning practice" autocomplete="off" />
+          </label>
+          <label class="u-field">
+            <span class="u-label">Rate</span>
+            <input class="u-field__input u-field__input--mono" type="text" inputmode="decimal" value="1.0842" autocomplete="off" />
+            <span class="u-field__hint">Mono for numbers. Never under 16px, or iOS zooms on focus.</span>
+          </label>
+        </div>
+        <ul class="spec__notes">
+          <li>A sunken well with a 2px ink underline and the label above.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Patterns -->
+    <section class="u-panel spec" aria-labelledby="stepper-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="stepper-title"><b>11</b> Stepper</h3>
+        <span class="u-label">pattern</span>
+      </header>
+      <div class="u-panel__body">
+        <div class="spec__stage spec__stage--block">
+          <div class="u-selector">
+            <span class="u-label">Beats / bar</span>
+            <div class="stepper" data-stepper>
+              <button type="button" class="u-key u-key--sm" aria-label="Fewer beats" data-step="-1">−</button>
+              <output class="stepper__val" data-step-value>04</output>
+              <button type="button" class="u-key u-key--sm" aria-label="More beats" data-step="1">+</button>
+            </div>
+          </div>
+        </div>
+        <ul class="spec__notes">
+          <li>Two small keys either side of a sunken mono value, for small whole numbers.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="u-panel spec spec--wide" aria-labelledby="icons-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="icons-title"><b>12</b> Icons</h3>
+        <span class="u-label">{String(icons.length).padStart(2, '0')}</span>
+      </header>
+      <div class="u-panel__body">
+        <ul class="icon-grid">
+          {
+            icons.map(([name, d]) => (
+              <li class="icon-cell">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d={d} /></svg>
+                <span class="u-label">{name}</span>
+              </li>
+            ))
+          }
+        </ul>
+        <ul class="spec__notes">
+          <li>Solid geometric glyphs on a 24px grid, filled with the current colour. Never emoji: iOS draws arrows and play symbols as colour emoji.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  const pad = (n: number, w: number) => String(Math.round(n)).padStart(w, '0')
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+
+  // Keys: latching keys toggle aria-pressed and light their LED.
+  document.querySelectorAll<HTMLButtonElement>('[data-latch]').forEach((key) => {
+    key.addEventListener('click', () => {
+      const on = key.getAttribute('aria-pressed') !== 'true'
+      key.setAttribute('aria-pressed', String(on))
+      key.querySelector('.u-led')?.classList.toggle('is-lit', on)
+    })
+  })
+
+  // Display: the visitor's clock, with the meter filling across the minute.
+  const clock = document.querySelector<HTMLElement>('[data-clock]')
+  const zone = document.querySelector<HTMLElement>('[data-clock-zone]')
+  const segs = [...document.querySelectorAll<HTMLElement>('[data-seg]')]
+  if (zone) zone.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone.replace(/_/g, ' ')
+  const tick = () => {
+    const now = new Date()
+    if (clock) clock.textContent = `${pad(now.getHours(), 2)}:${pad(now.getMinutes(), 2)}:${pad(now.getSeconds(), 2)}`
+    const lit = Math.floor((now.getSeconds() / 60) * segs.length)
+    segs.forEach((seg, i) => {
+      seg.classList.toggle('is-lit', i < lit)
+      seg.classList.toggle('is-signal', i === lit)
+    })
+  }
+  tick()
+  window.setInterval(tick, 1000)
+
+  /*
+   * Knob — the canonical gesture (handoff: shared/knob-drag.js, decision D13).
+   * Start on the ring to turn (270° is the full range), near the centre to
+   * slide (up or right raises). Shift is fine. The wheel dispatches the knob's
+   * own arrow keys, so wheel steps match keyboard steps.
+   */
+  const knobDrag = (
+    dial: HTMLElement,
+    get: () => number,
+    set: (v: number) => void,
+    range: number,
+    sens: number,
+    min: number,
+    max: number,
+  ) => {
+    type Drag = { x: number; y: number; cx: number; cy: number; v: number; tv: number; mode: 'turn' | 'slide' | null; ang: number; ring: boolean }
+    let st: Drag | null = null
+    const cl = (v: number) => clamp(v, min, max)
+    dial.style.touchAction = 'none'
+    dial.addEventListener('pointerdown', (e) => {
+      e.preventDefault()
+      dial.focus()
+      dial.setPointerCapture(e.pointerId)
+      const r = dial.getBoundingClientRect()
+      const cx = r.left + r.width / 2
+      const cy = r.top + r.height / 2
+      const rad = Math.min(r.width, r.height) / 2
+      const dx = e.clientX - cx
+      const dy = e.clientY - cy
+      st = { x: e.clientX, y: e.clientY, cx, cy, v: get(), tv: get(), mode: null, ang: Math.atan2(dx, -dy), ring: Math.hypot(dx, dy) >= rad * 0.4 }
+    })
+    dial.addEventListener('pointermove', (e) => {
+      if (!st) return
+      const mx = e.clientX - st.x
+      const my = e.clientY - st.y
+      if (!st.mode) {
+        if (Math.hypot(mx, my) < 4) return
+        st.mode = st.ring ? 'turn' : 'slide'
+        dial.classList.add('is-turning')
+      }
+      if (st.mode === 'turn') {
+        const dx = e.clientX - st.cx
+        const dy = e.clientY - st.cy
+        if (Math.hypot(dx, dy) < 6) return
+        const a = Math.atan2(dx, -dy)
+        let d = a - st.ang
+        if (d > Math.PI) d -= 2 * Math.PI
+        if (d < -Math.PI) d += 2 * Math.PI
+        st.ang = a
+        st.tv = cl(st.tv + (d / (1.5 * Math.PI)) * range * (e.shiftKey ? 0.25 : 1))
+        set(st.tv)
+      } else {
+        set(cl(st.v + ((mx - my) * range) / sens / (e.shiftKey ? 4 : 1)))
+      }
+    })
+    const end = () => {
+      st = null
+      dial.classList.remove('is-turning')
+    }
+    dial.addEventListener('pointerup', end)
+    dial.addEventListener('pointercancel', end)
+    dial.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault()
+        if (Math.abs(e.deltaY) < 1) return
+        dial.dispatchEvent(new KeyboardEvent('keydown', { key: e.deltaY < 0 ? 'ArrowUp' : 'ArrowDown', shiftKey: e.shiftKey, bubbles: true, cancelable: true }))
+      },
+      { passive: false },
+    )
+  }
+
+  const pt = (a: number, r: number) => {
+    const t = (a * Math.PI) / 180
+    return [32 + r * Math.sin(t), 32 - r * Math.cos(t)]
+  }
+  const arc = (a0: number, a1: number, r: number) => {
+    const s = pt(a0, r)
+    const e = pt(a1, r)
+    return `M${s[0].toFixed(2)} ${s[1].toFixed(2)} A${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${e[0].toFixed(2)} ${e[1].toFixed(2)}`
+  }
+  let ticks = ''
+  for (let i = 0; i <= 10; i += 1) {
+    const a = -135 + 27 * i
+    const o = pt(a, 31)
+    const n = pt(a, 28.5)
+    ticks += `<line class="u-knob__tick" x1="${o[0]}" y1="${o[1]}" x2="${n[0]}" y2="${n[1]}"/>`
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-knob]').forEach((root) => {
+    const label = root.dataset.label ?? 'Value'
+    let value = Number(root.dataset.value ?? 0)
+    root.innerHTML =
+      `<div class="u-knob__dial" tabindex="0" role="slider" aria-label="${label}" aria-valuemin="0" aria-valuemax="100">` +
+      `<svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">${ticks}<path class="u-knob__track" d="${arc(-135, 135, 25)}"/><path class="u-knob__arc"/><circle class="u-knob__cap" cx="32" cy="32" r="20"/><line class="u-knob__ind"/></svg></div>` +
+      `<div class="u-knob__foot"><span class="u-label">${label}</span><span class="u-value"></span></div>`
+    const dial = root.querySelector<HTMLElement>('.u-knob__dial')!
+    const arcEl = root.querySelector('.u-knob__arc')!
+    const ind = root.querySelector('.u-knob__ind')!
+    const out = root.querySelector('.u-value')!
+    const draw = () => {
+      const a = -135 + (270 * value) / 100
+      const i0 = pt(a, 6)
+      const i1 = pt(a, 17)
+      arcEl.setAttribute('d', value > 0 ? arc(-135, a, 25) : '')
+      ind.setAttribute('x1', String(i0[0]))
+      ind.setAttribute('y1', String(i0[1]))
+      ind.setAttribute('x2', String(i1[0]))
+      ind.setAttribute('y2', String(i1[1]))
+      out.textContent = pad(value, 3)
+      dial.setAttribute('aria-valuenow', String(Math.round(value)))
+    }
+    const set = (v: number) => {
+      value = clamp(Math.round(v), 0, 100)
+      draw()
+    }
+    dial.addEventListener('keydown', (e) => {
+      // Arrows step by 5, or 1 with Shift (fine); PageUp/Down by 20.
+      const arrow = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key]
+      const page = { PageUp: 20, PageDown: -20 }[e.key]
+      if (arrow !== undefined) set(value + arrow * (e.shiftKey ? 1 : 5))
+      else if (page !== undefined) set(value + page)
+      else if (e.key === 'Home') set(0)
+      else if (e.key === 'End') set(100)
+      else return
+      e.preventDefault()
+    })
+    knobDrag(dial, () => value, set, 100, 150, 0, 100)
+    draw()
+  })
+
+  // Fader: the track fills to the thumb through --t.
+  document.querySelectorAll<HTMLInputElement>('[data-fader]').forEach((input) => {
+    const out = input.closest('.u-fader')?.querySelector('[data-fader-value]')
+    const sync = () => {
+      const t = ((Number(input.value) - Number(input.min)) / (Number(input.max) - Number(input.min))) * 100
+      input.style.setProperty('--t', `${t}%`)
+      if (out) out.textContent = input.value
+    }
+    input.addEventListener('input', sync)
+    sync()
+  })
+
+  // Switch.
+  document.querySelectorAll<HTMLButtonElement>('[data-switch]').forEach((sw) => {
+    sw.addEventListener('click', () => sw.setAttribute('aria-checked', String(sw.getAttribute('aria-checked') !== 'true')))
+  })
+
+  // Selector: radiogroup with roving focus; arrows move and select.
+  document.querySelectorAll<HTMLElement>('[data-selector]').forEach((group) => {
+    const opts = [...group.querySelectorAll<HTMLButtonElement>('[role="radio"]')]
+    const choose = (i: number, focus: boolean) => {
+      opts.forEach((opt, j) => {
+        const on = i === j
+        opt.classList.toggle('is-on', on)
+        opt.setAttribute('aria-checked', String(on))
+        opt.tabIndex = on ? 0 : -1
+      })
+      if (focus) opts[i].focus()
+    }
+    opts.forEach((opt, i) => {
+      opt.addEventListener('click', () => choose(i, false))
+      opt.addEventListener('keydown', (e) => {
+        const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]
+        if (d === undefined) return
+        e.preventDefault()
+        choose((i + d + opts.length) % opts.length, true)
+      })
+    })
+  })
+
+  // Stepper.
+  document.querySelectorAll<HTMLElement>('[data-stepper]').forEach((stepper) => {
+    const out = stepper.querySelector<HTMLOutputElement>('[data-step-value]')!
+    let value = Number(out.value || out.textContent)
+    stepper.querySelectorAll<HTMLButtonElement>('[data-step]').forEach((key) => {
+      key.addEventListener('click', () => {
+        value = clamp(value + Number(key.dataset.step), 1, 16)
+        out.textContent = pad(value, 2)
+      })
+    })
+  })
+</script>
+
+<style>
+  .specs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-8) var(--space-6);
+  }
+
+  @container main (min-width: 720px) {
+    .specs {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .spec--wide {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .spec__stage {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .spec__stage--list {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .spec__stage--block {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-4);
+  }
+
+  /*
+   * The demo panel is not a size container. Inline-size containment inside a
+   * column flexbox makes Chrome measure its height at zero width — every word
+   * on its own line — and keep that height once it stretches.
+   */
+  .spec__stage .u-panel {
+    container-type: normal;
+  }
+
+  .spec__notes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding-left: 0;
+    list-style: none;
+    color: var(--ink-muted);
+    font-size: 13px;
+    line-height: 18px;
+  }
+
+  .spec__notes code {
+    font: 500 12px / 18px var(--font-mono);
+    color: var(--ink);
+  }
+
+  .spec-key {
+    width: 88px;
+    height: 72px;
+  }
+
+  .spec-key--wide {
+    width: 136px;
+  }
+
+  .led-row {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .demo-display {
+    padding: var(--space-3);
+  }
+
+  .demo-display .u-display__num {
+    font-size: clamp(32px, 12cqi, 64px);
+    line-height: 1;
+  }
+
+  .u-field {
+    min-width: 0;
+  }
+
+  .u-field__input {
+    width: 100%;
+  }
+
+  /* As the apps do in narrow panels: drop the LEDs so four options fit. */
+  @container main (max-width: 300px) {
+    .u-selector__opt {
+      padding: 0 var(--space-1);
+    }
+    .u-selector__opt .u-led {
+      display: none;
+    }
+  }
+
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: var(--space-2);
+    list-style: none;
+  }
+
+  .icon-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-2);
+    background: var(--panel-sunk);
+  }
+
+  .icon-cell svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+  }
+</style>

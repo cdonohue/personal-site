@@ -2,9 +2,10 @@
 import SiteHeader from '../components/SiteHeader.astro'
 import Sidebar from '../components/Sidebar.astro'
 import '../styles.css'
+import '../components.css'
 
 interface Props {
-  /** Appended to the site name in the tab. Omitted on the home page. */
+  /** The section, shown in the tab after the project name. */
   title?: string
   /** Page-specific summary for search results and link previews. */
   description?: string
@@ -15,7 +16,7 @@ interface Props {
 const {
   title,
   index,
-  description = 'Chad Donohue is a software engineer building thoughtful products, design systems, and frontend architecture.',
+  description = 'Unit 01: a design system for small personal apps that work like pocket hardware, by Chad Donohue.',
 } = Astro.props
 ---
 
@@ -32,13 +33,12 @@ const {
       href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <title>{title ? `Chad Donohue — ${title}` : 'Chad Donohue'}</title>
+    <title>{title ? `Unit 01 — ${title}` : 'Unit 01'} · Chad Donohue</title>
     <script is:inline>
       /*
        * Apply a stored theme before anything paints, so choosing Night and
-       * clicking through to another page never flashes Gallery first. The key
-       * is the one `pixel-desk/theme.ts` owns, shared with the scene's light
-       * switch.
+       * clicking through never flashes Gallery first. The key is the one
+       * `themes/pixel-desk/theme.ts` owns, shared with the site's light switch.
        */
       try {
         const stored = localStorage.getItem('desk-room.theme')

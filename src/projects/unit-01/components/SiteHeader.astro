@@ -1,15 +1,16 @@
 ---
-import { siteName } from '../../../content'
 import Link from '../../../components/Link.astro'
 import Icon from './Icon.astro'
+import BackKeys from './BackKeys.astro'
 import NavKeys from './NavKeys.astro'
+import { BASE } from '../catalogue'
 
 /**
- * The title bar. Its navigation changes form with the space it has:
+ * The explorer's title bar. Its navigation changes form with the space it has:
  *
- * - phone: a menu key that opens a sheet of page keys, so the title bar stays
+ * - phone: a menu key that opens a sheet of section keys and the way back, so the title bar stays
  *   one line and the scene is above the fold
- * - tablet and laptop: the page keys inline in the bar
+ * - tablet and laptop: the section keys inline in the bar
  * - wide: nothing here; the index is the left column (Sidebar)
  *
  * The menu is a <details>, so it works before and without script.
@@ -17,10 +18,10 @@ import NavKeys from './NavKeys.astro'
  * It is set the way every Unit 01 screen opens: a small mono index,
  * the name as heavy type, and the meta and Dark switch on the right.
  *
- * The Dark switch writes through `pixel-desk/theme.ts`, the same module the
- * scene's light switch uses, so whichever control is worked the room's lamp and
- * the page agree. It has to work on every page, which is why this ships a few
- * lines of script on pages that otherwise send none.
+ * The Dark switch shares its stored choice with the site's own light switch
+ * (the one on the wall in the pixel desk), so Night here is Night there.
+ *
+ * It writes through `pixel-desk/theme.ts`, the one owner of that value.
  */
 interface Props {
   /** The current page's number in the index, shown before the name. */
@@ -33,12 +34,18 @@ const { index } = Astro.props
 <header class="head">
   <h1 class="head__title">
     <span class="head__index">{index}</span>
-    <Link href="/">{siteName}</Link>
+    <Link href={`${BASE}/`}>Unit 01</Link>
   </h1>
   <NavKeys class="head__nav" />
   <div class="head__meta">
-    <span class="u-label head__role">Software engineer · Houston</span>
-    <button type="button" role="switch" aria-checked="false" class="u-switch" data-theme-switch>
+    <span class="u-label head__role">Design system · Chad Donohue</span>
+    <button
+      type="button"
+      role="switch"
+      aria-checked="false"
+      class="u-switch u-switch--ink"
+      data-theme-switch
+    >
       <span class="u-switch__track"><span class="u-switch__thumb"></span></span>
       <span class="u-label">Dark</span>
     </button>
@@ -62,13 +69,14 @@ const { index } = Astro.props
       </summary>
       <div class="menu__sheet">
         <NavKeys />
+        <BackKeys />
       </div>
     </details>
   </div>
 </header>
 
 <script>
-  import { chooseTheme, isDark, watchSystem } from '../../pixel-desk/theme'
+  import { chooseTheme, isDark, watchSystem } from '../../../themes/pixel-desk/theme'
 
   const toggle = document.querySelector<HTMLButtonElement>('[data-theme-switch]')
   const sync = () => toggle?.setAttribute('aria-checked', String(isDark()))
