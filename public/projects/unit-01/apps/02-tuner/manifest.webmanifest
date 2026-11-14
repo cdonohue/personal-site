@@ -1,0 +1,31 @@
+{
+  "id": "/projects/unit-01/apps/02-tuner/",
+  "name": "Tuner · Unit 01",
+  "short_name": "Tuner",
+  "description": "Pitch detection from the microphone, plus reference tones.",
+  "start_url": "/projects/unit-01/apps/02-tuner/",
+  "scope": "/projects/unit-01/apps/02-tuner/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/projects/unit-01/apps/02-tuner/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/02-tuner/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/02-tuner/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

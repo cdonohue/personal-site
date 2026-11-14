@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Unit 01 — Passwords</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -238,6 +238,40 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
 
 .u-knob__dial.is-turning { outline: 1px dashed var(--ink-muted); outline-offset: 3px; }
 </style>
+<!-- unit01-pwa:start -->
+<link rel="manifest" href="/projects/unit-01/apps/24-passwords/manifest.webmanifest">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Passwords">
+<link rel="apple-touch-icon" href="/projects/unit-01/apps/24-passwords/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/projects/unit-01/apps/24-passwords/icons/icon-192.png">
+<style>
+/* Installed and full-screen, keep the app clear of the notch, the rounded
+   corners and the home indicator. env() is 0 everywhere else. */
+.shell { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+</style>
+<script>
+(function () {
+  var root = document.documentElement;
+  function sync() {
+    var t = root.dataset.theme;
+    if (!t) return;
+    document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
+      m.setAttribute('content', t === 'dark' ? '#000000' : '#ffffff');
+    });
+  }
+  new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/projects/unit-01/apps/sw.js', { scope: '/projects/unit-01/apps/24-passwords/' }).catch(function () {});
+    });
+  }
+})();
+</script>
+<!-- unit01-pwa:end -->
 </head>
 <body>
 <div class="shell">

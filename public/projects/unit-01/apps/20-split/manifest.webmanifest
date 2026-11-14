@@ -1,0 +1,31 @@
+{
+  "id": "/projects/unit-01/apps/20-split/",
+  "name": "Split · Unit 01",
+  "short_name": "Split",
+  "description": "A bill and tip per person, in whole cents.",
+  "start_url": "/projects/unit-01/apps/20-split/",
+  "scope": "/projects/unit-01/apps/20-split/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/projects/unit-01/apps/20-split/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/20-split/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/20-split/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

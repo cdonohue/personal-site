@@ -1,0 +1,31 @@
+{
+  "id": "/projects/unit-01/apps/13-level/",
+  "name": "Level · Unit 01",
+  "short_name": "Level",
+  "description": "Bubble and edge spirit level.",
+  "start_url": "/projects/unit-01/apps/13-level/",
+  "scope": "/projects/unit-01/apps/13-level/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/projects/unit-01/apps/13-level/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/13-level/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/13-level/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "/projects/unit-01/apps/14-habits/",
+  "name": "Habits · Unit 01",
+  "short_name": "Habits",
+  "description": "Up to eight habits on a day grid.",
+  "start_url": "/projects/unit-01/apps/14-habits/",
+  "scope": "/projects/unit-01/apps/14-habits/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/projects/unit-01/apps/14-habits/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/14-habits/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/14-habits/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
