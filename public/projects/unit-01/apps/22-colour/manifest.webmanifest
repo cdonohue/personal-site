@@ -1,0 +1,31 @@
+{
+  "id": "/projects/unit-01/apps/22-colour/",
+  "name": "Colour · Unit 01",
+  "short_name": "Colour",
+  "description": "An OKLCH, HSL and RGB mixer.",
+  "start_url": "/projects/unit-01/apps/22-colour/",
+  "scope": "/projects/unit-01/apps/22-colour/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/projects/unit-01/apps/22-colour/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/22-colour/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/22-colour/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "/projects/unit-01/apps/09-world-clock/",
+  "name": "World Clock · Unit 01",
+  "short_name": "World Clock",
+  "description": "Local time and six cities, correct across daylight saving.",
+  "start_url": "/projects/unit-01/apps/09-world-clock/",
+  "scope": "/projects/unit-01/apps/09-world-clock/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/projects/unit-01/apps/09-world-clock/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/09-world-clock/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/09-world-clock/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

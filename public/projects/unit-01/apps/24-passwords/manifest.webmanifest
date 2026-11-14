@@ -1,0 +1,31 @@
+{
+  "id": "/projects/unit-01/apps/24-passwords/",
+  "name": "Passwords · Unit 01",
+  "short_name": "Passwords",
+  "description": "Random passwords, passphrases and PINs.",
+  "start_url": "/projects/unit-01/apps/24-passwords/",
+  "scope": "/projects/unit-01/apps/24-passwords/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/projects/unit-01/apps/24-passwords/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/24-passwords/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/24-passwords/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

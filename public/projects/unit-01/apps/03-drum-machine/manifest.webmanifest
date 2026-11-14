@@ -1,0 +1,31 @@
+{
+  "id": "/projects/unit-01/apps/03-drum-machine/",
+  "name": "Drum Machine · Unit 01",
+  "short_name": "Drum Machine",
+  "description": "Sixteen steps, four synthesised voices.",
+  "start_url": "/projects/unit-01/apps/03-drum-machine/",
+  "scope": "/projects/unit-01/apps/03-drum-machine/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/projects/unit-01/apps/03-drum-machine/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/03-drum-machine/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/projects/unit-01/apps/03-drum-machine/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
