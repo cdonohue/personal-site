@@ -1,0 +1,362 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Link from '../../../components/Link.astro'
+import Icon from '../components/Icon.astro'
+import tokens from '../../../../projects/unit-01/design-system/tokens.json'
+import { BASE, apps } from '../catalogue'
+
+/*
+ * The overview reads its values straight from tokens.json, the system's
+ * canonical file, so nothing here can drift from it.
+ */
+type Style = {
+  name: string
+  fontSize: string
+  lineHeight: string
+  fontWeight: number
+  letterSpacing?: string
+  textTransform?: string
+  sample?: string
+  usage?: string
+}
+
+const colours = tokens.color.tokens as {
+  name: string
+  value: string | { light: string; dark: string }
+  usage: string
+}[]
+/*
+ * A token's two values. Some are references to another token, written
+ * `{ink}` — `rule` and `focus` are ink by definition — so resolve those.
+ */
+type Value = string | { light: string; dark: string }
+const byName = new Map(colours.map((c) => [c.name, c.value]))
+const both = (value: Value): { light: string; dark: string; ref?: string } => {
+  if (typeof value === 'string') {
+    const ref = value.match(/^\{(.+)\}$/)?.[1]
+    const target = ref ? byName.get(ref) : undefined
+    if (ref && target) return { ...both(target), ref }
+    return { light: value, dark: value }
+  }
+  return value
+}
+
+const families = tokens.type.families as Record<string, string>
+const typeGroups = tokens.type.groups as { name: string; family: string; styles: Style[] }[]
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+const principles = [
+  ['Every control looks like what it does', 'A Key presses: it moves 2px and loses its edge. A Knob turns. A Switch slides.'],
+  ['One typeface does the talking', 'Libre Franklin sets every word. Mono is only for numbers that tick on their own.'],
+  ['Black, white, one orange', 'Signal marks the single most live thing on screen. If two things are orange, one is wrong.'],
+  ['Type is the image', 'Names and key numbers are set big and heavy, with nothing decorative to compete.'],
+  ['Rules, not boxes', 'Sections open with a 2px rule and sit straight on the wall: no fills, borders or cards.'],
+  ['Flat and machined', 'No gradients, blur or shadows except the keycap edge, which collapses when pressed.'],
+  ['Label everything, numbered', 'Every module gets an uppercase label numbered in reading order.'],
+]
+
+const styleOf = (s: Style, family: string) =>
+  [
+    `font-family: ${families[family]}`,
+    `font-size: ${s.fontSize}`,
+    `line-height: ${s.lineHeight}`,
+    `font-weight: ${s.fontWeight}`,
+    s.letterSpacing ? `letter-spacing: ${s.letterSpacing}` : '',
+    s.textTransform ? `text-transform: ${s.textTransform}` : '',
+  ]
+    .filter(Boolean)
+    .join('; ')
+---
+
+<Layout index="01" title="Overview">
+  <section class="u-display hero" aria-labelledby="overview-title">
+    <div class="u-display__row">
+      <span class="u-display__label">Design system</span>
+      <span class="u-display__label u-display__label--extra">
+        10 components · {apps.length} apps · 2 themes
+      </span>
+    </div>
+    <div class="hero__value">
+      <h2 class="hero__number" id="overview-title">Unit 01</h2>
+    </div>
+  </section>
+
+  <section class="u-panel" aria-labelledby="about-title">
+    <header class="u-panel__head">
+      <h3 class="u-label" id="about-title"><b>01</b> About</h3>
+    </header>
+    <div class="u-panel__body prose">
+      <p class="lead">
+        A design system for small personal apps that work like pocket hardware and read like a
+        modern art museum’s walls.
+      </p>
+      <p>
+        Two influences, both used as inspiration only: industrial-electronics product design, with
+        honest controls, numbered labels and one hot accent; and the modern-museum graphic
+        tradition, with one Franklin Gothic-style typeface, a black-and-white core and heavy type
+        used as the image. Everything here is live: the <Link href={`${BASE}/components`} class="text-link">components</Link> can be worked, and all {apps.length} <Link href={`${BASE}/apps`} class="text-link">apps</Link> run.
+      </p>
+    </div>
+  </section>
+
+  <section class="u-panel" aria-labelledby="principles-title">
+    <header class="u-panel__head">
+      <h3 class="u-label" id="principles-title"><b>02</b> Principles</h3>
+      <span class="u-label">{pad(principles.length)}</span>
+    </header>
+    <ol class="rows">
+      {
+        principles.map(([title, text], i) => (
+          <li class="row">
+            <span class="row__index">{pad(i + 1)}</span>
+            <h4 class="row__title row__title--sm">{title}</h4>
+            <p class="row__text muted">{text}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section class="u-panel" aria-labelledby="colour-title">
+    <header class="u-panel__head">
+      <h3 class="u-label" id="colour-title"><b>03</b> Colour</h3>
+      <span class="u-label">Gallery / Night</span>
+    </header>
+    <ul class="swatches">
+      {
+        colours.map(({ name, value, usage }) => {
+          const { light, dark, ref } = both(value)
+          return (
+            <li class="swatch">
+              <div class="swatch__chip" aria-hidden="true">
+                <span style={`background: ${light}`} />
+                <span style={`background: ${dark}`} />
+              </div>
+              <div class="swatch__meta">
+                <span class="swatch__name">{name}</span>
+                <span class="swatch__values">
+                  {ref ? `= ${ref}` : light === dark ? light : `${light} / ${dark}`}
+                </span>
+              </div>
+              <p class="muted small">{usage}</p>
+            </li>
+          )
+        })
+      }
+    </ul>
+  </section>
+
+  <section class="u-panel" aria-labelledby="type-title">
+    <header class="u-panel__head">
+      <h3 class="u-label" id="type-title"><b>04</b> Type</h3>
+      <span class="u-label">Libre Franklin · IBM Plex Mono</span>
+    </header>
+    <div class="u-panel__body">
+      {
+        typeGroups.map((group) => (
+          <div class="type-group">
+            <span class="u-label">{group.name}</span>
+            <ul class="type-list">
+              {group.styles.map((s) => (
+                <li class="type-row">
+                  <span class="type-row__sample" style={styleOf(s, group.family)}>
+                    {s.sample ?? s.name}
+                  </span>
+                  <span class="type-row__meta">
+                    <span class="swatch__name">{s.name}</span>
+                    <span class="swatch__values">
+                      {s.fontSize}/{s.lineHeight} · {s.fontWeight}
+                      {s.letterSpacing && s.letterSpacing !== '0' ? ` · ${s.letterSpacing}` : ''}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <div class="modules modules--2-1">
+    <section class="u-panel" aria-labelledby="space-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="space-title"><b>05</b> Space</h3>
+        <span class="u-label">4px grid</span>
+      </header>
+      <ul class="space-list">
+        {
+          tokens.spacing.tokens.map(({ name, value, usage }) => (
+            <li class="space-row">
+              <span class="swatch__name">{name}</span>
+              <span class="space-row__bar" style={`width: ${value}`} aria-hidden="true" />
+              <span class="swatch__values">{value}</span>
+              <span class="muted small space-row__usage">{usage}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section class="u-panel" aria-labelledby="shape-title">
+      <header class="u-panel__head">
+        <h3 class="u-label" id="shape-title"><b>06</b> Shape</h3>
+      </header>
+      <div class="u-panel__body">
+        <ul class="shape-list">
+          {
+            tokens.radius.tokens.map(({ name, value, usage }) => (
+              <li class="shape-row">
+                <span class="shape-row__chip" style={`border-radius: ${value === '0' ? '0' : value}`} aria-hidden="true" />
+                <span class="type-row__meta">
+                  <span class="swatch__name">{name} · {value}</span>
+                  <span class="muted small">{usage}</span>
+                </span>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="muted small">{tokens.shadow.note}</p>
+        <div class="shape-keys">
+          <button type="button" class="u-key shape-key">
+            <span class="u-key__top"><span class="u-key__index">01</span></span>
+            <span class="u-key__text">Press</span>
+          </button>
+          <span class="muted small">Press the key: the edge collapses as it travels 2px.</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="u-panel" aria-labelledby="next-title">
+    <header class="u-panel__head">
+      <h3 class="u-label" id="next-title"><b>07</b> Continue</h3>
+    </header>
+    <div class="keylist keylist--row">
+      <Link href={`${BASE}/components`} class="keyrow">
+        <span class="keyrow__label">Components</span>
+        <Icon name="arrow-right" />
+      </Link>
+      <Link href={`${BASE}/apps`} class="keyrow">
+        <span class="keyrow__label">Apps</span>
+        <Icon name="arrow-right" />
+      </Link>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+    gap: var(--space-6) var(--space-4);
+    list-style: none;
+  }
+
+  .swatch {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  /* Gallery on the left, Night on the right, with a hairline so white and
+     black still read as chips on either wall. */
+  .swatch__chip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 56px;
+    border: 1px solid var(--line);
+  }
+
+  .swatch__meta,
+  .type-row__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .swatch__name {
+    font: 700 13px / 16px var(--font-sans);
+  }
+
+  .swatch__values {
+    font: 500 13px / 16px var(--font-mono);
+    color: var(--ink-muted);
+  }
+
+  .type-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .type-list,
+  .space-list,
+  .shape-list {
+    list-style: none;
+  }
+
+  .type-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+    padding: var(--space-3) 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .type-row__sample {
+    overflow-wrap: anywhere;
+  }
+
+  @container (min-width: 640px) {
+    .type-row {
+      grid-template-columns: minmax(0, 1fr) 200px;
+      align-items: baseline;
+    }
+  }
+
+  .space-row {
+    display: grid;
+    grid-template-columns: minmax(0, 80px) auto 1fr;
+    align-items: center;
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-2) 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .space-row__bar {
+    height: 16px;
+    background: var(--ink);
+  }
+
+  .space-row__usage {
+    grid-column: 1 / -1;
+  }
+
+  .shape-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-2) 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .shape-row__chip {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    background: var(--ink);
+  }
+
+  .shape-keys {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .shape-key {
+    width: 88px;
+    height: 72px;
+  }
+</style>

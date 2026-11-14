@@ -497,6 +497,14 @@ recoloured — the remap never matches and the drawn colour ships instead.
 10, 11 and 12 are deliberately outside that range. Skin and startle marks are
 not clothing, and nothing should be able to tint them by accident.
 
+**The export must stay indexed.** The runtime dresses the figure by rewriting
+these palette entries in the PNG's bytes and decoding the result
+(`scene/palette.ts`), not by reading pixels back from a canvas. Readback is
+unreliable: browsers with canvas fingerprinting protection add random noise
+to it, so a one-unit key misses and the figure comes out speckled with key
+colours. An RGB export would quietly fall back to that readback path.
+`palette.test.ts` fails if any key stops being a palette entry.
+
 **The one-unit gaps are the load-bearing part.** The strap and the shoes were
 the same colour, and the export flattens the layers, so nothing downstream could
 tell them apart. The pants and shoes had no shade at all, which does not matter

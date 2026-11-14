@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit 01 — Score</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+
+/* ── Unit 01 tokens ─────────────────────────────────────────── */
+:root, [data-theme="light"] {
+  --chassis:#ffffff; --panel:#ffffff; --panel-sunk:#f0f0ee; --ink:#000000; --ink-muted:#5f5f5c; --line:#c8c8c4; --rule:var(--ink);
+  --signal:#ff5a1f; --signal-text:#a83400; --on-signal:#000000; --blue:#3a63d8; --on-blue:#ffffff; --yellow:#f5c400; --on-yellow:#111111;
+  --key:#e6e6e3; --lcd:#0b0b0b; --lcd-ink:#f2f2ef; --lcd-muted:#8f8f8a; --lcd-dim:#2a2a2a; --focus:var(--ink);
+  --shadow-key:0 2px 0 #00000040; --shadow-key-pressed:0 0 0 #00000040;
+}
+[data-theme="dark"] {
+  --chassis:#000000; --panel:#000000; --panel-sunk:#161616; --ink:#ffffff; --ink-muted:#9b9b97; --line:#3a3a3a; --key:#262626; --rule:var(--ink);
+  --signal-text:#ff7a45; --shadow-key:0 2px 0 #ffffff26; --shadow-key-pressed:0 0 0 #ffffff26;
+}
+:root {
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px; --space-12:48px;
+  --radius-0:0; --radius-sm:2px; --radius-md:6px; --radius-full:9999px;
+  --font-sans:"Libre Franklin","Franklin Gothic Medium","Helvetica Neue",Arial,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+
+/* ── Unit 01 components (vanilla port of the bundle) ────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--font-sans); background: var(--chassis); color: var(--ink); -webkit-font-smoothing: antialiased; }
+:where(button, input, [role="slider"]):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.u-label { display: inline-flex; gap: var(--space-2); align-items: baseline; font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); white-space: nowrap; }
+.u-label b { font-weight: 700; color: var(--ink); }
+.u-value { font-family: var(--font-mono); font-size: 13px; line-height: 16px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
+.u-led { display: inline-block; width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--line); flex: none; }
+.u-key .u-led, .u-selector__opt .u-led { background: var(--line); }
+.is-on > .u-led, .u-led.is-lit { background: var(--signal); }
+
+.u-key { appearance: none; position: relative; display: inline-flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+  min-width: 0; padding: var(--space-2); border: 0; border-radius: var(--radius-0); background: var(--key); color: var(--ink);
+  font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; text-align: left;
+  box-shadow: var(--shadow-key); cursor: pointer; transition: transform 60ms linear, box-shadow 60ms linear; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.u-key:active, .u-key.is-hit, .u-key[aria-pressed="true"] { transform: translateY(2px); box-shadow: var(--shadow-key-pressed); }
+.u-key--ink { background: var(--ink); color: var(--chassis); }
+.u-key--signal { background: var(--signal); color: var(--on-signal); }
+.u-key--blue { background: var(--blue); color: var(--on-blue); }
+.u-key--yellow { background: var(--yellow); color: var(--on-yellow); }
+.u-key__top { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: var(--space-1); }
+.u-key__index { font-family: var(--font-mono); font-weight: 500; font-size: 9px; line-height: 12px; letter-spacing: .1em; opacity: .75; }
+.u-key__glyph { align-self: center; display: flex; }
+.u-key__glyph svg { width: 22px; height: 22px; fill: currentColor; }
+.u-key--sm { width: 40px; height: 40px; padding: 0; align-items: center; justify-content: center; font-size: 15px; letter-spacing: 0; }
+
+.u-panel { background: transparent; border: 0; border-top: 2px solid var(--rule); border-radius: var(--radius-0); min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
+.u-panel__head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-2) 0 var(--space-3); }
+.u-panel__head .u-label:first-child { font-size: 13px; line-height: 16px; color: var(--ink); }
+.u-panel__body { padding: 0 0 var(--space-2); display: flex; flex-direction: column; gap: var(--space-4); flex: 1; }
+
+.u-display { background: var(--lcd); color: var(--lcd-ink); border: 1px solid var(--line); border-radius: var(--radius-0); font-family: var(--font-mono); }
+.u-display__label { font-size: 11px; line-height: 14px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--lcd-muted); white-space: nowrap; }
+.u-display__unit { font-size: 13px; line-height: 16px; color: var(--lcd-muted); text-transform: uppercase; letter-spacing: .08em; }
+
+.u-selector { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.u-selector__row { display: flex; gap: 2px; border-radius: var(--radius-0); }
+.u-selector__opt { appearance: none; flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: 40px; padding: 0 var(--space-2);
+  background: var(--key); color: var(--ink); border: 0; font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.u-selector__opt:first-child { border-left: 0; }
+.u-selector__opt.is-on { background: var(--ink); color: var(--chassis); }
+.u-selector__opt:focus-visible { outline-offset: -4px; }
+
+.u-switch { appearance: none; display: inline-flex; align-items: center; gap: var(--space-3); padding: var(--space-1) 0; background: none; border: 0; color: var(--ink); cursor: pointer; }
+.u-switch__track { position: relative; width: 40px; height: 20px; background: var(--panel-sunk); border: 1px solid var(--ink); border-radius: var(--radius-sm); flex: none; }
+.u-switch__thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 14px; background: var(--ink); border-radius: var(--radius-sm); transition: left 80ms linear; }
+.u-switch[aria-checked="true"] .u-switch__track { background: var(--signal); }
+.u-switch[aria-checked="true"] .u-switch__thumb { left: 20px; background: var(--on-signal); }
+.u-switch__state { font-family: var(--font-sans); font-size: 11px; font-weight: 700; letter-spacing: .06em; min-width: 3ch; }
+
+.u-fader { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.u-fader__head { display: flex; justify-content: space-between; align-items: baseline; }
+.u-fader__input { appearance: none; -webkit-appearance: none; width: 100%; height: 28px; margin: 0; background: transparent; cursor: ew-resize; }
+.u-fader__input::-webkit-slider-runnable-track { height: 4px; background: linear-gradient(to right, var(--signal) var(--t), var(--panel-sunk) var(--t)); border: 1px solid var(--ink); }
+.u-fader__input::-moz-range-track { height: 4px; background: linear-gradient(to right, var(--signal) var(--t), var(--panel-sunk) var(--t)); border: 1px solid var(--ink); }
+.u-fader__input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 28px; margin-top: -13px; background: var(--ink); border: 0; border-radius: var(--radius-sm); }
+.u-fader__input::-moz-range-thumb { width: 14px; height: 28px; background: var(--ink); border: 0; border-radius: var(--radius-sm); }
+
+.u-knob { display: inline-flex; flex-direction: column; align-items: center; gap: var(--space-1); }
+.u-knob__dial { border-radius: var(--radius-full); cursor: grab; touch-action: none; line-height: 0; }
+.u-knob__tick { stroke: var(--line); stroke-width: 1.5; }
+.u-knob__track { fill: none; stroke: var(--panel-sunk); stroke-width: 3; }
+.u-knob__arc { fill: none; stroke: var(--signal); stroke-width: 3; }
+.u-knob__cap { fill: var(--panel); stroke: var(--ink); stroke-width: 1.5; }
+.u-knob__ind { stroke: var(--ink); stroke-width: 3; stroke-linecap: square; }
+.u-knob__foot { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+
+
+/* ── Shared app shell (Unit 01 apps, fork C) ── */
+.shell { height: 100dvh; overflow: auto; container: shell / size; }
+.device { min-height: 100%; display: grid; gap: var(--space-2); padding: var(--space-2); grid-template-columns: minmax(0, 1fr); }
+.bar { display: none; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-1) var(--space-1) 0; container: bar / inline-size; min-width: 0; grid-area: bar; }
+.bar__title { display: inline-flex; align-items: flex-start; gap: var(--space-2); font: 800 clamp(18px, 4.2cqi, 34px)/1 var(--font-sans); letter-spacing: -.025em; white-space: nowrap; }
+.bar__idx { font: 500 9px/12px var(--font-mono); letter-spacing: .1em; color: var(--ink-muted); }
+.bar__right { display: flex; align-items: center; gap: var(--space-4); min-width: 0; }
+.bar__meta { display: none; }
+@container bar (min-width: 420px) { .bar__meta { display: inline-flex; } }
+.section { border-top: 2px solid var(--rule); padding-top: var(--space-2); display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; min-height: 0; }
+.section__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.section__head .u-label:first-child { font-size: 13px; line-height: 16px; color: var(--ink); }
+.u-field { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.u-field__input { box-sizing: border-box; width: 100%; min-width: 0; height: 40px; padding: 0 var(--space-3); background: var(--panel-sunk); color: var(--ink); border: 0; border-bottom: 2px solid var(--ink); border-radius: var(--radius-0); font: 400 15px/22px var(--font-sans); }
+.u-field__input--mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.u-field__input::placeholder { color: var(--ink-muted); }
+.u-pick { appearance: none; -webkit-appearance: none; width: 100%; height: 40px; min-width: 0; padding: 0 28px 0 var(--space-3); background: var(--key) linear-gradient(45deg, transparent 50%, var(--ink) 50%) no-repeat right 14px center / 6px 6px; color: var(--ink); border: 0; border-radius: var(--radius-0); box-shadow: var(--shadow-key);
+  font: 700 11px/14px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+.row { display: flex; gap: var(--space-2); align-items: center; min-width: 0; }
+.grow { flex: 1 1 0; min-width: 0; }
+.k-row { height: 40px; flex-direction: row; align-items: center; justify-content: center; }
+.k-x { width: 32px; height: 32px; padding: 0; align-items: center; justify-content: center; font-size: 15px; letter-spacing: 0; flex: none; }
+.is-armed { background: var(--ink) !important; color: var(--chassis) !important; }
+.u-panel { min-height: 0; }
+.u-panel__body { min-height: 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+
+.hero { grid-area: hero; } .transport { grid-area: transport; } .players { grid-area: players; }
+.p-step { grid-area: step; } .p-rounds { grid-area: rounds; } .p-roster { grid-area: roster; } .p-stats { grid-area: stats; }
+.device { grid-template-rows: minmax(0, 1fr) auto; grid-template-areas: "hero" "transport"; }
+.players, .p-step, .p-rounds, .p-roster, .p-stats { display: none; }
+
+/* ── Hero: the active player ── */
+.hero { container: hero / inline-size; display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-2); padding: var(--space-3); min-height: 0; overflow: hidden; }
+.hero__top, .hero__bottom { display: flex; justify-content: space-between; gap: var(--space-3); align-items: center; }
+.hero__rank, .hero__target { display: none; }
+.hero__name { font: 700 clamp(13px, 6cqi, 28px)/1.1 var(--font-sans); letter-spacing: -.01em; color: var(--lcd-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.hero__main { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.big { font: 800 clamp(40px, min(34cqi, 26cqb), 300px)/.88 var(--font-sans); letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+.hero__state { display: inline-flex; align-items: center; gap: var(--space-2); }
+.hero.is-lead .hero__state, .hero.is-win .hero__state { color: var(--signal); }
+.hero.is-win .big { color: var(--signal); }
+@container hero (min-width: 260px) { .hero { padding: var(--space-4); } .hero__rank { display: inline; } }
+@container hero (min-width: 400px) { .hero__target { display: inline; } }
+
+/* ── Transport ── */
+.transport { container: transport / inline-size; display: flex; gap: var(--space-2); min-width: 0; }
+.transport .u-key { flex: 1 1 0; height: clamp(52px, 19cqi, 104px); }
+.transport .k-plus, .transport .k-minus { flex-grow: 1.6; }
+.transport .k-prev, .transport .k-undo { display: none; }
+.transport .u-key__glyph { align-self: center; font: 800 clamp(20px, 7cqi, 40px)/1 var(--font-sans); }
+@container transport (max-width: 199px) { .transport .u-key__text { display: none; } .transport .u-key { justify-content: center; align-items: center; } }
+
+/* ── Player tiles ── */
+.players { container: players / inline-size; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: var(--space-2); }
+.tile { position: relative; display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2) var(--space-2) var(--space-2); background: var(--key); box-shadow: var(--shadow-key); cursor: pointer; min-width: 0; border-top: 3px solid transparent; }
+.tile.is-active { background: var(--ink); color: var(--chassis); }
+.tile.is-lead { border-top-color: var(--signal); }
+.tile__top { display: flex; align-items: center; gap: var(--space-2); justify-content: space-between; }
+.tile__name { flex: 1; min-width: 0; background: transparent; border: 0; color: inherit; font: 700 11px/14px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; padding: 2px 0; }
+.tile__name:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.tile.is-active .tile__name:focus-visible { outline-color: var(--chassis); }
+.tile__score { font: 800 clamp(26px, 7cqi, 48px)/1 var(--font-sans); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.tile__keys { display: none; gap: var(--space-1); }
+.tile__keys .u-key { flex: 1; height: 32px; padding: 0; align-items: center; justify-content: center; font-size: 15px; letter-spacing: 0; }
+.tile__keys .u-key { background: var(--panel-sunk); }
+.tile.is-active .tile__keys .u-key { background: var(--chassis); color: var(--ink); }
+.tile .u-led { background: var(--line); }
+.tile.is-lead .u-led { background: var(--signal); }
+@container players (min-width: 440px) { .tile__keys { display: flex; } }
+
+/* ── Panels ── */
+.stepper { display: flex; align-items: center; gap: var(--space-2); }
+.stepper__val { flex: 1; text-align: center; font: 400 22px/40px var(--font-mono); height: 40px; background: var(--panel-sunk); font-variant-numeric: tabular-nums; }
+.rtable { width: 100%; border-collapse: collapse; font: 500 13px/18px var(--font-mono); font-variant-numeric: tabular-nums; }
+.rtable th { font: 700 11px/14px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); text-align: right; padding: 4px 6px; white-space: nowrap; max-width: 80px; overflow: hidden; text-overflow: ellipsis; }
+.rtable th:first-child, .rtable td:first-child { text-align: left; }
+.rtable td { text-align: right; padding: 4px 6px; border-top: 1px solid var(--line); }
+.rtable tfoot td { border-top: 2px solid var(--rule); font-weight: 500; color: var(--ink); }
+.rtable .neg { color: var(--ink-muted); }
+.rwrap { overflow: auto; min-height: 0; max-height: 100%; }
+.rentry { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: var(--space-2); }
+.rentry .u-field__input { height: 36px; }
+.wins { display: flex; flex-direction: column; gap: var(--space-2); }
+.win { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1) var(--space-3); align-items: baseline; }
+.win__bar { grid-column: 1 / -1; display: flex; gap: 2px; }
+.win__seg { flex: 1; height: 6px; background: var(--panel-sunk); }
+.win__seg.is-on { background: var(--ink); }
+.roster { display: flex; flex-direction: column; gap: var(--space-2); }
+.muted { font: 400 13px/18px var(--font-sans); color: var(--ink-muted); margin: 0; }
+.p-rounds .u-panel__body { overflow: hidden; }
+
+/* ── Tiers ── */
+@container shell (min-width: 300px) and (min-height: 360px) {
+  .device { grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "bar" "hero" "transport"; }
+  .bar { display: flex; }
+}
+@container shell (min-width: 300px) { .transport .k-prev, .transport .k-undo { display: inline-flex; } }
+@container shell (min-width: 300px) and (min-height: 540px) {
+  .device { grid-template-rows: auto minmax(0, 1fr) auto auto; grid-template-areas: "bar" "hero" "players" "transport"; }
+  .players { display: flex; }
+}
+@container shell (min-width: 520px) and (min-height: 760px) {
+  .device { gap: var(--space-4); padding: var(--space-4); grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto; grid-template-areas: "bar bar" "hero hero" "players players" "transport transport" "step roster"; }
+  .p-step, .p-roster { display: flex; }
+}
+@container shell (min-width: 560px) and (max-height: 359px) {
+  .device { grid-template-columns: minmax(0, 1fr) clamp(200px, 34cqi, 340px); grid-template-rows: minmax(0, 1fr); grid-template-areas: "hero transport"; }
+}
+@container shell (min-width: 560px) and (min-height: 360px) and (max-height: 539px) {
+  .device { grid-template-columns: minmax(0, 1fr) clamp(220px, 34cqi, 360px); grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "bar bar" "hero transport" "players transport"; }
+  .players { display: flex; }
+}
+@container shell (min-width: 560px) and (max-height: 539px) {
+  .transport { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 2fr 1fr 1fr; grid-template-areas: "minus plus" "prev next" "undo undo"; }
+  .transport .u-key { height: auto; }
+  .k-minus { grid-area: minus; } .k-plus { grid-area: plus; } .k-prev { grid-area: prev; } .k-next { grid-area: next; } .k-undo { grid-area: undo; }
+}
+@container shell (min-width: 820px) and (min-height: 540px) {
+  .device { gap: var(--space-4); padding: var(--space-6); grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "bar bar" "hero rounds" "players rounds" "transport step"; }
+  .players, .p-step, .p-rounds { display: flex; }
+  .p-roster { display: none; }
+}
+@container shell (min-width: 820px) and (min-height: 540px) and (max-height: 759px) {
+  .device { grid-template-areas: "bar bar" "hero rounds" "players step" "transport step"; }
+}
+@container shell (min-width: 820px) and (max-height: 759px) {
+  .device { padding: var(--space-4); }
+  .u-panel__head { padding: var(--space-1) 0 var(--space-2); }
+  .u-panel__body { padding: 0; gap: var(--space-3); }
+}
+@container shell (min-width: 820px) and (min-height: 540px) and (max-height: 759px) { .transport .u-key { height: 64px; } }
+@container shell (min-width: 1180px) and (min-height: 760px) {
+  .device { padding: var(--space-8); grid-template-columns: minmax(240px, .75fr) minmax(0, 1.5fr) minmax(320px, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "bar bar bar" "roster hero rounds" "stats players rounds" "stats transport step"; }
+  .players, .p-step, .p-rounds, .p-roster, .p-stats { display: flex; }
+}
+/* iOS zooms into any field under 16px: keep every text field at 16px or more */
+input#customVal, input.tile__name, input.u-field__input.u-field__input--mono, select#target { font-size: 16px !important; }
+</style>
+</head>
+<body>
+<div class="shell">
+<main class="device">
+
+  <header class="bar">
+    <span class="bar__title"><span class="bar__idx">21</span>Score</span>
+    <div class="bar__right">
+      <span class="u-label bar__meta" id="barMeta">4 players · Game 1</span>
+      <button class="u-switch" role="switch" aria-checked="false" id="themeSw" aria-label="Dark theme">
+        <span class="u-switch__track" aria-hidden="true"><span class="u-switch__thumb"></span></span>
+        <span class="u-label">Dark</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="hero u-display" id="hero" aria-label="Active player">
+    <div class="hero__top">
+      <span class="hero__name" id="heroName">Player 1</span>
+      <span class="u-display__label hero__rank" id="heroRank">1st / 4</span>
+    </div>
+    <div class="hero__main"><output class="big" id="big" aria-live="polite">0</output></div>
+    <div class="hero__bottom">
+      <span class="u-display__label hero__state" id="heroState"><span class="u-led" id="heroLed"></span><span id="heroStateText">Tied</span></span>
+      <span class="u-display__label hero__target" id="heroTarget">No target</span>
+    </div>
+  </section>
+
+  <section class="section players" aria-label="Players">
+    <div class="section__head"><span class="u-label"><b>01</b> Players</span><span class="u-label" id="playersMeta">Tap to select</span></div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <section class="transport" aria-label="Score keys">
+    <button class="u-key k-minus" id="minus" aria-label="Subtract"><span class="u-key__glyph" aria-hidden="true">−</span><span class="u-key__text" id="minusText">−1</span></button>
+    <button class="u-key u-key--ink k-plus" id="plus" aria-label="Add"><span class="u-key__glyph" aria-hidden="true">+</span><span class="u-key__text" id="plusText">+1</span></button>
+    <button class="u-key k-prev" id="prev" aria-label="Previous player"><span class="u-key__glyph" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 4L4 12l13 8z"/></svg></span><span class="u-key__text">Prev</span></button>
+    <button class="u-key k-next" id="next" aria-label="Next player"><span class="u-key__glyph" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg></span><span class="u-key__text">Next</span></button>
+    <button class="u-key u-key--blue k-undo" id="undo" aria-label="Undo last change"><span class="u-key__top"><span class="u-key__index">Z</span></span><span class="u-key__text">Undo</span></button>
+  </section>
+
+  <section class="u-panel p-step" aria-label="Step and target">
+    <header class="u-panel__head"><span class="u-label"><b>02</b> Step &amp; target</span><span class="u-label" id="gameMeta">Game 1</span></header>
+    <div class="u-panel__body">
+      <div class="row">
+        <div class="u-selector grow">
+          <span class="u-label" id="stepLbl">Step</span>
+          <div class="u-selector__row" role="radiogroup" aria-labelledby="stepLbl" id="stepSel">
+            <button class="u-selector__opt" role="radio" data-v="1"><span class="u-led"></span>1</button>
+            <button class="u-selector__opt" role="radio" data-v="5"><span class="u-led"></span>5</button>
+            <button class="u-selector__opt" role="radio" data-v="10"><span class="u-led"></span>10</button>
+          </div>
+        </div>
+        <div class="u-selector grow">
+          <span class="u-label" id="tgtLbl">Target</span>
+          <select class="u-pick" id="target" aria-labelledby="tgtLbl">
+            <option value="0">None</option><option value="11">11</option><option value="21">21</option><option value="50">50</option><option value="100">100</option><option value="250">250</option><option value="500">500</option><option value="1000">1000</option>
+          </select>
+        </div>
+      </div>
+      <form class="row" id="customForm" autocomplete="off">
+        <label class="u-field grow"><span class="u-label">Add points to <span id="customWho">Player 1</span></span>
+          <input class="u-field__input u-field__input--mono" id="customVal" inputmode="numeric" placeholder="e.g. 17 or -3"></label>
+        <button class="u-key k-row" type="submit" style="align-self:flex-end;min-width:64px">Add</button>
+      </form>
+      <button class="u-key k-row" id="newGame" type="button">New game</button>
+    </div>
+  </section>
+
+  <section class="u-panel p-rounds" aria-label="Rounds">
+    <header class="u-panel__head"><span class="u-label"><b>03</b> Rounds</span><span class="u-label" id="roundsMeta">0 rounds</span></header>
+    <div class="u-panel__body">
+      <form id="roundForm" autocomplete="off" style="display:flex;flex-direction:column;gap:8px">
+        <div class="rentry" id="rentry"></div>
+        <button class="u-key k-row" type="submit">Add round</button>
+      </form>
+      <div class="rwrap"><table class="rtable" id="rtable"></table></div>
+    </div>
+  </section>
+
+  <section class="u-panel p-roster" aria-label="Roster">
+    <header class="u-panel__head"><span class="u-label"><b>04</b> Roster</span><span class="u-label">2–8</span></header>
+    <div class="u-panel__body">
+      <div class="u-selector">
+        <span class="u-label">Players</span>
+        <div class="stepper">
+          <button class="u-key u-key--sm" id="pMinus" aria-label="Remove last player">−</button>
+          <output class="stepper__val" id="pCount">4</output>
+          <button class="u-key u-key--sm" id="pPlus" aria-label="Add a player">+</button>
+        </div>
+      </div>
+      <p class="muted">Rename a player by tapping their name on the tile. Removing drops the last player's score.</p>
+    </div>
+  </section>
+
+  <section class="u-panel p-stats" aria-label="Wins">
+    <header class="u-panel__head"><span class="u-label"><b>05</b> Wins</span><span class="u-label" id="statsMeta">0 games</span></header>
+    <div class="u-panel__body"><div class="wins" id="wins"></div></div>
+  </section>
+
+</main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var pad = function (n, w) { n = String(Math.max(0, Math.floor(Math.abs(n)))); while (n.length < w) n = '0' + n; return n; };
+  var clamp = function (n, a, b) { return Math.min(b, Math.max(a, n)); };
+  var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  function load(key, state) { try { var s = JSON.parse(localStorage.getItem(key) || 'null'); if (s) Object.assign(state, s); } catch (e) {} }
+  function saver(key, state) { return function () { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} }; }
+  function themeInit(state, save) {
+    function apply() {
+      var dark = state.theme ? state.theme === 'dark' : (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      $('themeSw').setAttribute('aria-checked', String(dark));
+    }
+    $('themeSw').addEventListener('click', function () { state.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; apply(); save(); });
+    apply();
+  }
+  function bindSwitch(el, get, set) {
+    var sync = function () { el.setAttribute('aria-checked', String(!!get())); };
+    el.addEventListener('click', function () { set(!get()); sync(); });
+    sync(); return sync;
+  }
+
+
+  var KEY = 'unit01-score';
+  var state = { theme: null, step: 1, target: 0, active: 0, game: 1, gamesDone: 0, winner: null,
+    players: [{ name: 'Player 1', score: 0 }, { name: 'Player 2', score: 0 }, { name: 'Player 3', score: 0 }, { name: 'Player 4', score: 0 }],
+    log: [], rounds: [], wins: {} };
+  load(KEY, state);
+  var save = saver(KEY, state);
+  themeInit(state, save);
+
+  var armTimer = null;
+  function ordinal(n) { var s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+  function leaders() {
+    var max = -Infinity, ids = [];
+    state.players.forEach(function (p, i) { if (p.score > max) { max = p.score; ids = [i]; } else if (p.score === max) ids.push(i); });
+    var allSame = ids.length === state.players.length;
+    return { max: max, ids: allSame ? [] : ids };
+  }
+  function rankOf(i) { var s = state.players[i].score, r = 1; state.players.forEach(function (p) { if (p.score > s) r++; }); return r; }
+
+  function change(i, delta, kind) {
+    if (!delta || !state.players[i]) return;
+    state.players[i].score += delta;
+    state.log.push({ p: i, d: delta, k: kind || 'tap' });
+    if (state.log.length > 400) state.log.shift();
+    checkWin(); render(); save();
+  }
+  function checkWin() {
+    if (!state.target || state.winner != null) return;
+    var L = leaders();
+    if (L.ids.length === 1 && L.max >= state.target) {
+      state.winner = L.ids[0];
+      var n = state.players[L.ids[0]].name;
+      state.wins[n] = (state.wins[n] || 0) + 1; state.gamesDone++;
+    }
+  }
+  function undo() {
+    var e = state.log.pop(); if (!e) return;
+    if (e.k === 'round') { var r = state.rounds.pop(); if (r) r.forEach(function (v, i) { if (state.players[i]) state.players[i].score -= v; }); }
+    else if (state.players[e.p]) state.players[e.p].score -= e.d;
+    if (state.winner != null) {
+      var L = leaders();
+      if (!(L.ids.length === 1 && L.ids[0] === state.winner && L.max >= state.target)) {
+        var n = state.players[state.winner] && state.players[state.winner].name;
+        if (n && state.wins[n]) { state.wins[n]--; if (!state.wins[n]) delete state.wins[n]; state.gamesDone = Math.max(0, state.gamesDone - 1); }
+        state.winner = null;
+      }
+    }
+    render(); save();
+  }
+
+  /* ── render ── */
+  function render() {
+    var P = state.players, a = state.active = clamp(state.active, 0, P.length - 1), L = leaders();
+    var p = P[a], hero = $('hero'), isLead = L.ids.indexOf(a) >= 0, isWin = state.winner === a;
+    $('heroName').textContent = p.name || 'Player ' + (a + 1);
+    $('big').textContent = p.score;
+    $('heroRank').textContent = ordinal(rankOf(a)) + ' / ' + P.length;
+    hero.classList.toggle('is-lead', isLead && !isWin); hero.classList.toggle('is-win', isWin);
+    $('heroLed').classList.toggle('is-lit', isLead || isWin);
+    $('heroStateText').textContent = isWin ? 'Winner' : (state.winner != null ? (P[state.winner] ? P[state.winner].name + ' won' : 'Game over') :
+      (L.ids.length === 0 ? 'All tied' : isLead ? (L.ids.length > 1 ? 'Tied lead' : 'Leader') : (L.max - p.score) + ' behind'));
+    $('heroTarget').textContent = state.target ? 'To ' + state.target + ' · ' + Math.max(0, state.target - p.score) + ' left' : 'No target';
+    $('plusText').textContent = '+' + state.step; $('minusText').textContent = '−' + state.step;
+    $('plus').setAttribute('aria-label', 'Add ' + state.step + ' to ' + p.name);
+    $('minus').setAttribute('aria-label', 'Subtract ' + state.step + ' from ' + p.name);
+    $('customWho').textContent = p.name;
+    $('barMeta').textContent = P.length + ' players · Game ' + state.game;
+    $('gameMeta').textContent = 'Game ' + state.game;
+    $('pCount').textContent = P.length;
+    $('undo').disabled = !state.log.length;
+    renderTiles(L); renderRounds(); renderWins();
+    document.querySelectorAll('#stepSel [role=radio]').forEach(function (o) { var on = +o.dataset.v === state.step; o.classList.toggle('is-on', on); o.setAttribute('aria-checked', String(on)); o.tabIndex = on ? 0 : -1; });
+    $('target').value = String(state.target);
+  }
+  function renderTiles(L) {
+    var box = $('tiles'), P = state.players;
+    if (box.children.length !== P.length) {
+      box.innerHTML = '';
+      P.forEach(function (_, i) {
+        var t = document.createElement('div'); t.className = 'tile'; t.dataset.i = i;
+        t.innerHTML = '<div class="tile__top"><input class="tile__name" maxlength="16" aria-label="Player ' + (i + 1) + ' name"><span class="u-led"></span></div>' +
+          '<div class="tile__score"></div><div class="tile__keys"><button class="u-key" data-d="-1" aria-label="Subtract">−</button><button class="u-key" data-d="1" aria-label="Add">+</button></div>';
+        t.addEventListener('click', function (e) {
+          var b = e.target.closest('[data-d]');
+          if (b) { state.active = i; change(i, +b.dataset.d * state.step); return; }
+          if (e.target.classList.contains('tile__name') && state.active === i) return;
+          state.active = i; render(); save();
+        });
+        var inp = t.querySelector('.tile__name');
+        inp.addEventListener('input', function () { var old = P[i].name; P[i].name = inp.value.slice(0, 16); if (state.wins[old] && old !== P[i].name && !state.wins[P[i].name]) { state.wins[P[i].name] = state.wins[old]; delete state.wins[old]; } renderLite(); save(); });
+        inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') inp.blur(); });
+        box.appendChild(t);
+      });
+    }
+    Array.prototype.forEach.call(box.children, function (t, i) {
+      var inp = t.querySelector('.tile__name');
+      if (document.activeElement !== inp) inp.value = P[i].name;
+      t.querySelector('.tile__score').textContent = P[i].score;
+      t.classList.toggle('is-active', i === state.active);
+      t.classList.toggle('is-lead', L.ids.indexOf(i) >= 0 || state.winner === i);
+    });
+  }
+  function renderLite() { var a = state.active; $('heroName').textContent = state.players[a].name; $('customWho').textContent = state.players[a].name; renderRounds(); renderWins(); }
+  function renderRounds() {
+    var P = state.players, R = state.rounds, entry = $('rentry');
+    if (entry.children.length !== P.length) {
+      entry.innerHTML = '';
+      P.forEach(function (_, i) {
+        var l = document.createElement('label'); l.className = 'u-field';
+        l.innerHTML = '<span class="u-label"></span><input class="u-field__input u-field__input--mono" inputmode="numeric" placeholder="0">';
+        entry.appendChild(l);
+      });
+    }
+    Array.prototype.forEach.call(entry.children, function (l, i) { l.querySelector('.u-label').textContent = P[i].name; });
+    var h = '<thead><tr><th>Rd</th>' + P.map(function (p) { return '<th>' + esc(p.name) + '</th>'; }).join('') + '</tr></thead><tbody>';
+    if (!R.length) h += '<tr><td colspan="' + (P.length + 1) + '" style="text-align:left;font-family:var(--font-sans);color:var(--ink-muted)">No rounds yet. Enter points above.</td></tr>';
+    R.slice(-30).forEach(function (r, k) {
+      var n = R.length - Math.min(R.length, 30) + k + 1;
+      h += '<tr><td>' + pad(n, 2) + '</td>' + P.map(function (_, i) { var v = r[i] || 0; return '<td class="' + (v < 0 ? 'neg' : '') + '">' + (v > 0 ? '+' : '') + v + '</td>'; }).join('') + '</tr>';
+    });
+    h += '</tbody><tfoot><tr><td>Total</td>' + P.map(function (p) { return '<td>' + p.score + '</td>'; }).join('') + '</tr></tfoot>';
+    $('rtable').innerHTML = h;
+    $('roundsMeta').textContent = R.length + (R.length === 1 ? ' round' : ' rounds');
+  }
+  function renderWins() {
+    var box = $('wins'), names = state.players.map(function (p) { return p.name; });
+    Object.keys(state.wins).forEach(function (n) { if (names.indexOf(n) < 0) names.push(n); });
+    var max = Math.max(1, Math.max.apply(null, names.map(function (n) { return state.wins[n] || 0; })));
+    box.innerHTML = names.map(function (n) {
+      var w = state.wins[n] || 0, segs = '';
+      for (var k = 0; k < 10; k++) segs += '<span class="win__seg' + (k < Math.round(w / max * 10) ? ' is-on' : '') + '"></span>';
+      return '<div class="win"><span class="u-label" style="color:var(--ink)">' + esc(n) + '</span><span class="u-value">' + pad(w, 2) + '</span><div class="win__bar" aria-hidden="true">' + segs + '</div></div>';
+    }).join('') || '<p class="muted">Wins are counted when a player reaches the target.</p>';
+    $('statsMeta').textContent = state.gamesDone + (state.gamesDone === 1 ? ' game won' : ' games won');
+  }
+
+  /* ── controls ── */
+  $('plus').addEventListener('click', function () { change(state.active, state.step); });
+  $('minus').addEventListener('click', function () { change(state.active, -state.step); });
+  $('next').addEventListener('click', function () { state.active = (state.active + 1) % state.players.length; render(); save(); });
+  $('prev').addEventListener('click', function () { state.active = (state.active - 1 + state.players.length) % state.players.length; render(); save(); });
+  $('undo').addEventListener('click', undo);
+  document.querySelectorAll('#stepSel [role=radio]').forEach(function (o, i, all) {
+    o.addEventListener('click', function () { state.step = +o.dataset.v; render(); save(); });
+    o.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (!d) return;
+      e.preventDefault(); var j = (i + d + all.length) % all.length; all[j].click(); all[j].focus();
+    });
+  });
+  $('target').addEventListener('change', function () { state.target = +$('target').value; state.winner = null; checkWin(); render(); save(); });
+  $('customForm').addEventListener('submit', function (e) {
+    e.preventDefault(); var v = parseInt($('customVal').value, 10);
+    if (!isNaN(v) && v) { change(state.active, v, 'custom'); $('customVal').value = ''; }
+  });
+  $('roundForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var inputs = $('rentry').querySelectorAll('input'), r = [], any = false;
+    inputs.forEach(function (inp, i) { var v = parseInt(inp.value, 10) || 0; r[i] = v; if (v) any = true; });
+    if (!any) return;
+    r.forEach(function (v, i) { state.players[i].score += v; });
+    state.rounds.push(r); state.log.push({ k: 'round' });
+    inputs.forEach(function (inp) { inp.value = ''; });
+    checkWin(); render(); save();
+    if (inputs[0]) inputs[0].focus();
+  });
+  var ng = $('newGame');
+  ng.addEventListener('click', function () {
+    if (!ng.classList.contains('is-armed')) {
+      ng.classList.add('is-armed'); ng.textContent = 'Tap again to reset scores';
+      clearTimeout(armTimer); armTimer = setTimeout(function () { ng.classList.remove('is-armed'); ng.textContent = 'New game'; }, 2500);
+      return;
+    }
+    clearTimeout(armTimer); ng.classList.remove('is-armed'); ng.textContent = 'New game';
+    state.players.forEach(function (p) { p.score = 0; }); state.rounds = []; state.log = []; state.winner = null; state.game++; state.active = 0;
+    render(); save();
+  });
+  function setCount(n) {
+    n = clamp(n, 2, 8);
+    while (state.players.length < n) state.players.push({ name: 'Player ' + (state.players.length + 1), score: 0 });
+    while (state.players.length > n) state.players.pop();
+    state.rounds = state.rounds.map(function (r) { return r.slice(0, n); });
+    state.log = state.log.filter(function (e) { return e.k === 'round' || e.p < n; });
+    if (state.winner != null && state.winner >= n) state.winner = null;
+    render(); save();
+  }
+  $('pPlus').addEventListener('click', function () { setCount(state.players.length + 1); });
+  $('pMinus').addEventListener('click', function () { setCount(state.players.length - 1); });
+
+  document.addEventListener('keydown', function (e) {
+    var t = e.target, inCtl = t.closest && t.closest('button, input, select, textarea');
+    if (inCtl) return;
+    if (e.key === ' ' || e.key === '+' || e.key === '=' || e.key === 'ArrowUp') { e.preventDefault(); $('plus').click(); }
+    else if (e.key === '-' || e.key === 'ArrowDown') { e.preventDefault(); $('minus').click(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); $('next').click(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); $('prev').click(); }
+    else if (e.key === 'z' || e.key === 'Z') { undo(); }
+    else if (/^[1-8]$/.test(e.key) && +e.key <= state.players.length) { state.active = +e.key - 1; render(); save(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

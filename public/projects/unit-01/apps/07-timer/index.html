@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit 01 — Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+
+/* ── Unit 01 tokens ─────────────────────────────────────────── */
+:root, [data-theme="light"] {
+  --chassis:#ffffff; --panel:#ffffff; --panel-sunk:#f0f0ee; --ink:#000000; --ink-muted:#5f5f5c; --line:#c8c8c4; --rule:var(--ink);
+  --signal:#ff5a1f; --signal-text:#a83400; --on-signal:#000000; --blue:#3a63d8; --on-blue:#ffffff; --yellow:#f5c400; --on-yellow:#111111;
+  --key:#e6e6e3; --lcd:#0b0b0b; --lcd-ink:#f2f2ef; --lcd-muted:#8f8f8a; --lcd-dim:#2a2a2a; --focus:var(--ink);
+  --shadow-key:0 2px 0 #00000040; --shadow-key-pressed:0 0 0 #00000040;
+}
+[data-theme="dark"] {
+  --chassis:#000000; --panel:#000000; --panel-sunk:#161616; --ink:#ffffff; --ink-muted:#9b9b97; --line:#3a3a3a; --key:#262626; --rule:var(--ink);
+  --signal-text:#ff7a45; --shadow-key:0 2px 0 #ffffff26; --shadow-key-pressed:0 0 0 #ffffff26;
+}
+:root {
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px; --space-12:48px;
+  --radius-0:0; --radius-sm:2px; --radius-md:6px; --radius-full:9999px;
+  --font-sans:"Libre Franklin","Franklin Gothic Medium","Helvetica Neue",Arial,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+
+/* ── Unit 01 components (vanilla port of the bundle) ────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--font-sans); background: var(--chassis); color: var(--ink); -webkit-font-smoothing: antialiased; }
+:where(button, input, [role="slider"]):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.u-label { display: inline-flex; gap: var(--space-2); align-items: baseline; font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); white-space: nowrap; }
+.u-label b { font-weight: 700; color: var(--ink); }
+.u-value { font-family: var(--font-mono); font-size: 13px; line-height: 16px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
+.u-led { display: inline-block; width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--line); flex: none; }
+.u-key .u-led, .u-selector__opt .u-led { background: var(--line); }
+.is-on > .u-led, .u-led.is-lit { background: var(--signal); }
+
+.u-key { appearance: none; position: relative; display: inline-flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+  min-width: 0; padding: var(--space-2); border: 0; border-radius: var(--radius-0); background: var(--key); color: var(--ink);
+  font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; text-align: left;
+  box-shadow: var(--shadow-key); cursor: pointer; transition: transform 60ms linear, box-shadow 60ms linear; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.u-key:active, .u-key.is-hit, .u-key[aria-pressed="true"] { transform: translateY(2px); box-shadow: var(--shadow-key-pressed); }
+.u-key--ink { background: var(--ink); color: var(--chassis); }
+.u-key--signal { background: var(--signal); color: var(--on-signal); }
+.u-key--blue { background: var(--blue); color: var(--on-blue); }
+.u-key--yellow { background: var(--yellow); color: var(--on-yellow); }
+.u-key__top { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: var(--space-1); }
+.u-key__index { font-family: var(--font-mono); font-weight: 500; font-size: 9px; line-height: 12px; letter-spacing: .1em; opacity: .75; }
+.u-key__glyph { align-self: center; display: flex; }
+.u-key__glyph svg { width: 22px; height: 22px; fill: currentColor; }
+.u-key--sm { width: 40px; height: 40px; padding: 0; align-items: center; justify-content: center; font-size: 15px; letter-spacing: 0; }
+
+.u-panel { background: transparent; border: 0; border-top: 2px solid var(--rule); border-radius: var(--radius-0); min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
+.u-panel__head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-2) 0 var(--space-3); }
+.u-panel__head .u-label:first-child { font-size: 13px; line-height: 16px; color: var(--ink); }
+.u-panel__body { padding: 0 0 var(--space-2); display: flex; flex-direction: column; gap: var(--space-4); flex: 1; }
+
+.u-display { background: var(--lcd); color: var(--lcd-ink); border: 1px solid var(--line); border-radius: var(--radius-0); font-family: var(--font-mono); }
+.u-display__label { font-size: 11px; line-height: 14px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--lcd-muted); white-space: nowrap; }
+.u-display__unit { font-size: 13px; line-height: 16px; color: var(--lcd-muted); text-transform: uppercase; letter-spacing: .08em; }
+
+.u-selector { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.u-selector__row { display: flex; gap: 2px; border-radius: var(--radius-0); }
+.u-selector__opt { appearance: none; flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: 40px; padding: 0 var(--space-2);
+  background: var(--key); color: var(--ink); border: 0; font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.u-selector__opt:first-child { border-left: 0; }
+.u-selector__opt.is-on { background: var(--ink); color: var(--chassis); }
+.u-selector__opt:focus-visible { outline-offset: -4px; }
+
+.u-switch { appearance: none; display: inline-flex; align-items: center; gap: var(--space-3); padding: var(--space-1) 0; background: none; border: 0; color: var(--ink); cursor: pointer; }
+.u-switch__track { position: relative; width: 40px; height: 20px; background: var(--panel-sunk); border: 1px solid var(--ink); border-radius: var(--radius-sm); flex: none; }
+.u-switch__thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 14px; background: var(--ink); border-radius: var(--radius-sm); transition: left 80ms linear; }
+.u-switch[aria-checked="true"] .u-switch__track { background: var(--signal); }
+.u-switch[aria-checked="true"] .u-switch__thumb { left: 20px; background: var(--on-signal); }
+.u-switch__state { font-family: var(--font-sans); font-size: 11px; font-weight: 700; letter-spacing: .06em; min-width: 3ch; }
+
+.u-fader { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.u-fader__head { display: flex; justify-content: space-between; align-items: baseline; }
+.u-fader__input { appearance: none; -webkit-appearance: none; width: 100%; height: 28px; margin: 0; background: transparent; cursor: ew-resize; }
+.u-fader__input::-webkit-slider-runnable-track { height: 4px; background: linear-gradient(to right, var(--signal) var(--t), var(--panel-sunk) var(--t)); border: 1px solid var(--ink); }
+.u-fader__input::-moz-range-track { height: 4px; background: linear-gradient(to right, var(--signal) var(--t), var(--panel-sunk) var(--t)); border: 1px solid var(--ink); }
+.u-fader__input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 28px; margin-top: -13px; background: var(--ink); border: 0; border-radius: var(--radius-sm); }
+.u-fader__input::-moz-range-thumb { width: 14px; height: 28px; background: var(--ink); border: 0; border-radius: var(--radius-sm); }
+
+.u-knob { display: inline-flex; flex-direction: column; align-items: center; gap: var(--space-1); }
+.u-knob__dial { border-radius: var(--radius-full); cursor: grab; touch-action: none; line-height: 0; }
+.u-knob__tick { stroke: var(--line); stroke-width: 1.5; }
+.u-knob__track { fill: none; stroke: var(--panel-sunk); stroke-width: 3; }
+.u-knob__arc { fill: none; stroke: var(--signal); stroke-width: 3; }
+.u-knob__cap { fill: var(--panel); stroke: var(--ink); stroke-width: 1.5; }
+.u-knob__ind { stroke: var(--ink); stroke-width: 3; stroke-linecap: square; }
+.u-knob__foot { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+
+/* ── App shell (shared by 06–08) ── */
+.shell { height: 100dvh; overflow: auto; container: shell / size; }
+.device { min-height: 100%; display: grid; gap: var(--space-2); padding: var(--space-2); grid-template-columns: minmax(0, 1fr); }
+.bar { display: none; grid-area: bar; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-1) var(--space-1) 0; container: bar / inline-size; min-width: 0; }
+.bar__title { display: inline-flex; align-items: flex-start; gap: var(--space-2); font: 800 clamp(18px, 4.2cqi, 34px)/1 var(--font-sans); letter-spacing: -.025em; white-space: nowrap; }
+.bar__idx { font: 500 9px/12px var(--font-mono); letter-spacing: .1em; color: var(--ink-muted); }
+.bar__right { display: flex; align-items: center; gap: var(--space-4); }
+.bar__meta { display: none; }
+@container bar (min-width: 420px) { .bar__meta { display: inline-flex; } }
+.rowsec { border-top: 2px solid var(--rule); padding-top: var(--space-2); display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; min-height: 0; }
+.rowsec__head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); min-height: 16px; }
+.hero { container: hero / inline-size; display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-2); padding: var(--space-3); min-height: 0; min-width: 0; overflow: hidden; transition: background 60ms linear; }
+.hero__top, .hero__bottom { display: flex; justify-content: space-between; gap: var(--space-3); }
+.hero__main { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.hero .opt { display: none; }
+@container hero (min-width: 260px) { .hero { padding: var(--space-4); } }
+@container hero (min-width: 380px) { .hero .opt { display: inline; } }
+.hero.is-flash { background: var(--signal); }
+.hero.is-flash, .hero.is-flash .u-display__label, .hero.is-flash .u-display__unit { color: var(--on-signal); }
+.transport { grid-area: transport; container: transport / inline-size; display: flex; gap: var(--space-2); min-width: 0; }
+.transport .u-key { flex: 1 1 0; height: clamp(52px, 20cqi, 104px); }
+.transport .k-main { flex-grow: 2; }
+.transport .k-more { display: none; }
+.u-key__glyph { font-size: clamp(16px, 5cqi, 26px); line-height: 1; }
+@container transport (max-width: 199px) { .transport .u-key__text { font-size: 10px; } }
+.stepper { display: flex; align-items: center; gap: var(--space-2); }
+.stepper__val { flex: 1; text-align: center; font-family: var(--font-mono); font-size: 20px; line-height: 40px; height: 40px; background: var(--panel-sunk); font-variant-numeric: tabular-nums; }
+.mini { padding: var(--space-3); display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.mini__num { font-size: 24px; line-height: 24px; font-variant-numeric: tabular-nums; }
+.u-key:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+.u-key.is-sel { background: var(--ink); color: var(--chassis); }
+@container (max-width: 300px) { .u-selector__opt .u-led { display: none; } }
+@container shell (min-width: 300px) and (min-height: 360px) { .bar { display: flex; } }
+@container shell (min-width: 300px) { .transport .k-more { display: inline-flex; } }
+@container shell (min-width: 820px) and (max-height: 759px) {
+  .device { padding: var(--space-4); }
+  .u-panel__head { padding: var(--space-1) 0 var(--space-2); }
+  .u-panel__body { padding: 0; gap: var(--space-3); }
+}
+@container shell (min-width: 820px) and (min-height: 540px) { .device { gap: var(--space-4); padding: var(--space-6); } }
+@container shell (min-width: 1180px) and (min-height: 760px) { .device { padding: var(--space-8); } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.device { grid-template-rows: minmax(0, 1fr) auto; grid-template-areas: "hero" "transport"; }
+.hero { grid-area: hero; } .presets { grid-area: presets; } .p-set { grid-area: set; } .p-cycle { grid-area: cycle; } .p-log { grid-area: log; }
+.presets, .p-set, .p-cycle, .p-log { display: none; }
+
+.clock { font-family: var(--font-mono); font-size: clamp(36px, min(26cqi, 22cqb), 280px); line-height: .9; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.meter { display: grid; grid-template-columns: repeat(20, 1fr); gap: clamp(2px, .8cqi, 6px); }
+.seg { height: clamp(6px, 2.4cqi, 18px); background: var(--lcd-dim); }
+.seg.is-lit { background: var(--lcd-ink); }
+.hero.is-done .seg { background: var(--signal); }
+.hero.is-flash .seg { background: var(--on-signal); }
+.hero__state.is-run { color: var(--lcd-ink); }
+
+.presets__row { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-2); }
+.presets__row .u-key { height: clamp(44px, 10cqi, 64px); align-items: flex-start; }
+.presets { container: presets / inline-size; }
+
+.p-set .u-panel__body { align-items: center; justify-content: center; }
+.setknob { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+.setknob .u-value { font-size: 22px; line-height: 26px; }
+.setknob.is-disabled { opacity: .4; }
+.setknob .u-knob__dial { cursor: grab; }
+.hint { font-size: 13px; line-height: 18px; color: var(--ink-muted); text-align: center; }
+
+.cycle { display: flex; gap: var(--space-2); }
+.cycle__step { flex: 1; height: 10px; background: var(--key); }
+.cycle__step.is-done { background: var(--ink); }
+.cycle__step.is-now { background: var(--signal); }
+.cycle__label { display: flex; justify-content: space-between; }
+
+.log { list-style: none; margin: 0; padding: 0; overflow: auto; min-height: 0; flex: 1; }
+.log li { display: flex; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--line); font-size: 15px; line-height: 20px; }
+.log li .u-value { color: var(--ink-muted); }
+.log__empty { color: var(--ink-muted); font-size: 13px; }
+.p-log .u-panel__body { min-height: 0; }
+
+/* Tiers */
+@container shell (min-width: 300px) and (min-height: 360px) {
+  .device { grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "bar" "hero" "transport"; }
+}
+@container shell (min-width: 300px) and (min-height: 540px) {
+  .device { grid-template-rows: auto minmax(0, 1fr) auto auto; grid-template-areas: "bar" "hero" "presets" "transport"; }
+  .presets { display: flex; }
+}
+@container shell (min-width: 520px) and (min-height: 760px) {
+  .device { gap: var(--space-4); padding: var(--space-4); grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto; grid-template-areas: "bar bar" "hero hero" "presets presets" "transport transport" "set cycle"; }
+  .p-set, .p-cycle { display: flex; }
+}
+@container shell (min-width: 560px) and (max-height: 359px) {
+  .device { grid-template-columns: minmax(0, 1fr) clamp(200px, 34cqi, 340px); grid-template-rows: minmax(0, 1fr); grid-template-areas: "hero transport"; }
+}
+@container shell (min-width: 560px) and (min-height: 360px) and (max-height: 539px) {
+  .device { grid-template-columns: minmax(0, 1fr) clamp(220px, 34cqi, 360px); grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "bar bar" "hero transport" "presets transport"; }
+  .presets { display: flex; }
+}
+@container shell (min-width: 560px) and (max-height: 539px) {
+  .transport { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 2fr 1fr 1fr; grid-template-areas: "main main" "minus plus" "reset reset"; }
+  .transport .u-key { height: auto; }
+  .k-main { grid-area: main; } .k-minus { grid-area: minus; } .k-plus { grid-area: plus; } .k-reset { grid-area: reset; }
+}
+@container shell (min-width: 820px) and (min-height: 540px) {
+  .device { grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto; grid-template-areas: "bar bar" "hero set" "presets cycle" "transport cycle"; }
+  .presets, .p-set, .p-cycle { display: flex; }
+}
+@container shell (min-width: 1180px) and (min-height: 760px) {
+  .device { grid-template-columns: minmax(240px, .8fr) minmax(0, 1.6fr) minmax(320px, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto; grid-template-areas: "bar bar bar" "log hero set" "log presets cycle" "log transport cycle"; }
+  .presets, .p-set, .p-cycle, .p-log { display: flex; }
+}
+.u-knob__dial.is-turning { outline: 1px dashed var(--ink-muted); outline-offset: 3px; }
+</style>
+</head>
+<body>
+<div class="shell">
+<main class="device">
+  <header class="bar">
+    <span class="bar__title"><span class="bar__idx">07</span>Timer</span>
+    <div class="bar__right">
+      <span class="u-label bar__meta" id="barMeta">Ready</span>
+      <button class="u-switch" role="switch" aria-checked="false" id="themeSw" aria-label="Dark theme">
+        <span class="u-switch__track" aria-hidden="true"><span class="u-switch__thumb"></span></span>
+        <span class="u-label">Dark</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="hero u-display" id="hero" aria-label="Timer display">
+    <div class="hero__top">
+      <span class="u-display__label">Timer</span>
+      <span class="u-display__label hero__state opt" id="stateOut">Ready</span>
+      <span class="u-display__label" id="phaseOut">Set 05:00</span>
+    </div>
+    <div class="hero__main"><output class="clock" id="clock" role="timer" aria-live="off">05:00</output></div>
+    <div class="meter" id="meter" aria-hidden="true"></div>
+    <div class="hero__bottom">
+      <span class="u-display__label" id="endsOut">Ends --:--</span>
+      <span class="u-display__label opt" id="pctOut">000%</span>
+    </div>
+  </section>
+
+  <section class="presets rowsec" aria-label="Presets">
+    <div class="rowsec__head"><span class="u-label"><b>01</b> Presets</span><span class="u-label opt">Minutes</span></div>
+    <div class="presets__row" id="presets"></div>
+  </section>
+
+  <section class="transport" aria-label="Controls">
+    <button class="u-key k-more k-minus" id="minus" aria-label="Minus one minute"><span class="u-key__glyph" aria-hidden="true">−</span><span class="u-key__text">1 min</span></button>
+    <button class="u-key u-key--signal k-main" id="start"><span class="u-key__top"><span class="u-key__index">Space</span></span><span class="u-key__text" id="startText">Start</span></button>
+    <button class="u-key k-more k-plus" id="plus" aria-label="Plus one minute"><span class="u-key__glyph" aria-hidden="true">+</span><span class="u-key__text">1 min</span></button>
+    <button class="u-key u-key--ink k-reset" id="reset"><span class="u-key__top"><span class="u-key__index">R</span></span><span class="u-key__text">Reset</span></button>
+  </section>
+
+  <section class="u-panel p-set" aria-label="Set time">
+    <header class="u-panel__head"><span class="u-label"><b>02</b> Set</span><span class="u-label">0–90 min</span></header>
+    <div class="u-panel__body">
+      <div class="setknob" id="setKnob"></div>
+      <p class="hint">Drag up or down · Shift for 5 s steps</p>
+    </div>
+  </section>
+
+  <section class="u-panel p-cycle" aria-label="Pomodoro cycle">
+    <header class="u-panel__head"><span class="u-label"><b>03</b> Cycle</span><span class="u-label" id="cycleMeta">25 / 5</span></header>
+    <div class="u-panel__body">
+      <button class="u-switch" role="switch" aria-checked="false" id="pomoSw">
+        <span class="u-switch__track" aria-hidden="true"><span class="u-switch__thumb"></span></span>
+        <span class="u-label">Pomodoro</span>
+      </button>
+      <div class="cycle" id="cycle" aria-hidden="true"></div>
+      <div class="cycle__label"><span class="u-label" id="cycleNow">Focus 1 of 4</span><span class="u-label" id="cycleNext">Then break 5</span></div>
+    </div>
+  </section>
+
+  <section class="u-panel p-log" aria-label="Today">
+    <header class="u-panel__head"><span class="u-label"><b>04</b> Today</span><span class="u-label" id="logTotal">00:00</span></header>
+    <div class="u-panel__body"><ul class="log" id="log"></ul></div>
+  </section>
+</main>
+</div>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var pad = function (n, w) { n = String(Math.max(0, Math.floor(n))); while (n.length < (w || 2)) n = '0' + n; return n; };
+  var clamp = function (n, a, b) { return Math.min(b, Math.max(a, n)); };
+  function makeStore(key, defaults) {
+    var s = Object.assign({}, defaults);
+    try { var v = JSON.parse(localStorage.getItem(key) || 'null'); if (v) Object.assign(s, v); } catch (e) {}
+    s.save = function () { try { localStorage.setItem(key, JSON.stringify(s)); } catch (e) {} };
+    return s;
+  }
+  function initTheme(state) {
+    var sw = $('themeSw');
+    function apply() {
+      var dark = state.theme ? state.theme === 'dark' : !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light'; sw.setAttribute('aria-checked', String(dark));
+    }
+    sw.addEventListener('click', function () { state.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; apply(); state.save(); });
+    apply();
+  }
+  var AC = null;
+  function audio() {
+    if (!AC) { var C = window.AudioContext || window.webkitAudioContext; if (!C) return null; AC = new C(); }
+    if (AC.state === 'suspended') AC.resume();
+    return AC;
+  }
+  function inControl(e) { return e.target.closest && e.target.closest('button, input, select, textarea, [role="slider"]'); }
+  function selector(el, get, set) {
+    var opts = Array.prototype.slice.call(el.querySelectorAll('[role=radio]'));
+    function sync() { opts.forEach(function (o) { var on = o.dataset.v === String(get()); o.classList.toggle('is-on', on); o.setAttribute('aria-checked', String(on)); o.tabIndex = on ? 0 : -1; }); }
+    opts.forEach(function (o, i) {
+      o.addEventListener('click', function () { set(o.dataset.v); sync(); });
+      o.addEventListener('keydown', function (e) {
+        var d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+        if (!d) return; e.preventDefault(); var j = (i + d + opts.length) % opts.length; opts[j].click(); opts[j].focus();
+      });
+    });
+    sync(); return sync;
+  }
+  function bindSwitch(el, get, set) {
+    var sync = function () { el.setAttribute('aria-checked', String(!!get())); };
+    el.addEventListener('click', function () { set(!get()); sync(); }); sync(); return sync;
+  }
+  /* Knob: opts {label, min, max, step, fine, size, get, set, format, sens} */
+  function knob(root, o) {
+    function pt(a, r) { var t = a * Math.PI / 180; return [32 + r * Math.sin(t), 32 - r * Math.cos(t)]; }
+    function arc(a0, a1, r) { var s = pt(a0, r), e = pt(a1, r); return 'M' + s[0].toFixed(2) + ' ' + s[1].toFixed(2) + ' A' + r + ' ' + r + ' 0 ' + (a1 - a0 > 180 ? 1 : 0) + ' 1 ' + e[0].toFixed(2) + ' ' + e[1].toFixed(2); }
+    var ticks = ''; for (var i = 0; i <= 10; i++) { var a = -135 + 27 * i, p1 = pt(a, 31), p2 = pt(a, 28.5); ticks += '<line class="u-knob__tick" x1="' + p1[0] + '" y1="' + p1[1] + '" x2="' + p2[0] + '" y2="' + p2[1] + '"/>'; }
+    var sz = o.size || 64;
+    root.innerHTML = '<div class="u-knob__dial" tabindex="0" role="slider" aria-label="' + o.label + '" aria-valuemin="' + o.min + '" aria-valuemax="' + o.max + '">' +
+      '<svg viewBox="0 0 64 64" width="' + sz + '" height="' + sz + '" aria-hidden="true">' + ticks + '<path class="u-knob__track" d="' + arc(-135, 135, 25) + '"/><path class="u-knob__arc"/><circle class="u-knob__cap" cx="32" cy="32" r="20"/><line class="u-knob__ind"/></svg></div>' +
+      '<div class="u-knob__foot"><span class="u-label">' + o.label + '</span><span class="u-value"></span></div>';
+    var dial = root.firstChild, arcEl = root.querySelector('.u-knob__arc'), ind = root.querySelector('.u-knob__ind'), val = root.querySelector('.u-value');
+    var disabled = false;
+    function draw() {
+      var v = o.get(), t = (v - o.min) / (o.max - o.min), a = -135 + 270 * clamp(t, 0, 1), i0 = pt(a, 6), i1 = pt(a, 17);
+      arcEl.setAttribute('d', t > 0.001 ? arc(-135, a, 25) : '');
+      ind.setAttribute('x1', i0[0]); ind.setAttribute('y1', i0[1]); ind.setAttribute('x2', i1[0]); ind.setAttribute('y2', i1[1]);
+      val.textContent = o.format ? o.format(v) : pad(v, 3); dial.setAttribute('aria-valuenow', v);
+      dial.setAttribute('aria-valuetext', o.format ? o.format(v) : String(v));
+    }
+    function set(v, fine) { if (disabled) return; var st = fine ? (o.fine || o.step) : o.step; o.set(clamp(Math.round(v / st) * st, o.min, o.max)); draw(); }
+    var drag = null;
+    function knobDrag(dial, get, set, range, sens, ok, min, max) {
+      /* Turn it like a dial (start on the ring), or slide up/right to raise, down/left to lower (start near the centre). Shift = fine. Wheel works too. */
+      var st = null, lo = min == null ? -Infinity : min, hi = max == null ? Infinity : max;
+      var cl = function (v) { return Math.min(hi, Math.max(lo, v)); };
+      dial.style.touchAction = 'none';
+      dial.addEventListener('pointerdown', function (e) {
+        if (ok && !ok()) return; e.preventDefault(); dial.focus(); dial.setPointerCapture(e.pointerId);
+        var r = dial.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, rad = Math.min(r.width, r.height) / 2;
+        var dx = e.clientX - cx, dy = e.clientY - cy;
+        st = { x: e.clientX, y: e.clientY, cx: cx, cy: cy, v: get(), tv: get(), mode: null, ang: Math.atan2(dx, -dy), ring: Math.sqrt(dx * dx + dy * dy) >= rad * 0.4 };
+      });
+      dial.addEventListener('pointermove', function (e) {
+        if (!st) return;
+        var mx = e.clientX - st.x, my = e.clientY - st.y;
+        if (!st.mode) { if (Math.sqrt(mx * mx + my * my) < 4) return; st.mode = st.ring ? 'turn' : 'slide'; dial.classList.add('is-turning'); }
+        if (st.mode === 'turn') {
+          var dx = e.clientX - st.cx, dy = e.clientY - st.cy;
+          if (Math.sqrt(dx * dx + dy * dy) < 6) return;
+          var a = Math.atan2(dx, -dy), d = a - st.ang;
+          if (d > Math.PI) d -= 2 * Math.PI; if (d < -Math.PI) d += 2 * Math.PI;
+          st.ang = a; st.tv = cl(st.tv + d / (1.5 * Math.PI) * range * (e.shiftKey ? 0.25 : 1));
+          set(st.tv, e.shiftKey);
+        } else {
+          set(cl(st.v + (mx - my) * range / (sens || 150) / (e.shiftKey ? 4 : 1)), e.shiftKey);
+        }
+      });
+      var end = function () { st = null; dial.classList.remove('is-turning'); };
+      dial.addEventListener('pointerup', end); dial.addEventListener('pointercancel', end);
+      dial.addEventListener('wheel', function (e) {
+        if (ok && !ok()) return; e.preventDefault();
+        if (Math.abs(e.deltaY) < 1) return; dial.dispatchEvent(new KeyboardEvent('keydown', { key: e.deltaY < 0 ? 'ArrowUp' : 'ArrowDown', shiftKey: e.shiftKey, bubbles: true, cancelable: true }));
+      }, { passive: false });
+    }
+    knobDrag(dial, function () { return o.get(); }, function (v, f) { set(v, f); }, o.max - o.min, (o.sens || 200), function () { return !disabled; }, o.min, o.max);
+    dial.addEventListener('pointerup', function () { drag = null; });
+    dial.addEventListener('keydown', function (e) {
+      var s = e.shiftKey ? (o.fine || o.step) : o.step, d = { ArrowUp: s, ArrowRight: s, ArrowDown: -s, ArrowLeft: -s, PageUp: s * 10, PageDown: -s * 10 }[e.key];
+      if (e.key === 'Home') d = o.min - o.get(); if (e.key === 'End') d = o.max - o.get();
+      if (d != null) { e.preventDefault(); set(o.get() + d, e.shiftKey); }
+    });
+    draw();
+    return { draw: draw, disable: function (b) { disabled = b; root.classList.toggle('is-disabled', b); dial.setAttribute('aria-disabled', String(b)); } };
+  }
+
+  var today = new Date().toDateString();
+  var S = makeStore('unit01-timer', { theme: null, setS: 300, running: false, endAt: 0, remainMs: 300000, pomo: false, phase: 'focus', round: 1, log: [], logDay: today });
+  if (S.logDay !== today) { S.log = []; S.logDay = today; }
+  initTheme(S);
+
+  var PRESETS = [1, 3, 5, 10, 25];
+  var ringing = false, alarmTimer = null, flashTimer = null;
+
+  function fmt(ms) { var s = Math.ceil(Math.max(0, ms) / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60; return (h ? h + ':' + pad(m, 2) : pad(m, 2)) + ':' + pad(ss, 2); }
+  function fmtS(s) { return pad(Math.floor(s / 60), 2) + ':' + pad(s % 60, 2); }
+  function remaining() { return S.running ? Math.max(0, S.endAt - Date.now()) : S.remainMs; }
+  function totalMs() { return S.setS * 1000; }
+
+  /* meter */
+  var meter = $('meter');
+  for (var i = 0; i < 20; i++) meter.appendChild(document.createElement('span')).className = 'seg';
+
+  /* presets */
+  PRESETS.forEach(function (m, i) {
+    var b = document.createElement('button'); b.className = 'u-key'; b.dataset.min = m;
+    b.innerHTML = '<span class="u-key__index">' + pad(i + 1, 2) + '</span><span class="u-key__text">' + m + ' min</span>';
+    b.addEventListener('click', function () { setDuration(m * 60); });
+    $('presets').appendChild(b);
+  });
+
+  var setK = knob($('setKnob'), { label: 'Duration', min: 0, max: 5400, step: 60, fine: 5, size: 132, sens: 300,
+    get: function () { return S.setS; }, set: function (v) { setDuration(v, true); }, format: fmtS });
+
+  function setDuration(sec, fromKnob) {
+    stopAlarm();
+    S.setS = clamp(Math.round(sec), 0, 5400);
+    if (!S.running) S.remainMs = S.setS * 1000;
+    S.save(); if (!fromKnob) setK.draw(); render();
+  }
+  function start() {
+    var a = audio();
+    if (ringing) { stopAlarm(); return; }
+    if (S.running) { S.remainMs = remaining(); S.running = false; }
+    else { if (S.remainMs <= 0) S.remainMs = totalMs(); if (S.remainMs <= 0) return; S.endAt = Date.now() + S.remainMs; S.running = true; }
+    S.save(); render();
+  }
+  function reset() { stopAlarm(); S.running = false; S.remainMs = totalMs(); S.save(); render(); }
+  function nudge(ms) {
+    stopAlarm();
+    if (S.running) S.endAt = Math.max(Date.now(), S.endAt + ms);
+    else { S.remainMs = clamp(S.remainMs + ms, 0, 5400000); if (S.remainMs > totalMs()) { S.setS = Math.ceil(S.remainMs / 1000); setK.draw(); } }
+    S.save(); render();
+  }
+  function finish() {
+    S.running = false; S.remainMs = 0;
+    var label = S.pomo ? (S.phase === 'focus' ? 'Focus' : 'Break') : 'Timer';
+    var d = new Date(); S.log.unshift({ t: pad(d.getHours(), 2) + ':' + pad(d.getMinutes(), 2), s: S.setS, k: label });
+    if (S.log.length > 50) S.log.pop();
+    if (S.pomo) advancePhase();
+    S.save(); startAlarm(); render();
+  }
+  function advancePhase() {
+    if (S.phase === 'focus') { S.phase = 'break'; S.setS = S.round >= 4 ? 900 : 300; }
+    else { S.phase = 'focus'; S.round = S.round >= 4 ? 1 : S.round + 1; S.setS = 1500; }
+    S.remainMs = S.setS * 1000; setK.draw();
+  }
+
+  /* alarm: three beeps every 1.4 s + display flash, until dismissed */
+  function beep(t, f) {
+    var c = AC; if (!c) return;
+    var o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.18, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + .12);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + .14);
+  }
+  function burst() { if (AC) { var t = AC.currentTime + .02; beep(t, 1760); beep(t + .18, 1760); beep(t + .36, 2200); } }
+  function startAlarm() {
+    ringing = true; burst(); alarmTimer = setInterval(burst, 1400);
+    var on = false; flashTimer = setInterval(function () { on = !on; $('hero').classList.toggle('is-flash', on); }, 350);
+  }
+  function stopAlarm() {
+    if (!ringing) return; ringing = false; clearInterval(alarmTimer); clearInterval(flashTimer); $('hero').classList.remove('is-flash'); render();
+  }
+
+  /* pomodoro */
+  bindSwitch($('pomoSw'), function () { return S.pomo; }, function (v) {
+    S.pomo = v; S.phase = 'focus'; S.round = 1; if (v) setDuration(1500); else { S.save(); render(); }
+  });
+
+  function renderCycle() {
+    var c = $('cycle'); c.innerHTML = '';
+    for (var i = 1; i <= 4; i++) {
+      var f = document.createElement('span'); f.className = 'cycle__step';
+      if (S.pomo) { if (i < S.round || (i === S.round && S.phase === 'break')) f.classList.add('is-done'); if (i === S.round && S.phase === 'focus' && S.running) f.classList.add('is-now'); }
+      c.appendChild(f);
+    }
+    $('cycleNow').textContent = S.pomo ? (S.phase === 'focus' ? 'Focus ' + S.round + ' of 4' : (S.round >= 4 ? 'Long break' : 'Break ' + S.round)) : 'Off';
+    $('cycleNext').textContent = S.pomo ? (S.phase === 'focus' ? 'Then break ' + (S.round >= 4 ? 15 : 5) : 'Then focus 25') : 'Single timer';
+    $('cycleMeta').textContent = S.pomo ? '25 / 5 · 15' : 'Off';
+  }
+  function renderLog() {
+    var l = $('log'); l.innerHTML = '';
+    if (!S.log.length) { var e = document.createElement('li'); e.className = 'log__empty'; e.textContent = 'Finished timers appear here.'; l.appendChild(e); }
+    var tot = 0;
+    S.log.forEach(function (r) { tot += r.s; var li = document.createElement('li'); li.innerHTML = '<span>' + r.k + ' · ' + fmtS(r.s) + '</span><span class="u-value">' + r.t + '</span>'; l.appendChild(li); });
+    $('logTotal').textContent = fmtS(Math.min(tot, 359999)).replace(/^(\d{3,}):/, '$1:');
+  }
+
+  var lastSec = -1;
+  function render() {
+    var rem = remaining(), tot = totalMs(), frac = tot ? rem / tot : 0, lit = Math.ceil(frac * 20 - 1e-9);
+    $('clock').textContent = fmt(rem);
+    Array.prototype.forEach.call(meter.children, function (s, i) { s.classList.toggle('is-lit', i < lit); });
+    $('hero').classList.toggle('is-done', ringing);
+    var st = ringing ? 'Done' : S.running ? (S.pomo ? (S.phase === 'focus' ? 'Focus' : 'Break') : 'Running') : (rem < tot && rem > 0 ? 'Paused' : 'Ready');
+    $('stateOut').textContent = st; $('stateOut').classList.toggle('is-run', S.running);
+    $('barMeta').textContent = st;
+    $('phaseOut').textContent = (S.pomo ? (S.phase === 'focus' ? 'Focus ' : 'Break ') : 'Set ') + fmtS(S.setS);
+    if (S.running) { var e = new Date(S.endAt); $('endsOut').textContent = 'Ends ' + pad(e.getHours(), 2) + ':' + pad(e.getMinutes(), 2); }
+    else $('endsOut').textContent = ringing ? 'Tap to dismiss' : 'Ends --:--';
+    $('pctOut').textContent = pad(Math.round((1 - frac) * 100), 3) + '%';
+    $('startText').textContent = ringing ? 'Dismiss' : S.running ? 'Pause' : (rem < tot && rem > 0 ? 'Resume' : (S.pomo && S.phase === 'break' ? 'Start break' : 'Start'));
+    $('start').setAttribute('aria-pressed', String(S.running));
+    setK.disable(S.running);
+    document.querySelectorAll('#presets .u-key').forEach(function (b) { b.classList.toggle('is-sel', +b.dataset.min * 60 === S.setS); b.disabled = S.running; });
+    renderCycle(); renderLog();
+    var sec = Math.ceil(rem / 1000);
+    if (sec !== lastSec) { lastSec = sec; document.title = (S.running ? fmt(rem) + ' · ' : '') + 'Unit 01 — Timer'; }
+  }
+  function tick() {
+    if (S.running && Date.now() >= S.endAt) finish();
+    if (S.running) render();
+  }
+  (function loop() { tick(); requestAnimationFrame(loop); })();
+  setInterval(tick, 250); /* keeps the alarm on time when the tab is in the background */
+
+  $('start').addEventListener('click', start);
+  $('reset').addEventListener('click', reset);
+  $('minus').addEventListener('click', function () { nudge(-60000); });
+  $('plus').addEventListener('click', function () { nudge(60000); });
+  $('hero').addEventListener('click', stopAlarm);
+  document.addEventListener('keydown', function (e) {
+    if (inControl(e)) return;
+    if (e.key === ' ') { e.preventDefault(); start(); }
+    else if (e.key === 'r' || e.key === 'R') reset();
+    else if (e.key === 'Escape') stopAlarm();
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); nudge((e.key === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 5000 : 60000)); }
+  });
+  render();
+})();
+</script>
+</body>
+</html>

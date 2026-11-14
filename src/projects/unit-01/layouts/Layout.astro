@@ -1,0 +1,60 @@
+---
+import SiteHeader from '../components/SiteHeader.astro'
+import Sidebar from '../components/Sidebar.astro'
+import '../styles.css'
+import '../components.css'
+
+interface Props {
+  /** The section, shown in the tab after the project name. */
+  title?: string
+  /** Page-specific summary for search results and link previews. */
+  description?: string
+  /** The page's number in the index, shown before the name. */
+  index: string
+}
+
+const {
+  title,
+  index,
+  description = 'Unit 01: a design system for small personal apps that work like pocket hardware, by Chad Donohue.',
+} = Astro.props
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <title>{title ? `Unit 01 — ${title}` : 'Unit 01'} · Chad Donohue</title>
+    <script is:inline>
+      /*
+       * Apply a stored theme before anything paints, so choosing Night and
+       * clicking through never flashes Gallery first. The key is the one
+       * `themes/pixel-desk/theme.ts` owns, shared with the site's light switch.
+       */
+      try {
+        const stored = localStorage.getItem('desk-room.theme')
+        if (stored === 'light' || stored === 'dark') {
+          document.documentElement.setAttribute('data-theme', stored)
+        }
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <div class="shell">
+      <SiteHeader index={index} />
+      <Sidebar />
+      <main class="main">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

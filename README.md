@@ -9,8 +9,8 @@ npm run dev      # localhost:4321
 npm run build    # astro check, then a static build to dist/
 ```
 
-Astro, static output, deployed on Vercel. Three pages, each a real HTML file, so
-there are no rewrite rules to configure and no client-side routing to get wrong.
+Astro, static output, deployed on Vercel. Four site pages plus the project
+explorers under `/projects`, each a real HTML file, so there are no rewrite rules to configure and no client-side routing to get wrong.
 
 ## What is where
 
@@ -20,6 +20,9 @@ src/content.ts              everything the site says about jobs, tools and links
 src/pages/                  thin route selectors for the active full-site theme
 src/themes/pixel-desk/      the complete pixel-desk theme and its workbench
 themes/pixel-desk/art/      its Aseprite sources and exports (see its README)
+src/projects/<name>/        a project's explorer: its own layout, styles, pages
+projects/<name>/            a project's source material (e.g. a design system)
+public/projects/<name>/     static files a project serves as-is
 ```
 
 The route files deliberately contain only an import and a render. A theme can
@@ -35,7 +38,8 @@ truly theme-neutral components remain above that boundary.
 to a Vite SPA to Astro cost almost nothing, and it is worth keeping true.
 
 `src/themes/pixel-desk/components/DeskScene.tsx` is the theme's one React island.
-It ships on the home page only; the other pages send no JavaScript at all.
+It ships on the home page only; the other site pages send no JavaScript at all.
+(Project explorers are their own thing and do; see Projects below.)
 
 What drives it:
 
@@ -91,7 +95,7 @@ startle.
 file-based routing cannot find it, and the route is only injected when the
 command is `dev`. Both at once on purpose: a build has neither a file to route
 nor a route to build, so there is nothing to tree-shake and nothing to take on
-trust. `dist/` holds three HTML files, and `grep` finds no trace of the panel in
+trust. `dist/` holds no `/dev` page, and `grep` finds no trace of the panel in
 it.
 
 The one concession in shipped code is `setOutfit` on `DeskRoom`, so a colour can
@@ -140,3 +144,34 @@ Every anchor goes through `src/components/Link.astro`, which decides for itself
 whether it leaves the site and opens a new tab if it does. That is a property of
 the component rather than a convention to remember — it was a convention until
 now, and had already been missed once.
+
+## Projects
+
+`/projects` lists things built outside the day job, in the site's own design.
+Each project then opens into an explorer that is deliberately *not* in that
+design: it is the project, shown in its own clothes. The site theme chooses
+nothing below `/projects/<name>/`.
+
+### Unit 01
+
+A design system for small personal apps that work like pocket hardware: black,
+white and one orange, Libre Franklin and IBM Plex Mono, rules instead of boxes,
+square keys with a keycap edge.
+
+- `projects/unit-01/design-system/` is the canonical reference as handed off:
+  the brand book, `tokens.json` and the icons. The Overview page reads its
+  colours, type, spacing and radii from `tokens.json` at build time.
+- `src/projects/unit-01/` is the explorer: Overview, Components and Apps. The
+  component styles in `components.css` are taken verbatim from the system's
+  shared base, so the Components page shows the real components, all of them
+  live — knobs turn with the canonical gesture, the display is a clock.
+- `public/projects/unit-01/apps/` holds the 24 apps, each a self-contained
+  page exactly as handed off. They fill their window and adapt with container
+  queries, so the Apps page links to them rather than framing them. Tuner asks
+  for the microphone and Level for the tilt sensor; both need https, which the
+  site has.
+
+The explorer is fluid in tiers: below 720px a menu key opens its sections,
+from 720px they sit in the title bar, and from 1100px they become a left
+column. Its Dark switch stores the same choice as the pixel desk's light
+switch, so Night in one is Night in the other.

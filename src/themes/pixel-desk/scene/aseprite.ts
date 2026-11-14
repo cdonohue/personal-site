@@ -161,9 +161,9 @@ export const loadImage = (url: string): Promise<HTMLImageElement> =>
  */
 export const loadSheet = async (
   base: string,
-  transform?: (image: HTMLImageElement) => SheetImage,
+  transform?: (image: HTMLImageElement) => SheetImage | Promise<SheetImage>,
 ): Promise<Sheet> => {
   const [image, response] = await Promise.all([loadImage(`${base}.png`), fetch(`${base}.json`)]);
   if (!response.ok) throw new Error(`Failed to load sheet data: ${base}.json`);
-  return new Sheet(transform ? transform(image) : image, (await response.json()) as RawSheet);
+  return new Sheet(transform ? await transform(image) : image, (await response.json()) as RawSheet);
 };
