@@ -31,8 +31,8 @@ export const apps: App[] = [
   { slug: '02-tuner', name: 'Tuner', idea: 'Pitch detection from the microphone, plus reference tones.', features: '21-segment cents meter, strings per instrument, A4 from 415 to 466 Hz, pitch trace.', note: 'Asks for microphone access.' },
   { slug: '03-drum-machine', name: 'Drum Machine', idea: 'Sixteen steps, four synthesised voices.', features: 'Swing, mixer knobs, presets, playhead.' },
   { slug: '04-drone', name: 'Drone', idea: 'A held root or chord to practise against.', features: 'Chord modes, four voices, fade, breathing LFO, A4 calibration.' },
-  { slug: '05-ear-trainer', name: 'Ear Trainer', idea: 'Interval and chord quiz.', features: 'Levels, streak, accuracy bars.' },
-  { slug: '06-chords', name: 'Chord Finder', idea: 'Name chords from a piano or fretboard.', features: 'Inversions and slash chords, reverse build.', note: 'Sharps only.' },
+  { slug: '05-ear-trainer', name: 'Ear Trainer', idea: 'Interval and chord quiz on a sampled grand piano.', features: 'Levels, streak, accuracy bars.' },
+  { slug: '06-chords', name: 'Chord Finder', idea: 'Name chords from a piano or fretboard, heard on a sampled grand piano.', features: 'Inversions and slash chords, reverse build.', note: 'Sharps only.' },
   { slug: '07-timer', name: 'Timer', idea: 'A countdown set with a knob.', features: 'Presets, Pomodoro, alarm with flash, log.' },
   { slug: '08-stopwatch', name: 'Stopwatch', idea: 'Laps and splits.', features: 'Fastest lap in orange, stats.' },
   { slug: '09-world-clock', name: 'World Clock', idea: 'Local time and six cities, correct across daylight saving.', features: '24-hour overlap strip, time scrubber, 12 or 24 hour.' },
@@ -165,3 +165,11 @@ export const glyphs: Record<string, string> = {
   // A key.
   '24-passwords': '<path fill-rule="evenodd" d="M7.5 6.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 3.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM12.6 10.7H23v2.6h-2.2V17h-2.6v-3.7h-1.6V16h-2.6v-2.7h-1.4z"/>',
 }
+
+/*
+ * Apps that play the sampled grand piano (public/projects/unit-01/samples/
+ * piano, Salamander Grand Piano by Alexander Holm, CC BY 3.0). The generator
+ * adds the sampler to these apps; each keeps its synth as the fallback while
+ * samples load.
+ */
+export const pianoApps = ['05-ear-trainer', '06-chords']

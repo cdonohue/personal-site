@@ -262,6 +262,7 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
 </script>
 <script>window.UNIT01_WEIGHTS = {".transport":"core",".p-build":"supporting","#modeSel":"enhancement"};</script>
 <script src="/projects/unit-01/apps/unit01-weights.js" defer></script>
+<script src="/projects/unit-01/apps/unit01-piano.js" defer></script>
 <!-- unit01-app:end -->
 </head>
 <body>
@@ -349,7 +350,11 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
   }
   var AC = null;
   function audio() {
-    if (!AC) { var C = window.AudioContext || window.webkitAudioContext; if (!C) return null; AC = new C(); }
+    if (!AC) {
+      var C = window.AudioContext || window.webkitAudioContext; if (!C) return null; AC = new C();
+      // The keyboard spans C3 to B5; fetch the piano for it now.
+      if (window.Unit01Piano) Unit01Piano.preload(AC, 48, 84);
+    }
     if (AC.state === 'suspended') AC.resume();
     return AC;
   }
@@ -537,11 +542,15 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
   }
 
   /* audio: plucked triangle through a lowpass */
+  /* Piano input sounds a sampled grand piano; fretboard input keeps the
+     plucked-string synth below, which also stands in for any piano note
+     whose sample has not loaded yet. */
   function pluck(midis, gap) {
     var c = audio(); if (!c) return;
-    var t0 = c.currentTime + .02;
+    var t0 = c.currentTime + .02, piano = activeMode() === 'piano' && window.Unit01Piano;
     midis.forEach(function (m, i) {
       var t = t0 + i * gap, f = 440 * Math.pow(2, (m - 69) / 12);
+      if (piano && Unit01Piano.play(c, c.destination, m, t, { duration: 2.2, gain: .6 / Math.sqrt(Math.max(1, midis.length)) })) return;
       var o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
       o.type = 'triangle'; o2.type = 'sawtooth'; o.frequency.value = f; o2.frequency.value = f * 1.003;
       lp.type = 'lowpass'; lp.frequency.setValueAtTime(Math.min(6000, f * 8), t); lp.frequency.exponentialRampToValueAtTime(Math.max(200, f * 1.5), t + 1.2);

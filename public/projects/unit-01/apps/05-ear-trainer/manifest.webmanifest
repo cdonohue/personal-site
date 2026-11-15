@@ -2,7 +2,7 @@
   "id": "/projects/unit-01/apps/05-ear-trainer/",
   "name": "Ear Trainer · Unit 01",
   "short_name": "Ear Trainer",
-  "description": "Interval and chord quiz.",
+  "description": "Interval and chord quiz on a sampled grand piano.",
   "start_url": "/projects/unit-01/apps/05-ear-trainer/",
   "scope": "/projects/unit-01/apps/05-ear-trainer/",
   "display": "standalone",

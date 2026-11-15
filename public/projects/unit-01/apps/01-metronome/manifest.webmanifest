@@ -2,7 +2,7 @@
   "id": "/projects/unit-01/apps/01-metronome/",
   "name": "Metronome · Unit 01",
   "short_name": "Metronome",
-  "description": "Web Audio metronome with tap tempo, accents and subdivisions.",
+  "description": "Web Audio metronome in any meter, with tap tempo, accents and subdivisions.",
   "start_url": "/projects/unit-01/apps/01-metronome/",
   "scope": "/projects/unit-01/apps/01-metronome/",
   "display": "standalone",

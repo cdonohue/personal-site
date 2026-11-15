@@ -31,7 +31,7 @@ import { createRequire } from 'node:module'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { BASE, apps, glyphs, weights } from '../src/projects/unit-01/catalogue.ts'
+import { BASE, apps, glyphs, pianoApps, weights } from '../src/projects/unit-01/catalogue.ts'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const appsDir = path.join(root, 'public', 'projects', 'unit-01', 'apps')
@@ -44,6 +44,11 @@ const LEGACY = ['<!-- unit01-pwa:start -->', '<!-- unit01-pwa:end -->']
 
 const RUNTIME = 'unit01-weights.js'
 const runtimeSource = path.join(root, 'scripts', RUNTIME)
+// The sampled piano, for the apps in pianoApps. Its samples are served from
+// samplesUrl and cached by the service worker as they are played.
+const PIANO = 'unit01-piano.js'
+const pianoSource = path.join(root, 'scripts', PIANO)
+const samplesUrl = `${BASE}/samples/`
 
 const GALLERY = '#ffffff'
 const NIGHT = '#000000'
@@ -124,7 +129,7 @@ const headBlock = (app: (typeof apps)[number]) => {
 })();
 </script>
 <script>window.UNIT01_WEIGHTS = ${JSON.stringify(weights[app.slug] ?? {})};</script>
-<script src="${appsUrl}/${RUNTIME}" defer></script>
+<script src="${appsUrl}/${RUNTIME}" defer></script>${pianoApps.includes(app.slug) ? `\n<script src="${appsUrl}/${PIANO}" defer></script>` : ''}
 ${END}`
 }
 
@@ -162,6 +167,9 @@ var SCOPE = self.registration.scope;
 var CACHE = 'unit01:' + new URL(SCOPE).pathname + ':' + VERSION;
 var FONTS = 'unit01:fonts';
 var RUNTIME = '${appsUrl}/${RUNTIME}';
+var PIANO = '${appsUrl}/${PIANO}';
+var SAMPLES = '${samplesUrl}';
+var SAMPLE_CACHE = 'unit01:samples';
 var SHELL = [SCOPE, SCOPE + 'manifest.webmanifest', SCOPE + 'icons/apple-touch-icon.png', SCOPE + 'icons/icon-192.png', SCOPE + 'icons/icon-512.png', SCOPE + 'icons/icon-maskable-512.png', RUNTIME];
 
 self.addEventListener('install', function (event) {
@@ -196,8 +204,14 @@ self.addEventListener('fetch', function (event) {
     return;
   }
   // The shared weights runtime lives beside the apps, outside any one scope.
-  if (url.origin === self.location.origin && url.pathname === RUNTIME) {
+  if (url.origin === self.location.origin && (url.pathname === RUNTIME || url.pathname === PIANO)) {
     event.respondWith(fromCache(CACHE, req));
+    return;
+  }
+  // Samples never change, so they are kept across versions and shared by
+  // every app: cached the first time each is played, then offline after.
+  if (url.origin === self.location.origin && url.pathname.indexOf(SAMPLES) === 0) {
+    event.respondWith(fromCache(SAMPLE_CACHE, req));
     return;
   }
   if (url.href.indexOf(SCOPE) !== 0) return;
@@ -263,8 +277,10 @@ const main = async () => {
   }
   const runtime = fs.readFileSync(runtimeSource, 'utf8')
   fs.writeFileSync(path.join(appsDir, RUNTIME), runtime)
+  const piano = fs.readFileSync(pianoSource, 'utf8')
+  fs.writeFileSync(path.join(appsDir, PIANO), piano)
 
-  const hash = createHash('sha256').update(runtime)
+  const hash = createHash('sha256').update(runtime).update(piano)
   for (const app of apps) {
     const dir = path.join(appsDir, app.slug)
     const indexPath = path.join(dir, 'index.html')

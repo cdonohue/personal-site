@@ -183,6 +183,14 @@ square keys with a keycap edge.
   `unit01-app` markers, so the apps are otherwise untouched and a re-run is a
   no-op; re-run it after editing an app, its weights or the runtime, so the
   service worker's version changes and installed copies update.
+- Ear Trainer and Chord Finder play a sampled grand piano: the Salamander
+  Grand Piano by Alexander Holm (CC BY 3.0), 20 recordings in
+  `public/projects/unit-01/samples/piano/` with their attribution, played by
+  `scripts/unit01-piano.js` (copied to `apps/`). Each note uses the nearest
+  recording, retuned; recordings are level-matched so the range is even. The
+  apps' synths cover any note whose sample has not loaded, and the service
+  worker caches samples as they are played. `pianoApps` in the catalogue
+  lists which apps get it.
 - `npm run unit01:audit` checks the rule against a running preview: every
   Core part reachable at every handoff size, every weight still matching
   something, no overflow, no page errors. It exits non-zero on failure.

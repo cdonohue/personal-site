@@ -251,6 +251,7 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
 </script>
 <script>window.UNIT01_WEIGHTS = {".p-mode":"core",".p-level":"core"};</script>
 <script src="/projects/unit-01/apps/unit01-weights.js" defer></script>
+<script src="/projects/unit-01/apps/unit01-piano.js" defer></script>
 <!-- unit01-app:end -->
 </head>
 <body>
@@ -428,6 +429,8 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
     if (!AUDIO.ctx) {
       var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
       AUDIO.ctx = new AC(); AUDIO.master = AUDIO.ctx.createGain(); AUDIO.master.connect(AUDIO.ctx.destination);
+      // Questions span about E3 to C6; fetch the piano for that range now.
+      if (window.Unit01Piano) Unit01Piano.preload(AUDIO.ctx, 50, 84);
     }
     if (AUDIO.ctx.state === 'suspended') AUDIO.ctx.resume();
     return AUDIO.ctx;
@@ -499,9 +502,12 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
     $('next').setAttribute('aria-label', 'Play question');
   }
 
-  /* ── Sound: a soft electric-piano-ish tone ── */
-  function tone(m, t, dur) {
+  /* ── Sound: a sampled grand piano; until a note's sample has loaded, the
+     soft synth tone below stands in for it. n is how many notes sound
+     together, so chords keep the same loudness as single notes. ── */
+  function tone(m, t, dur, n) {
     var ctx = AUDIO.ctx, f = 440 * Math.pow(2, (m - 69) / 12);
+    if (window.Unit01Piano && Unit01Piano.play(ctx, AUDIO.master, m, t, { duration: dur, gain: .6 / Math.sqrt(n || 1) })) return;
     var o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), flt = ctx.createBiquadFilter();
     o1.type = 'triangle'; o2.type = 'sine'; o1.frequency.value = f; o2.frequency.value = f * 2; o2.detune.value = 3;
     var g2 = ctx.createGain(); g2.gain.value = .25;
@@ -517,7 +523,7 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
     if (state.mode === 'intervals') notes = [q.root, q.root + IV[q.key]];
     else notes = CH[q.key].map(function (iv) { return q.root + iv; });
     if (state.play === 'down') notes = notes.slice().reverse();
-    if (state.play === 'together') notes.forEach(function (m) { tone(m, t, 1.8); });
+    if (state.play === 'together') notes.forEach(function (m) { tone(m, t, 1.8, notes.length); });
     else notes.forEach(function (m, i) { tone(m, t + i * .55, 1.2); });
   }
   function newQ() {
