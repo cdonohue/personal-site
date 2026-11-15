@@ -238,7 +238,7 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
 /* iOS zooms into any field under 16px: keep every text field at 16px or more */
 input#cA, input#cB, input#cRate, input#val, select#catPick, select#from, select#to { font-size: 16px !important; }
 </style>
-<!-- unit01-pwa:start -->
+<!-- unit01-app:start -->
 <link rel="manifest" href="/projects/unit-01/apps/11-converter/manifest.webmanifest">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
@@ -271,7 +271,9 @@ input#cA, input#cB, input#cRate, input#val, select#catPick, select#from, select#
   }
 })();
 </script>
-<!-- unit01-pwa:end -->
+<script>window.UNIT01_WEIGHTS = {".io":"core",".p-cats":"core","#nudge":"supporting",".p-table":"enhancement"};</script>
+<script src="/projects/unit-01/apps/unit01-weights.js" defer></script>
+<!-- unit01-app:end -->
 </head>
 <body>
 <div class="shell">

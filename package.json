@@ -7,7 +7,8 @@
     "dev": "astro dev",
     "build": "astro check && astro build && node scripts/verify-build-art.ts",
     "test": "node --test src/themes/pixel-desk/scene/*.test.ts",
-    "unit01:pwa": "node scripts/unit01-pwa.ts",
+    "unit01:apps": "node scripts/unit01-apps.ts",
+    "unit01:audit": "node scripts/unit01-audit.ts",
     "preview": "astro preview",
     "astro": "astro"
   },

@@ -238,7 +238,7 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
 /* iOS zooms into any field under 16px: keep every text field at 16px or more */
 input#goal, input#newName, input#rename { font-size: 16px !important; }
 </style>
-<!-- unit01-pwa:start -->
+<!-- unit01-app:start -->
 <link rel="manifest" href="/projects/unit-01/apps/10-counter/manifest.webmanifest">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
@@ -271,7 +271,9 @@ input#goal, input#newName, input#rename { font-size: 16px !important; }
   }
 })();
 </script>
-<!-- unit01-pwa:end -->
+<script>window.UNIT01_WEIGHTS = {".chips":"core","#reset":"core",".p-list":"core",".p-step":"supporting"};</script>
+<script src="/projects/unit-01/apps/unit01-weights.js" defer></script>
+<!-- unit01-app:end -->
 </head>
 <body>
 <div class="shell">

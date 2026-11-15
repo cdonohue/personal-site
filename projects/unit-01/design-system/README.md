@@ -13,6 +13,21 @@ It's an original system with two influences: the industrial-electronics school o
 5. **Rules, not boxes.** Sections open with a 2px `rule` and sit straight on the wall: no panel fills, no borders around modules, no rounded cards.
 6. **Flat and machined.** No gradients, no blur, no drop shadows except the keycap edge. Keys and selectors are square solid blocks with no outline; their face (`key`, or a function colour) and the 2px keycap edge make them read as pressable.
 7. **Label everything, numbered.** Every module gets an uppercase Label numbered in reading order (`01 PATTERN`, `02 TEMPO`).
+8. **Weigh every part.** Every module, panel and key is Core, Supporting or Enhancement, and its weight — not the space available — decides what it is guaranteed. See Weights below.
+
+## Weights
+
+Layouts add modules as space grows. Weights stop that from deciding what an app can do: a part's weight is a promise about where it can be found.
+
+| Weight | What it is | Guarantee |
+| --- | --- | --- |
+| **Core** | Needed to do the app's job, including setting it up: a metronome's meter, a tuner's instrument, a converter's category, the players in a score | Reachable at every size, down to 200×200. It may change form (stepper to chips, panel to sheet) but never disappears |
+| **Supporting** | Tunes how it works: sound, volume, calibration, step size | Inline when there is room; otherwise one tap away |
+| **Enhancement** | Adds information or speed: presets, stats, history, traces, shortcuts | Appears only when there is room; never required |
+
+When a layout hides a Core or Supporting part, a **More** key appears — in the title bar beside the Dark switch, or in the corner at glance size — and opens a sheet holding exactly those parts, Core first. The parts move into the sheet and back, so they keep their state. Enhancements are never in the sheet.
+
+Decide weights from the job, not the layout: ask what someone needs to set the app up and use it on a phone held in one hand. Those parts are Core.
 
 ## Voice
 

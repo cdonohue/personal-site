@@ -258,7 +258,7 @@ input[type="date"].u-field__input, input[type="time"].u-field__input { font-fami
 /* iOS zooms into any field under 16px: keep every text field at 16px or more */
 input#fDate, input#fName, input#fTime { font-size: 16px !important; }
 </style>
-<!-- unit01-pwa:start -->
+<!-- unit01-app:start -->
 <link rel="manifest" href="/projects/unit-01/apps/23-countdown/manifest.webmanifest">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
@@ -291,7 +291,9 @@ input#fDate, input#fName, input#fTime { font-size: 16px !important; }
   }
 })();
 </script>
-<!-- unit01-pwa:end -->
+<script>window.UNIT01_WEIGHTS = {".events":"core",".p-add":"core","#soonest":"supporting"};</script>
+<script src="/projects/unit-01/apps/unit01-weights.js" defer></script>
+<!-- unit01-app:end -->
 </head>
 <body>
 <div class="shell">

@@ -216,7 +216,7 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 .u-knob__dial.is-turning { outline: 1px dashed var(--ink-muted); outline-offset: 3px; }
 </style>
-<!-- unit01-pwa:start -->
+<!-- unit01-app:start -->
 <link rel="manifest" href="/projects/unit-01/apps/02-tuner/manifest.webmanifest">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
@@ -249,7 +249,9 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
   }
 })();
 </script>
-<!-- unit01-pwa:end -->
+<script>window.UNIT01_WEIGHTS = {".strings":"core",".p-inst":"core","#down":"supporting","#up":"supporting",".p-cal":"supporting",".p-sound":"supporting",".p-chrom":"enhancement"};</script>
+<script src="/projects/unit-01/apps/unit01-weights.js" defer></script>
+<!-- unit01-app:end -->
 </head>
 <body>
 <div class="shell">
