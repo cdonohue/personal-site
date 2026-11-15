@@ -241,7 +241,7 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
 /* iOS zooms into any field under 16px: keep every text field at 16px or more */
 input#customVal, input.tile__name, input.u-field__input.u-field__input--mono, select#target { font-size: 16px !important; }
 </style>
-<!-- unit01-pwa:start -->
+<!-- unit01-app:start -->
 <link rel="manifest" href="/projects/unit-01/apps/21-score/manifest.webmanifest">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
@@ -274,7 +274,9 @@ input#customVal, input.tile__name, input.u-field__input.u-field__input--mono, se
   }
 })();
 </script>
-<!-- unit01-pwa:end -->
+<script>window.UNIT01_WEIGHTS = {".players":"core",".p-roster":"core","#undo":"core","#prev":"supporting",".p-step":"supporting",".p-rounds":"enhancement"};</script>
+<script src="/projects/unit-01/apps/unit01-weights.js" defer></script>
+<!-- unit01-app:end -->
 </head>
 <body>
 <div class="shell">

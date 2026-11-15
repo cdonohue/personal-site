@@ -220,7 +220,7 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
   .modes, .p-opts, .p-read, .p-info { display: flex; }
 }
 </style>
-<!-- unit01-pwa:start -->
+<!-- unit01-app:start -->
 <link rel="manifest" href="/projects/unit-01/apps/13-level/manifest.webmanifest">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
@@ -253,7 +253,9 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
   }
 })();
 </script>
-<!-- unit01-pwa:end -->
+<script>window.UNIT01_WEIGHTS = {".modes":"core",".p-opts":"supporting",".p-read":"enhancement"};</script>
+<script src="/projects/unit-01/apps/unit01-weights.js" defer></script>
+<!-- unit01-app:end -->
 </head>
 <body>
 <div class="shell">
