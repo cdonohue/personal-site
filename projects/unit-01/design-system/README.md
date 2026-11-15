@@ -70,6 +70,10 @@ Text fields, selects and text areas are never under 16px (`input` style). Smalle
 
 Mechanical, not bouncy: 60–80ms `linear` for presses and switch throws; nothing over 150ms; no spring or overshoot. Respect `prefers-reduced-motion` by dropping transitions entirely.
 
+## Sound
+
+Synthesised by default, made on the first tap with Web Audio: clicks, beeps, drones and noise are all oscillators. The exception is when the sound *is* the instrument a person is training their ear on: Ear Trainer and Chord Finder play a sampled grand piano (the Salamander Grand Piano by Alexander Holm, CC BY 3.0, in `/projects/unit-01/samples/piano/`). Samples load after the first tap and are cached for offline use; until a note's sample has arrived, the app's own synth plays it, so a slow connection never means silence.
+
 ## Iconography
 
 Solid geometric glyphs on a 24px grid, built from rectangles, circles and 45° cuts — see the Icons asset group. On a Key they go in the `glyph` slot and inherit the Key's text colour.

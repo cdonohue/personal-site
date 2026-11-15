@@ -2,7 +2,7 @@
   "id": "/projects/unit-01/apps/06-chords/",
   "name": "Chord Finder · Unit 01",
   "short_name": "Chord Finder",
-  "description": "Name chords from a piano or fretboard.",
+  "description": "Name chords from a piano or fretboard, heard on a sampled grand piano.",
   "start_url": "/projects/unit-01/apps/06-chords/",
   "scope": "/projects/unit-01/apps/06-chords/",
   "display": "standalone",
