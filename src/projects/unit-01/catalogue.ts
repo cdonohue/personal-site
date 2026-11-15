@@ -27,7 +27,7 @@ export type App = {
 }
 
 export const apps: App[] = [
-  { slug: '01-metronome', name: 'Metronome', idea: 'Web Audio metronome with tap tempo, accents and subdivisions.', features: 'Beat pattern keys, tempo fader, meter, sound, presets, session stats.', note: 'Sound starts after the first tap.' },
+  { slug: '01-metronome', name: 'Metronome', idea: 'Web Audio metronome in any meter, with tap tempo, accents and subdivisions.', features: 'Common meters from 2/4 to 12/8, accent, beat or mute on every beat, tempo fader, sound, presets, session stats.', note: 'Sound starts after the first tap.' },
   { slug: '02-tuner', name: 'Tuner', idea: 'Pitch detection from the microphone, plus reference tones.', features: '21-segment cents meter, strings per instrument, A4 from 415 to 466 Hz, pitch trace.', note: 'Asks for microphone access.' },
   { slug: '03-drum-machine', name: 'Drum Machine', idea: 'Sixteen steps, four synthesised voices.', features: 'Swing, mixer knobs, presets, playhead.' },
   { slug: '04-drone', name: 'Drone', idea: 'A held root or chord to practise against.', features: 'Chord modes, four voices, fade, breathing LFO, A4 calibration.' },

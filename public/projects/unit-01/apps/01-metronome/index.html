@@ -160,6 +160,10 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
 .nudge { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); }
 .nudge .u-key { height: 40px; align-items: center; justify-content: center; }
 .row-split { display: flex; flex-direction: column; gap: var(--space-4); }
+/* Common meters: one key per meter, four to a row. The current one is ink. */
+.meters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
+.meters .u-selector__opt { height: 36px; font-family: var(--font-mono); font-weight: 500; letter-spacing: 0; font-size: 13px; }
+.meters .u-selector__opt[aria-pressed="true"] { background: var(--ink); color: var(--chassis); }
 .sound-ctrls { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
 .switches { display: flex; flex-direction: column; gap: var(--space-2); }
 @container (max-width: 300px) { .u-selector__opt .u-led { display: none; } }
@@ -300,7 +304,7 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
       <span class="u-display__label hero__sig" id="sigOut">4/4</span>
     </div>
     <div class="hero__main">
-      <span class="hero__num"><output class="hero__bpm" id="bpmOut" aria-live="off">120</output><span class="u-display__unit">BPM</span></span>
+      <span class="hero__num"><output class="hero__bpm" id="bpmOut" aria-live="off">120</output><span class="u-display__unit" id="bpmUnit">BPM · 1/4</span></span>
     </div>
     <div class="hero__dots" id="dots" aria-hidden="true"></div>
   </section>
@@ -344,14 +348,29 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
   </section>
 
   <section class="u-panel p-meter" aria-label="Meter">
-    <header class="u-panel__head"><span class="u-label"><b>03</b> Meter</span></header>
-    <div class="u-panel__body row-split">
+    <header class="u-panel__head"><span class="u-label"><b>03</b> Meter</span><span class="u-label" id="meterMeta">4/4</span></header>
+    <div class="u-panel__body">
       <div class="u-selector">
-        <span class="u-label">Beats / bar</span>
-        <div class="stepper">
-          <button class="u-key u-key--sm" id="beatsMinus" aria-label="Fewer beats">−</button>
-          <output class="stepper__val" id="beatsOut">04</output>
-          <button class="u-key u-key--sm" id="beatsPlus" aria-label="More beats">+</button>
+        <span class="u-label" id="commonLbl">Common</span>
+        <div class="meters" role="group" aria-labelledby="commonLbl" id="meterSel"></div>
+      </div>
+      <div class="row-split">
+        <div class="u-selector">
+          <span class="u-label">Beats / bar</span>
+          <div class="stepper">
+            <button class="u-key u-key--sm" id="beatsMinus" aria-label="Fewer beats">−</button>
+            <output class="stepper__val" id="beatsOut">04</output>
+            <button class="u-key u-key--sm" id="beatsPlus" aria-label="More beats">+</button>
+          </div>
+        </div>
+        <div class="u-selector">
+          <span class="u-label" id="unitLbl">Beat unit</span>
+          <div class="u-selector__row" role="radiogroup" aria-labelledby="unitLbl" id="unitSel">
+            <button class="u-selector__opt" role="radio" data-v="2"><span class="u-led"></span>/2</button>
+            <button class="u-selector__opt" role="radio" data-v="4"><span class="u-led"></span>/4</button>
+            <button class="u-selector__opt" role="radio" data-v="8"><span class="u-led"></span>/8</button>
+            <button class="u-selector__opt" role="radio" data-v="16"><span class="u-led"></span>/16</button>
+          </div>
         </div>
       </div>
       <div class="u-selector">
@@ -419,7 +438,9 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
 
   /* ── State (remembered per browser when storage works) ── */
   var KEY = 'unit01-metronome';
-  var state = { bpm: 120, beats: 4, sub: 1, sound: 'click', vol: 80, flash: true, subs: true, theme: null,
+  /* unit is the meter's bottom number. Tempo always counts it: 6/8 at 120 is
+     120 eighth notes a minute, 3/2 at 60 is 60 half notes. */
+  var state = { bpm: 120, beats: 4, unit: 4, sub: 1, sound: 'click', vol: 80, flash: true, subs: true, theme: null,
     pattern: ['a','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n'] };
   try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) Object.assign(state, saved); } catch (e) {}
   var save = function () { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
@@ -481,12 +502,30 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
   $('tap').addEventListener('click', tap);
 
   /* ── Meter & pattern ── */
+  /* Common meters and the accents each one starts with. Picking one sets
+     the beats, the unit and these accents; every beat can still be changed
+     to accent, beat or mute afterwards. Grouped /8 meters accent each group. */
+  var METERS = [
+    ['2/4', 2, 4, 'an'], ['3/4', 3, 4, 'ann'], ['4/4', 4, 4, 'annn'], ['5/4', 5, 4, 'annan'],
+    ['6/8', 6, 8, 'annann'], ['7/8', 7, 8, 'ananann'], ['9/8', 9, 8, 'annannann'], ['12/8', 12, 8, 'annannannann']
+  ];
+  function subName(v) { return v === 3 ? 'Trip' : '1/' + state.unit * v; }
+  var syncUnit = function () {};
   function renderMeter() {
+    var sig = state.beats + '/' + state.unit;
     $('beatsOut').textContent = pad(state.beats, 2);
-    var subName = { 1: '1/4', 2: '1/8', 3: 'Trip', 4: '1/16' }[state.sub];
-    $('sigOut').textContent = state.beats + '/4';
-    $('barMeta').textContent = state.beats + '/4 · ' + subName;
+    $('sigOut').textContent = sig;
+    $('meterMeta').textContent = sig;
+    $('barMeta').textContent = sig + ' · ' + subName(state.sub);
     $('beatOut').textContent = 'Beat –/' + state.beats;
+    $('bpmUnit').textContent = 'BPM · 1/' + state.unit;
+    document.querySelectorAll('#subSel [role=radio]').forEach(function (o) {
+      o.innerHTML = '<span class="u-led"></span>' + subName(+o.dataset.v);
+    });
+    document.querySelectorAll('#meterSel button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(+b.dataset.beats === state.beats && +b.dataset.unit === state.unit));
+    });
+    syncUnit();
     var dots = $('dots'), keys = $('beatKeys');
     dots.innerHTML = ''; keys.innerHTML = '';
     for (var i = 0; i < state.beats; i++) {
@@ -520,7 +559,21 @@ body { font-family: var(--font-sans); background: var(--chassis); color: var(--i
       });
     });
     sync();
+    return sync;
   }
+  METERS.forEach(function (m) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'u-selector__opt';
+    b.dataset.beats = m[1]; b.dataset.unit = m[2]; b.textContent = m[0];
+    b.setAttribute('aria-label', m[0] + ' time');
+    b.addEventListener('click', function () {
+      state.beats = m[1]; state.unit = m[2];
+      for (var i = 0; i < 16; i++) state.pattern[i] = m[3].charAt(i) || 'n';
+      renderMeter(); save();
+    });
+    $('meterSel').appendChild(b);
+  });
+  syncUnit = selector($('unitSel'), 'unit', Number);
   selector($('subSel'), 'sub', Number);
   selector($('sndSel'), 'sound', String);
 
