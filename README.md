@@ -19,13 +19,19 @@ src/components/             theme-neutral components
 src/content.ts              everything the site says about jobs, tools and links
 src/pages/                  thin route selectors for the active full-site theme
 src/themes/pixel-desk/      the complete pixel-desk theme and its workbench
+src/themes/flip-board/      a split-flap departures-board theme
 themes/pixel-desk/art/      its Aseprite sources and exports (see its README)
 src/projects/<name>/        a project's explorer: its own layout, styles, pages
 projects/<name>/            a project's source material (e.g. a design system)
 public/projects/<name>/     static files a project serves as-is
 ```
 
-The route files deliberately contain only an import and a render. A theme can
+The route files deliberately contain only an import and a render, from
+`@site-theme/`, an alias `astro.config.mjs` points at the active theme's pages.
+`SITE_THEME=flip-board npm run dev` (or `npm run build`) switches the whole
+site; unset, it is the pixel desk. It is an alias rather than a module that
+imports both themes because Astro bundles the CSS of everything imported,
+rendered or not. A theme can
 take over the whole site by supplying its own pages, layout, styles and visual
 runtime, then becoming the import selected by `src/pages/`. Shared content and
 truly theme-neutral components remain above that boundary.
@@ -81,6 +87,30 @@ of the desktop, and the plug under the left window. The desk is the involved one
 — the occupant stands, shoves the chair out of shot and the desktop rises, three
 overlapping beats that come to about 800ms. Pulling the plug cuts the monitor,
 the clock and the indicator on the power box, and startles whoever is there.
+
+## The flip board
+
+The second theme draws the site as a split-flap board. Every letter is a flap
+that runs through the drum to its character, and a page change turns only the
+cells whose letter or colour differs: the masthead stays still and only the nav
+marker and the body clatter. The clock in the masthead flips just its changed
+digits once a minute.
+
+- **The board is a view of real HTML.** Each page renders ordinary semantic
+  markup from `content.ts`; elements marked `data-board="text"` or
+  `data-board="split"` are read into the board (`board/source.ts`). That markup
+  stays in the page for screen readers and is shown as-is without JavaScript.
+  Keyboard focus stays on its links and lights the matching flaps.
+- **`board/layout.ts` is pure**: blocks and a column count in, a grid of cells
+  out. Diffing one grid against the next is the whole effect, so it is tested.
+- **One canvas, not an element per flap.** DOM flaps with 3D transforms became a
+  compositor layer per turning cell and stalled for over a second on a big page
+  change. The canvas redraws only mid-turn cells from pre-rendered sprites.
+- **Pages swap without a reload** (`board/router.ts`), so the board survives
+  navigation. Each page is still a real static file; the project explorers and
+  external links get ordinary navigation.
+- It shares the stored light/dark choice with the pixel desk and Unit 01, and
+  honours reduced motion by setting letters without turning them.
 
 ## The workbench
 

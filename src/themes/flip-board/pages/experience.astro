@@ -1,0 +1,29 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Link from '../../../components/Link.astro'
+import { jobs } from '../../../content'
+---
+
+<Layout
+  title="Experience"
+  description="Chad Donohue’s experience building product infrastructure, design systems, and customer-facing software."
+>
+  <h2 data-board="text" data-space="2" data-tone="muted">Experience</h2>
+  <p data-board="text" data-space="0">
+    My work spans fintech, education, healthcare, and web design, with a focus on the foundations
+    beneath the product. I shape design systems, frontend architecture, and core workflows that
+    other teams and features depend on.
+  </p>
+  {
+    jobs.map((job) => (
+      <article>
+        {/* Company left, role right: one line of a departures board. */}
+        <div data-board="split" data-space="2">
+          <h3>{job.url ? <Link href={job.url}>{job.company}</Link> : job.company}</h3>
+          <p data-tone="muted">{job.title}</p>
+        </div>
+        <p data-board="text" data-space="0">{job.description}</p>
+      </article>
+    ))
+  }
+</Layout>

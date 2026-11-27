@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro check && astro build && node scripts/verify-build-art.ts",
-    "test": "node --test src/themes/pixel-desk/scene/*.test.ts",
+    "test": "node --test src/themes/pixel-desk/scene/*.test.ts src/themes/flip-board/board/*.test.ts",
     "unit01:apps": "node scripts/unit01-apps.ts",
     "unit01:audit": "node scripts/unit01-audit.ts",
     "preview": "astro preview",

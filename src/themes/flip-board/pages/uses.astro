@@ -1,0 +1,31 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Link from '../../../components/Link.astro'
+import { useCategories, usesItems } from '../../../content'
+
+const groups = useCategories.map((category) => ({
+  category,
+  items: usesItems.filter((item) => item.category === category),
+}))
+---
+
+<Layout title="Uses" description="The hardware in Chad Donohue’s workspace.">
+  <h2 data-board="text" data-space="2" data-tone="muted">Uses</h2>
+  {
+    groups.map(({ category, items }) => (
+      <section>
+        <h3 data-board="text" data-space="2">{category}</h3>
+        {items.map((item, i) => (
+          <article>
+            <h4 data-board="text" data-space={i === 0 ? 0 : 1}>
+              <Link href={item.href}>{item.name}</Link> <span aria-hidden="true" data-tone="muted">↗</span>
+            </h4>
+            <p data-board="text" data-space="0" data-tone="muted">
+              {item.description}
+            </p>
+          </article>
+        ))}
+      </section>
+    ))
+  }
+</Layout>

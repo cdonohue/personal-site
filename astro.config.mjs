@@ -12,6 +12,24 @@ import {
 } from './src/themes/pixel-desk/scene/art.ts'
 
 /**
+ * Which full-site theme owns the routes.
+ *
+ * `src/pages/` imports its pages from `@site-theme/`, and this alias is the
+ * only thing that says where that is. So switching the whole site is one
+ * value — `SITE_THEME=flip-board npm run dev`, or the same variable set on the
+ * host for a build — and unset, it is the pixel desk.
+ *
+ * An alias rather than a module that imports every theme and picks one: Astro
+ * bundles the CSS of everything a page imports, rendered or not, so that would
+ * ship each theme's stylesheet inside the other.
+ */
+const THEMES = ['pixel-desk', 'flip-board']
+const siteTheme = process.env.SITE_THEME || 'pixel-desk'
+if (!THEMES.includes(siteTheme)) {
+  throw new Error(`SITE_THEME must be one of ${THEMES.join(', ')}; got "${siteTheme}"`)
+}
+
+/**
  * The dev room, which is not a page.
  *
  * The theme workbench sits outside `src/pages/`, so file-based routing cannot
@@ -39,6 +57,11 @@ export default defineConfig({
   integrations: [react(), devRoom],
 
   vite: {
+    resolve: {
+      alias: {
+        '@site-theme': new URL(`./src/themes/${siteTheme}/pages`, import.meta.url).pathname,
+      },
+    },
     plugins: [
       tailwindcss(),
       /**

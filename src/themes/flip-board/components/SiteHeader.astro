@@ -1,0 +1,42 @@
+---
+import { navigation, siteName } from '../../../content'
+import Link from '../../../components/Link.astro'
+
+/**
+ * The top two rows of every board: the name and a clock, then the nav.
+ *
+ * They are identical on every page except for which nav item is lit, so a
+ * page change turns those few flaps and leaves the rest of the masthead still.
+ * That only holds while these rows come first and never change length, so
+ * nothing page-specific belongs up here.
+ *
+ * The clock is filled in on the client, in the visitor's own time. The server
+ * renders it empty rather than at the build machine's hour.
+ */
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/'
+
+const isCurrent = (to: string, end?: boolean) => {
+  const target = to.replace(/\/+$/, '') || '/'
+  return end ? path === target : path === target || path.startsWith(`${target}/`)
+}
+---
+
+<header>
+  <div data-board="split" data-space="0">
+    <h1><Link href="/" data-tone="ink">{siteName}</Link></h1>
+    <p data-tone="muted"><time data-flip-clock></time></p>
+  </div>
+  <nav aria-label="Primary">
+    <p data-board="text" data-space="0">
+      {
+        navigation.map(({ label, to, end }) => (
+          <>
+            <Link href={to} aria-current={isCurrent(to, end) ? 'page' : undefined}>
+              {label}
+            </Link>{' '}
+          </>
+        ))
+      }
+    </p>
+  </nav>
+</header>

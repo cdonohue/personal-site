@@ -1,0 +1,157 @@
+/**
+ * The flip board: one housing, one grid of flaps, nothing else on the page.
+ *
+ * Night is the board as it is usually met, cream letters on black flaps with
+ * amber for whatever you can act on. Day is the paler set some halls carried,
+ * dark letters on bone. Both follow the same stored choice as the pixel desk's
+ * light switch, so a reader's Night stays Night between themes.
+ *
+ * Every text colour clears 4.5:1 on its own flap in both schemes: cream 14:1,
+ * muted 5.1:1 and amber 9.6:1 at night; ink 15:1, muted 6.3:1 and rust 5.2:1
+ * by day. The lit flap that marks the current page reverses the pair, at 9.6:1.
+ */
+:root {
+  --housing: #d8d2c4;
+  --flap: #f6f2e8;
+  --flap-shade: #e6e0d2;
+  --hinge: #b8b09e;
+  --ink: #1b1b1b;
+  --muted: #5f5a52;
+  --accent: #b0421a;
+  --lit: #b0421a;
+  --lit-ink: #fbf6ea;
+  --hot: #efe4cf;
+
+  --font-flap: 'Barlow Condensed', 'Arial Narrow', ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --housing: #0d0d0e;
+    --flap: #232325;
+    --flap-shade: #1b1b1d;
+    --hinge: #050505;
+    --ink: #f2ead8;
+    --muted: #918b80;
+    --accent: #f5b301;
+    --lit: #f5b301;
+    --lit-ink: #141414;
+    --hot: #34302a;
+    color-scheme: dark;
+  }
+}
+
+/* An explicit choice beats the system, both ways. Same values as above. */
+:root[data-theme='dark'] {
+  --housing: #0d0d0e;
+  --flap: #232325;
+  --flap-shade: #1b1b1d;
+  --hinge: #050505;
+  --ink: #f2ead8;
+  --muted: #918b80;
+  --accent: #f5b301;
+  --lit: #f5b301;
+  --lit-ink: #141414;
+  --hot: #34302a;
+  color-scheme: dark;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-gutter: stable;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--housing);
+  color: var(--ink);
+  font-family: var(--font-flap);
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+.fb-housing {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+/*
+ * The source, before the board takes over or if it never does: a plain,
+ * readable page in the board's own colours.
+ */
+.fb-source {
+  max-width: 44rem;
+  outline: none;
+}
+.fb-source :is(h1, h2, h3, h4) {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fb-source > header,
+.fb-source [data-board] {
+  margin-top: 1em;
+}
+.fb-source [data-tone='muted'] {
+  color: var(--muted);
+}
+.fb-source a {
+  color: var(--accent);
+}
+.fb-source a[aria-current='page'] {
+  background: var(--lit);
+  color: var(--lit-ink);
+}
+
+/*
+ * With the board running, the source stays in the document for screen readers
+ * and the keyboard but takes no space. Its links still take focus; the board
+ * lights the matching flaps, so focus is never invisible.
+ */
+.fb-js .fb-source {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.fb-board {
+  position: relative;
+}
+html:not(.fb-js) .fb-board {
+  display: none;
+}
+
+/*
+ * The flaps are drawn on one canvas pinned to the window; the board element
+ * keeps their real size so the page scrolls, and carries the link anchors.
+ * See board.ts for why it is not an element per flap.
+ */
+.fb-board {
+  margin: 0 auto;
+}
+.fb-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.fb-hits {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.fb-hits a {
+  position: absolute;
+  pointer-events: auto;
+}

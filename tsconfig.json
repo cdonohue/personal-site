@@ -5,7 +5,11 @@
     "jsxImportSource": "react",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    // Types only: astro.config.mjs points the alias at whichever theme is active.
+    "paths": {
+      "@site-theme/*": ["./src/themes/pixel-desk/pages/*"]
+    }
   },
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist"]
