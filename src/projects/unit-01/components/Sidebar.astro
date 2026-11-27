@@ -1,0 +1,27 @@
+---
+import { sections } from '../catalogue'
+import BackKeys from './BackKeys.astro'
+import NavKeys from './NavKeys.astro'
+
+/**
+ * The wide-screen left column: the explorer's sections as a stack of keys,
+ * then the way back to the site. Narrower than that, the sections live in the
+ * title bar (see SiteHeader) and the way back ends the page as a row of keys —
+ * which is why the two are separate grid items.
+ */
+---
+
+<section class="u-panel side-index">
+  <header class="u-panel__head">
+    <span class="u-label">Index</span>
+    <span class="u-label">{String(sections.length).padStart(2, '0')}</span>
+  </header>
+  <NavKeys />
+</section>
+
+<section class="u-panel side-else">
+  <header class="u-panel__head">
+    <span class="u-label">Site</span>
+  </header>
+  <BackKeys />
+</section>

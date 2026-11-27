@@ -13,6 +13,8 @@
  * what ships when the default comes up.
  */
 
+import { swapPalette } from './palette.ts';
+
 /** One colour per recolourable part. Shades are named, never derived. */
 export type Outfit = {
   name: string;
@@ -302,8 +304,62 @@ export const inkStencil = (
   return canvas;
 };
 
+/** Decode an image URL. Local rather than shared so this module stays Node-testable. */
+const decode = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Failed to decode recoloured sheet`));
+    image.src = url;
+  });
+
+/**
+ * Dress a sheet in an outfit, painting the result into `canvas`.
+ *
+ * The primary path rewrites the PNG's palette (see palette.ts) and draws the
+ * decoded result, which never reads pixels back and so cannot be corrupted by
+ * canvas fingerprinting noise. `recolour` below is the fallback, for a sheet
+ * that is not an indexed PNG or whose bytes could not be fetched.
+ *
+ * `isCurrent` lets a caller drop a paint that a later outfit has overtaken,
+ * since decoding is asynchronous and two quick swaps could land out of order.
+ */
+export const paintOutfit = async (
+  bytes: Uint8Array | null,
+  source: HTMLImageElement,
+  outfit: Outfit,
+  canvas: HTMLCanvasElement,
+  isCurrent: () => boolean = () => true,
+): Promise<void> => {
+  const swapped = bytes ? swapPalette(bytes, keyMap(outfit)) : null;
+  if (!swapped) {
+    if (isCurrent()) recolour(source, outfit, canvas);
+    return;
+  }
+
+  const url = URL.createObjectURL(new Blob([swapped], { type: 'image/png' }));
+  try {
+    const dressed = await decode(url);
+    if (!isCurrent()) return;
+    canvas.width = source.width;
+    canvas.height = source.height;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    context.imageSmoothingEnabled = false;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(dressed, 0, 0);
+  } catch {
+    if (isCurrent()) recolour(source, outfit, canvas);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+};
+
 /**
  * Repaint a sheet's key colours, once, into a canvas the runtime draws from.
+ *
+ * The fallback for `paintOutfit`. It reads pixels back, so in a browser that
+ * adds fingerprinting noise to canvas readback some pixels will miss.
  *
  * Exact matches only. A near miss means the art and `KEYS` have drifted, and
  * the honest failure is that part keeping its drawn colour rather than the

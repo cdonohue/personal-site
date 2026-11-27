@@ -1,0 +1,26 @@
+---
+/**
+ * Unit 01 icons: solid geometric glyphs on a 24px grid, filled with
+ * currentColor so they take the colour of whatever holds them.
+ *
+ * Inline SVG rather than characters on purpose. Arrows such as ↗ and marks
+ * such as ✕ are emoji-prone, and iOS draws them as colour emoji. The paths are
+ * the system's asset files in `themes/unit-01/design-system/assets/Icons/`.
+ */
+interface Props {
+  name: keyof typeof paths
+  class?: string
+}
+
+const paths = {
+  'arrow-right': 'M4 11h11.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H4z',
+  menu: 'M4 6h16v2H4zM4 11h16v2H4zM4 16h10v2H4z',
+  close: 'M6.4 5L12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z',
+}
+
+const { name, class: className } = Astro.props
+---
+
+<svg viewBox="0 0 24 24" class:list={['u-icon', className]} aria-hidden="true">
+  <path d={paths[name]}></path>
+</svg>

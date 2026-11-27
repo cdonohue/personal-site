@@ -9,7 +9,7 @@ import {
   type SceneDecor,
 } from './decor';
 import { WEATHER_CONDITIONS, type ToggleValues, type Weather } from './toggles';
-import { OUTFITS, inkStencil, recolour, type Outfit } from './outfits';
+import { OUTFITS, inkStencil, paintOutfit, type Outfit } from './outfits';
 import type { JigsawFrame, SceneEventFrame, ShootingStarFrame, UfoFrame } from './events';
 import { zonedParts } from './lighting';
 import {
@@ -299,6 +299,17 @@ const SHIRT_KEY: [number, number, number] = [223, 223, 223];
  * else. `away` has no shirt at all, so a logo switches itself off when nobody
  * is there rather than needing to be told.
  */
+/**
+ * How far a read-back channel may stray and still count as the same colour.
+ *
+ * Browsers with canvas fingerprinting protection add small random noise to
+ * getImageData. The comparisons below look for differences that are tens of
+ * units wide, so a few units of slack ignores the noise and changes nothing
+ * else. (Outfits avoid readback entirely; see palette.ts.)
+ */
+const READBACK_SLACK = 3;
+const near = (a: number, b: number) => Math.abs(a - b) <= READBACK_SLACK;
+
 const measureTorso = (
   image: HTMLImageElement | HTMLCanvasElement,
   frames: Frame[],
@@ -315,7 +326,7 @@ const measureTorso = (
     for (let y = rect.y; y < rect.y + rect.h; y += 1) {
       for (let x = rect.x; x < rect.x + rect.w; x += 1) {
         const i = (y * width + x) * 4;
-        if (data[i + 3] > 0 && data[i] === r && data[i + 1] === g && data[i + 2] === b) return y;
+        if (data[i + 3] > 0 && near(data[i], r) && near(data[i + 1], g) && near(data[i + 2], b)) return y;
       }
     }
     return null;
@@ -455,6 +466,16 @@ const resolveRecord = async <T extends Record<string, Promise<unknown>>>(
     await Promise.all(Object.entries(pending).map(async ([key, value]) => [key, await value])),
   ) as { [K in keyof T]: Awaited<T[K]> };
 
+/** A file's raw bytes, or null on any failure — callers have a fallback. */
+const fetchBytes = async (url: string): Promise<Uint8Array | null> => {
+  try {
+    const response = await fetch(url);
+    return response.ok ? new Uint8Array(await response.arrayBuffer()) : null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * `basePath` is where the exported PNG and JSON are served from. It is a
  * parameter rather than a constant because a host site almost certainly serves
@@ -479,6 +500,11 @@ export const loadAssets = async (
   // later. Recolouring the recoloured copy would stack one outfit on the next.
   let characterSource: HTMLImageElement | null = null;
   let characterCanvas: HTMLCanvasElement | null = null;
+  // The PNG's own bytes, so an outfit can be applied to its palette rather
+  // than to read-back pixels. Null if they could not be fetched.
+  let characterBytes: Uint8Array | null = null;
+  // Bumped by every dress, so a slow decode cannot paint over a newer outfit.
+  let dressing = 0;
   // The stencil as drawn, kept unlinked so a change of ink does not have to
   // refetch it — and so re-inking never compounds on the last colour.
   let logoSource: HTMLImageElement | null = null;
@@ -495,9 +521,11 @@ export const loadAssets = async (
       digits: loadSheet(artPath(basePath, SHEET_ASSETS.digits)),
       switchPlate: loadSheet(artPath(basePath, SHEET_ASSETS.switchPlate)),
       weather: loadSheet(artPath(basePath, SHEET_ASSETS.weather)),
-      character: loadSheet(artPath(basePath, SHEET_ASSETS.character), (image) => {
+      character: loadSheet(artPath(basePath, SHEET_ASSETS.character), async (image) => {
         characterSource = image;
-        characterCanvas = recolour(image, outfit);
+        characterBytes = await fetchBytes(`${artPath(basePath, SHEET_ASSETS.character)}.png`);
+        characterCanvas = document.createElement('canvas');
+        await paintOutfit(characterBytes, image, outfit, characterCanvas);
         return characterCanvas;
       }),
       chair: loadSheet(artPath(basePath, SHEET_ASSETS.chair)),
@@ -573,7 +601,10 @@ export const loadAssets = async (
       logoSource && outfit.shirt.logo ? inkStencil(logoSource, outfit.shirt.logo.ink) : null,
     torsoTop: characterSource ? measureTorso(characterSource, character.frames) : [],
     dressCharacter(next) {
-      if (characterSource && characterCanvas) recolour(characterSource, next, characterCanvas);
+      if (characterSource && characterCanvas) {
+        const ticket = ++dressing;
+        void paintOutfit(characterBytes, characterSource, next, characterCanvas, () => ticket === dressing);
+      }
 
       const wantedLogo = next.shirt.logo;
       if (!wantedLogo) {
@@ -682,7 +713,7 @@ const buildGlassMask = (day: HTMLImageElement, night: HTMLImageElement): HTMLCan
 
   for (let i = 0; i < a.data.length; i += 4) {
     const differs =
-      a.data[i] !== b.data[i] || a.data[i + 1] !== b.data[i + 1] || a.data[i + 2] !== b.data[i + 2];
+      !near(a.data[i], b.data[i]) || !near(a.data[i + 1], b.data[i + 1]) || !near(a.data[i + 2], b.data[i + 2]);
     if (differs) {
       out.data[i] = 255;
       out.data[i + 1] = 255;

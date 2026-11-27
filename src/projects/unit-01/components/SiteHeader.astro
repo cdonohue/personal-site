@@ -1,0 +1,98 @@
+---
+import Link from '../../../components/Link.astro'
+import Icon from './Icon.astro'
+import BackKeys from './BackKeys.astro'
+import NavKeys from './NavKeys.astro'
+import { BASE } from '../catalogue'
+
+/**
+ * The explorer's title bar. Its navigation changes form with the space it has:
+ *
+ * - phone: a menu key that opens a sheet of section keys and the way back, so the title bar stays
+ *   one line and the scene is above the fold
+ * - tablet and laptop: the section keys inline in the bar
+ * - wide: nothing here; the index is the left column (Sidebar)
+ *
+ * The menu is a <details>, so it works before and without script.
+ *
+ * It is set the way every Unit 01 screen opens: a small mono index,
+ * the name as heavy type, and the meta and Dark switch on the right.
+ *
+ * The Dark switch shares its stored choice with the site's own light switch
+ * (the one on the wall in the pixel desk), so Night here is Night there.
+ *
+ * It writes through `pixel-desk/theme.ts`, the one owner of that value.
+ */
+interface Props {
+  /** The current page's number in the index, shown before the name. */
+  index: string
+}
+
+const { index } = Astro.props
+---
+
+<header class="head">
+  <h1 class="head__title">
+    <span class="head__index">{index}</span>
+    <Link href={`${BASE}/`}>Unit 01</Link>
+  </h1>
+  <NavKeys class="head__nav" />
+  <div class="head__meta">
+    <span class="u-label head__role">Design system · Chad Donohue</span>
+    <button
+      type="button"
+      role="switch"
+      aria-checked="false"
+      class="u-switch u-switch--ink"
+      data-theme-switch
+    >
+      <span class="u-switch__track"><span class="u-switch__thumb"></span></span>
+      <span class="u-label">Dark</span>
+    </button>
+    <script is:inline>
+      /*
+       * Set the switch before first paint so it never shows off on a dark
+       * page. Mirrors theme.ts: a stored attribute wins, else the system.
+       */
+      ;(function () {
+        var chosen = document.documentElement.getAttribute('data-theme')
+        var dark = chosen
+          ? chosen === 'dark'
+          : window.matchMedia('(prefers-color-scheme: dark)').matches
+        document.querySelector('[data-theme-switch]').setAttribute('aria-checked', String(dark))
+      })()
+    </script>
+    <details class="menu">
+      <summary class="u-key menu__key" aria-label="Menu">
+        <Icon name="menu" class="menu__open" />
+        <Icon name="close" class="menu__close" />
+      </summary>
+      <div class="menu__sheet">
+        <NavKeys />
+        <BackKeys />
+      </div>
+    </details>
+  </div>
+</header>
+
+<script>
+  import { chooseTheme, isDark, watchSystem } from '../../../themes/pixel-desk/theme'
+
+  const toggle = document.querySelector<HTMLButtonElement>('[data-theme-switch]')
+  const sync = () => toggle?.setAttribute('aria-checked', String(isDark()))
+
+  toggle?.addEventListener('click', () => {
+    chooseTheme(!isDark())
+    sync()
+  })
+
+  // The scene's light switch writes the same attribute; follow it.
+  new MutationObserver(sync).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  })
+
+  // A change of system appearance clears the stored choice: last act wins.
+  watchSystem(sync)
+  sync()
+</script>

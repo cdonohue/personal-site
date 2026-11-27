@@ -1,0 +1,16 @@
+---
+import Link from '../../../components/Link.astro'
+import { siteName } from '../../../content'
+import Icon from './Icon.astro'
+
+/** The way out of the explorer, back into the site it lives in. */
+---
+
+<div class="keylist">
+  <Link href="/projects" class="keyrow">
+    <span class="keyrow__label"><Icon name="arrow-right" class="u-icon--back" /> Projects</span>
+  </Link>
+  <Link href="/" class="keyrow">
+    <span class="keyrow__label"><Icon name="arrow-right" class="u-icon--back" /> {siteName}</span>
+  </Link>
+</div>
