@@ -1,4 +1,5 @@
 ---
+import { ClientRouter } from 'astro:transitions'
 import SiteHeader from '../components/SiteHeader.astro'
 import '../styles.css'
 
@@ -16,7 +17,7 @@ const {
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" transition:animate="none">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -31,28 +32,55 @@ const {
     <title>{title ? `Chad Donohue — ${title}` : 'Chad Donohue'}</title>
     <script is:inline>
       /*
-       * Apply a stored theme before anything paints.
+       * Before anything paints: the stored light/dark choice, and the flag
+       * that hands the page text to the flap boards.
        *
-       * The light switch that sets it lives in the hero island on the home
-       * page, which does not exist on the other two and does not run until
-       * after first paint on this one. Without this, choosing dark and then
-       * clicking through to Experience would flash light and correct itself.
+       * The light switch that sets the theme lives in the hero island on the
+       * home page, which does not exist on the other pages and does not run
+       * until after first paint on this one. Without this, choosing dark and
+       * then clicking through to Experience would flash light and correct
+       * itself.
+       *
+       * Page changes swap the <html> attributes for the incoming page's, which
+       * carry neither, so both are put back after every swap. This script runs
+       * once per full load, and the listener lives on for the visit.
+       *
+       * If the board script never arrives, the flag comes off again and the
+       * plain page is left readable, which beats empty space.
        *
        * is:inline keeps it out of the bundle: it has to be in the document, and
        * it has to run before the stylesheet has anything to apply.
        */
-      try {
-        const stored = localStorage.getItem('desk-room.theme')
-        if (stored === 'light' || stored === 'dark') {
-          document.documentElement.setAttribute('data-theme', stored)
-        }
-      } catch {}
+      const prepare = () => {
+        const root = document.documentElement
+        try {
+          const stored = localStorage.getItem('desk-room.theme')
+          if (stored === 'light' || stored === 'dark') root.setAttribute('data-theme', stored)
+        } catch {}
+        root.classList.add('flip-js')
+        if (window.__flipReady) root.classList.add('flip-ready')
+      }
+      prepare()
+      document.addEventListener('astro:after-swap', prepare)
+      setTimeout(() => {
+        if (!window.__flipReady) document.documentElement.classList.remove('flip-js')
+      }, 4000)
     </script>
+    {/*
+      Page changes without a reload, so the flap boards survive them and only
+      turn what changed. Pages are still real HTML files; this fetches the next
+      one and swaps it in. The project explorers are not built on this layout,
+      so going to one is an ordinary navigation.
+    */}
+    <ClientRouter />
   </head>
   <body>
     <div class="mx-auto w-full max-w-3xl px-6 py-12">
       <SiteHeader />
       <slot />
     </div>
+    <script>
+      import '../flip/mount.ts'
+    </script>
   </body>
 </html>

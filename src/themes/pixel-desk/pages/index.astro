@@ -2,6 +2,7 @@
 import DeskScene from '../components/DeskScene'
 import Link from '../../../components/Link.astro'
 import Layout from '../layouts/Layout.astro'
+import FlipText from '../components/FlipText.astro'
 ---
 
 <Layout>
@@ -19,17 +20,17 @@ import Layout from '../layouts/Layout.astro'
     and the full history is one click away on Experience, so this only has to
     say what I do and where, then get out of the way.
   */}
-  <section class="mb-16">
+  <FlipText name="body" class="mb-16">
     <div class="space-y-6 leading-relaxed">
-      <p>
+      <p data-board="text" data-space="0">
         I work across design and engineering, focusing on the systems, interfaces, and frontend
         architecture that help ambitious products stay coherent as they grow. I’m currently a
         software engineer at <Link href="https://ramp.com">Ramp</Link>.
       </p>
-      <p>
+      <p data-board="text">
         I’m especially interested in designing agentic processes that genuinely improve the work
         while keeping people in control and remaining clear, useful, and dependable.
       </p>
     </div>
-  </section>
+  </FlipText>
 </Layout>

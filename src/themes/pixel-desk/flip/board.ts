@@ -37,7 +37,19 @@ export type RenderOptions = {
 }
 
 type Palette = Record<
-  'flap' | 'flapShade' | 'hinge' | 'ink' | 'muted' | 'accent' | 'lit' | 'litInk' | 'hot' | 'font',
+  | 'flap'
+  | 'flapShade'
+  | 'hinge'
+  | 'ink'
+  | 'muted'
+  | 'accent'
+  | 'lit'
+  | 'litInk'
+  | 'hot'
+  | 'font'
+  | 'radius'
+  | 'cap'
+  | 'rows',
   string
 >
 
@@ -75,10 +87,10 @@ export class FlipBoard {
   constructor(el: HTMLElement) {
     this.el = el
     this.canvas = document.createElement('canvas')
-    this.canvas.className = 'fb-canvas'
+    this.canvas.className = 'flip-canvas'
     this.ctx = this.canvas.getContext('2d')!
     this.hits = document.createElement('div')
-    this.hits.className = 'fb-hits'
+    this.hits.className = 'flip-hits'
     el.replaceChildren(this.canvas, this.hits)
 
     const redraw = () => this.invalidate()
@@ -90,6 +102,7 @@ export class FlipBoard {
   /** Colours and face changed: throw away every sprite and draw again. */
   restyle() {
     this.palette = null
+    this.typeCache = null
     this.sprites.clear()
     this.invalidate()
   }
@@ -288,16 +301,19 @@ export class FlipBoard {
     const css = getComputedStyle(this.el)
     const v = (name: string) => css.getPropertyValue(name).trim()
     return {
-      flap: v('--flap'),
+      flap: v('--flap-face'),
       flapShade: v('--flap-shade'),
-      hinge: v('--hinge'),
-      ink: v('--ink'),
-      muted: v('--muted'),
-      accent: v('--accent'),
-      lit: v('--lit'),
-      litInk: v('--lit-ink'),
-      hot: v('--hot'),
-      font: v('--font-flap'),
+      hinge: v('--flap-hinge'),
+      ink: v('--flap-ink'),
+      muted: v('--flap-muted'),
+      accent: v('--flap-accent'),
+      lit: v('--flap-lit'),
+      litInk: v('--flap-lit-ink'),
+      hot: v('--flap-hot'),
+      font: v('--flap-font'),
+      radius: v('--flap-radius') || '0',
+      cap: v('--flap-cap'),
+      rows: v('--flap-pixel-rows'),
     }
   }
 
@@ -321,8 +337,10 @@ export class FlipBoard {
 
     const lit = tone === 'current'
     const face = lit ? p.lit : hot ? p.hot : p.flap
-    const shade = darken(face, lit ? 0.14 : 0.12)
-    const r = Math.min(3, cw / 8)
+    // A hovered flap is flat: its colour is chosen to hold contrast as it is,
+    // and shading it would take the darker end under the line.
+    const shade = hot ? face : darken(face, 0.14)
+    const r = Math.min(parseFloat(p.radius) || 0, cw / 8)
     const half = h / 2
 
     const top = g.createLinearGradient(0, 0, 0, half)
@@ -343,12 +361,17 @@ export class FlipBoard {
 
     if (ch !== ' ') {
       g.fillStyle = lit ? p.litInk : { ink: p.ink, muted: p.muted, accent: p.accent, current: p.litInk }[tone]
-      g.font = `600 ${Math.round(h * 0.7)}px ${p.font}`
-      g.textAlign = 'center'
+      const { size, cap } = this.type(g, h, p)
+      // Drawn in device pixels from here, so a pixel face lands on whole ones.
+      g.setTransform(1, 0, 0, 1, 0, 0)
+      g.font = `${size}px ${p.font}`
       g.textBaseline = 'alphabetic'
+      const width = g.measureText(ch).width
+      const x = Math.round((cw * d - width) / 2)
       // Centre on the cap height, so capitals sit square on the hinge.
-      const cap = g.measureText('H').actualBoundingBoxAscent
-      g.fillText(ch, cw / 2, half + cap / 2)
+      const y = Math.round((h * d + cap) / 2)
+      g.fillText(ch, x, y)
+      g.setTransform(d, 0, 0, d, 0, 0)
     }
 
     // The split between the two halves, drawn over the letter as on a real one.
@@ -364,6 +387,31 @@ export class FlipBoard {
     return sprite
   }
 
+  /**
+   * The face's size in device pixels, chosen by cap height rather than em:
+   * faces differ wildly in how much of the em their capitals fill, and Tiny5's
+   * fill barely half. Capitals take `--flap-cap` of the flap's height.
+   *
+   * With `--flap-pixel-rows` set, the face is a pixel font whose capitals are
+   * that many pixels tall, and the cap height is rounded to a whole multiple
+   * of them, so each of the font's pixels is a whole number of the screen's.
+   */
+  private typeCache: { key: string; size: number; cap: number } | null = null
+  private type(g: CanvasRenderingContext2D, h: number, p: Palette) {
+    const key = `${h}|${this.dpr}|${p.font}|${p.cap}|${p.rows}`
+    if (this.typeCache?.key === key) return this.typeCache
+    g.save()
+    g.setTransform(1, 0, 0, 1, 0, 0)
+    g.font = `100px ${p.font}`
+    const ratio = g.measureText('H').actualBoundingBoxAscent / 100 || 0.7
+    g.restore()
+    let cap = h * this.dpr * (parseFloat(p.cap) || 0.5)
+    const rows = parseInt(p.rows, 10)
+    if (rows > 0) cap = Math.max(rows, Math.round(cap / rows) * rows)
+    this.typeCache = { key, size: cap / ratio, cap }
+    return this.typeCache
+  }
+
   private draw(now: number) {
     const { cols, cw, ch, gap } = this.m
     if (!cols) return
@@ -377,7 +425,9 @@ export class FlipBoard {
     const last = Math.min(this.rows - 1, Math.floor((innerHeight - y0) / pitchY))
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
-    ctx.imageSmoothingEnabled = true
+    // A folding flap is a squashed copy of a sprite. Unsmoothed, it stays made
+    // of hard-edged pixels like everything else on the page.
+    ctx.imageSmoothingEnabled = false
 
     const cell = (i: number) => {
       const row = Math.floor(i / cols)

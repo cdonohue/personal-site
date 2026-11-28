@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro'
 import Link from '../../../components/Link.astro'
+import FlipText from '../components/FlipText.astro'
 import { useCategories, usesItems } from '../../../content'
 
 const groups = useCategories.map((category) => ({
@@ -10,22 +11,24 @@ const groups = useCategories.map((category) => ({
 ---
 
 <Layout title="Uses" description="The hardware in Chad Donohue’s workspace.">
-  <section class="mb-16">
-    <h2 data-role="page-title" class="mb-10">Uses</h2>
+  <FlipText name="body" class="mb-16">
+    <h2 data-role="page-title" data-board="text" data-space="0" class="mb-10">Uses</h2>
     <div class="space-y-12">
       {
         groups.map(({ category, items }) => (
           <section>
-            <h3 data-role="section-label" class="text-muted mb-6">
+            <h3 data-role="section-label" data-board="text" data-space="2" data-tone="muted" class="text-muted mb-6">
               {category}
             </h3>
             <div class="space-y-6 border-t border-line pt-6">
-              {items.map((item) => (
+              {items.map((item, i) => (
                 <Link href={item.href} class="group block">
-                  <h4 data-role="item-title" class="mb-1">
-                    {item.name} <span aria-hidden="true" class="text-muted">↗</span>
+                  <h4 data-role="item-title" data-board="text" data-space={i === 0 ? 0 : 1} class="mb-1">
+                    {item.name} <span aria-hidden="true" data-tone="muted" class="text-muted">↗</span>
                   </h4>
-                  <p class="text-muted leading-relaxed">{item.description}</p>
+                  <p data-board="text" data-space="0" data-tone="muted" class="text-muted leading-relaxed">
+                    {item.description}
+                  </p>
                 </Link>
               ))}
             </div>
@@ -33,5 +36,5 @@ const groups = useCategories.map((category) => ({
         ))
       }
     </div>
-  </section>
+  </FlipText>
 </Layout>
