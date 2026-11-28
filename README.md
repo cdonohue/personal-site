@@ -82,6 +82,36 @@ of the desktop, and the plug under the left window. The desk is the involved one
 overlapping beats that come to about 800ms. Pulling the plug cuts the monitor,
 the clock and the indicator on the power box, and startles whoever is there.
 
+## The flap boards
+
+Every piece of text outside the scene is printed on split flaps: the
+masthead, and the page body below it. Each letter runs through the drum to its
+character, and a page change turns only the cells whose letter or colour
+differs. The name holds still and only the lit nav item moves; the body runs
+where the words changed. The code is in `src/themes/pixel-desk/flip/`.
+
+- **The boards are a view of real HTML.** `components/FlipText.astro` wraps
+  ordinary markup from `content.ts`; elements in it marked `data-board="text"`
+  or `data-board="split"` are what gets printed (`flip/source.ts`). That
+  markup stays in the page for screen readers, and without JavaScript it is
+  simply the plain page, styled as before. Keyboard focus stays on its links
+  and lights the matching flaps.
+- **`flip/layout.ts` is pure**: blocks and a column count in, a grid of cells
+  out. Diffing one grid against the next is the whole effect, so it is tested.
+- **Pages change without a reload**, through Astro's `<ClientRouter />`, and
+  each board is carried across by name with `transition:persist`. That is
+  what lets the next page diff against the last instead of starting from
+  blank. Every page is still a real static file, the router mounts and
+  unmounts the desk scene as you arrive at or leave the home page, and the
+  project explorers, on their own layout, are ordinary navigations.
+- **One canvas per board, not an element per flap.** DOM flaps with 3D
+  transforms became a compositor layer per turning cell and stalled for over a
+  second on a big page change. The canvas redraws only mid-turn cells from
+  pre-rendered sprites.
+- The flaps take their colours from the palette, so the light switch recolours
+  them, and they use Tiny5 snapped to whole device pixels. Reduced motion sets
+  letters without turning them.
+
 ## The workbench
 
 `npm run dev` also serves **`/dev`**, which is not a page. It holds every scene

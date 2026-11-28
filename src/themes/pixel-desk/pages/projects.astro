@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro'
 import Link from '../../../components/Link.astro'
+import FlipText from '../components/FlipText.astro'
 import { projects } from '../../../content'
 ---
 
@@ -8,9 +9,9 @@ import { projects } from '../../../content'
   title="Projects"
   description="Design systems and other things Chad Donohue has built, each explorable in full."
 >
-  <section class="mb-16">
-    <h2 data-role="page-title" class="mb-4">Projects</h2>
-    <p class="text-muted mb-12 max-w-2xl leading-relaxed">
+  <FlipText name="body" class="mb-16">
+    <h2 data-role="page-title" data-board="text" data-space="0" class="mb-4">Projects</h2>
+    <p data-board="text" data-space="0" data-tone="muted" class="text-muted mb-12 max-w-2xl leading-relaxed">
       Things I have built outside the day job. Each one opens into its own space, in its own
       design, with everything in it working rather than pictured.
     </p>
@@ -19,19 +20,19 @@ import { projects } from '../../../content'
       {
         projects.map((project) => (
           <article class="space-y-1">
-            <h3 data-role="item-title">
+            <h3 data-role="item-title" data-board="text" data-space="2">
               <Link href={project.href}>{project.name}</Link>
             </h3>
-            <p data-role="item-meta" class="text-muted">
+            <p data-role="item-meta" data-board="text" data-space="0" data-tone="muted" class="text-muted">
               {project.facts.join(' · ')}
             </p>
-            <p class="pt-2 leading-relaxed">{project.summary} {project.description}</p>
-            <p class="pt-2">
+            <p data-board="text" class="pt-2 leading-relaxed">{project.summary} {project.description}</p>
+            <p data-board="text" class="pt-2">
               <Link href={project.href}>Explore {project.name}</Link>
             </p>
           </article>
         ))
       }
     </div>
-  </section>
+  </FlipText>
 </Layout>

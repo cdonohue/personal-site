@@ -375,3 +375,100 @@
     }
   }
 }
+
+/*
+ * Flap boards: all the page text outside the scene, drawn as split flaps.
+ *
+ * The flaps take their colours from the palette above rather than adding any:
+ * a flap is the sunken surface, letters are ink, muted or accent exactly as
+ * the plain page would print them, and the current page is a lit flap in the
+ * accent. They are read from these properties when the boards draw, so the
+ * light switch and the system appearance recolour them like everything else.
+ *
+ * Square corners and the pixel face, because the boards sit under a pixel-art
+ * room: the one place a split-flap board would normally round its flaps is the
+ * one place this page never rounds anything.
+ *
+ * Contrast, measured against the darker end of each flap (light, dark): ink
+ * 13.1:1 and 13.6:1, muted 4.8:1 and 6.7:1, accent 4.8:1 and 10.5:1, the lit
+ * flap's text 5.8:1 and 11.0:1. A hovered or focused flap is flat #e2e2e2 by
+ * day, where accent and muted text hold 4.6:1; the line grey the plain page
+ * uses for rules would drop them to 3.2:1.
+ */
+:root {
+  --flap-face: var(--color-sunken);
+  --flap-shade: #e6e6e6;
+  --flap-hinge: var(--color-surface);
+  --flap-ink: var(--color-ink);
+  --flap-muted: var(--color-muted);
+  --flap-accent: var(--color-accent);
+  --flap-lit: var(--color-accent);
+  --flap-lit-ink: var(--color-surface);
+  --flap-hot: #e2e2e2;
+  --flap-font: "Tiny5", ui-monospace, monospace;
+  --flap-radius: 0;
+  /* Capitals fill just over half the flap; Tiny5's are five pixels tall. */
+  --flap-cap: 0.56;
+  --flap-pixel-rows: 5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --flap-shade: #1b1c22;
+    --flap-hot: var(--color-line);
+  }
+}
+
+:root[data-theme='dark'] {
+  --flap-shade: #1b1c22;
+  --flap-hot: var(--color-line);
+}
+
+/*
+ * With the boards running, the source markup stays in the document for screen
+ * readers and the keyboard but takes no space. Its links still take focus, and
+ * the board lights the matching flaps, so focus is never invisible.
+ *
+ * Unlayered on purpose, so no utility on the markup can bring it back.
+ */
+.flip-js [data-flip-source] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+html:not(.flip-js) [data-flip-board] {
+  display: none;
+}
+
+[data-flip-board] {
+  position: relative;
+}
+
+/*
+ * The flaps are drawn on a canvas pinned to the window; the board element
+ * keeps their real size, so the page scrolls as normal, and holds the link
+ * anchors. See flip/board.ts for why it is not an element per flap.
+ */
+.flip-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.flip-hits {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.flip-hits a {
+  position: absolute;
+  pointer-events: auto;
+  /* The plain-page link styles above must not paint a dither over the flaps. */
+  padding: 0;
+  background-image: none !important;
+}

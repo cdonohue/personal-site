@@ -1,0 +1,28 @@
+---
+/**
+ * Text that is shown on a flap board.
+ *
+ * The slot is the real markup: headings, paragraphs and links, styled as the
+ * plain pixel-desk page. It stays in the document for screen readers, search
+ * engines and anyone without JavaScript, and it is the only copy of the words.
+ * Elements marked `data-board="text"` or `data-board="split"` inside it are
+ * what the board prints; see `flip/source.ts`.
+ *
+ * The board beside it is persisted across page changes by name, which is what
+ * lets the next page turn only the letters that differ instead of starting
+ * from blank. Every page must therefore use the same names for the same place.
+ */
+interface Props {
+  name: string
+  class?: string
+}
+
+const { name, class: className } = Astro.props
+---
+
+<div class={className}>
+  <div data-flip-source={name}>
+    <slot />
+  </div>
+  <div data-flip-board={name} transition:persist={`flip-${name}`} aria-hidden="true"></div>
+</div>
